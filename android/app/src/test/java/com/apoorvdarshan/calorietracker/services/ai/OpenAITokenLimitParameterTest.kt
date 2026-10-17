@@ -2,6 +2,7 @@ package com.apoorvdarshan.calorietracker.services.ai
 
 import com.apoorvdarshan.calorietracker.models.AIProvider
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 class OpenAITokenLimitParameterTest {
@@ -10,6 +11,7 @@ class OpenAITokenLimitParameterTest {
         listOf(
             "gpt-6",
             "gpt-6-sol",
+            "gpt-6-luna",
             "gpt-6-astra",
             "gpt-6.1-sol",
             "openai/gpt-6-sol",
@@ -56,6 +58,29 @@ class OpenAITokenLimitParameterTest {
                     expected,
                     OpenAICompatibleClient.tokenLimitParameter(provider, model)
                 )
+            }
+        }
+    }
+
+    @Test
+    fun solAndLunaPresetsSupportVisionAndTextWithoutChangingTheDefault() {
+        listOf("gpt-6-luna", "gpt-6-sol").forEach { model ->
+            assertEquals(model, AIProvider.OPENAI.supportedModelOrDefault(model))
+            assertEquals(model, AIProvider.OPENAI.supportedTextModelOrDefault(model))
+        }
+        assertEquals("gpt-5.4-mini", AIProvider.OPENAI.defaultModel)
+        assertEquals("gpt-5.4-mini", AIProvider.OPENAI.defaultTextModel)
+    }
+
+    @Test
+    fun onlyDirectSolAndLunaToolRequestsDisableReasoning() {
+        AIProvider.values().forEach { provider ->
+            listOf("gpt-6-sol", "gpt-6-luna", "  OpenAI/GPT-6-LUNA  ", "gateway/gpt-6-sol-2026-08-01").forEach { model ->
+                val expected = if (provider == AIProvider.OPENAI || provider == AIProvider.CUSTOM_OPENAI) "none" else null
+                assertEquals("$provider: $model", expected, OpenAICompatibleClient.toolReasoningEffort(provider, model))
+            }
+            listOf("gpt-5.6-sol", "gpt-6.1-sol", "gpt-6-astra", "gpt-6", "gpt-6-solar", "", "   ").forEach { model ->
+                assertNull("$provider: $model", OpenAICompatibleClient.toolReasoningEffort(provider, model))
             }
         }
     }
