@@ -166,6 +166,7 @@ object OpenAICompatibleClient {
             .substringAfterLast("/")
 
         return normalized.startsWith("gpt-5") ||
+            normalized.startsWith("gpt-6") ||
             normalized.startsWith("o1") ||
             normalized.startsWith("o3") ||
             normalized.startsWith("o4")
