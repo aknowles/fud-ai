@@ -998,6 +998,8 @@ struct HomeView: View {
     @State private var dailySteps: Int?
     @State private var dailyStepsFetchGeneration = 0
     @State private var showCamera = false
+    /// The food camera reopens in the mode last used: standard or AR Measure (#601).
+    @AppStorage(ARPortionCameraView.preferenceKey) private var foodCameraMeasures = false
     @State private var showBarcodeScanner = false
     @State private var capturedImage: UIImage?
     @State private var cameraMode: CameraMode = .snapFood
@@ -1894,20 +1896,34 @@ private var dailyStepsTaskKey: String {
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraView(
-                    image: $capturedImage,
-                    title: captureImages.isEmpty ? nil : "Photo \(captureImages.count + 1)",
-                    onCancel: {
-                        if !captureImages.isEmpty {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                showMultiPhotoCaptureSheet = true
-                            }
-                        } else {
-                            labelScanBarcode.clear()
+                let title: String? = captureImages.isEmpty ? nil : "Photo \(captureImages.count + 1)"
+                let onCancel = {
+                    if !captureImages.isEmpty {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            showMultiPhotoCaptureSheet = true
                         }
+                    } else {
+                        labelScanBarcode.clear()
                     }
-                )
-                    .ignoresSafeArea()
+                }
+                Group {
+                    if foodCameraMeasures && ARPortionCameraView.isSupported {
+                        ARPortionCameraView(
+                            image: $capturedImage,
+                            title: title,
+                            onCancel: onCancel,
+                            onUseStandardCamera: { foodCameraMeasures = false }
+                        )
+                    } else {
+                        CameraView(
+                            image: $capturedImage,
+                            title: title,
+                            onCancel: onCancel,
+                            onMeasure: ARPortionCameraView.isSupported ? { foodCameraMeasures = true } : nil
+                        )
+                    }
+                }
+                .ignoresSafeArea()
             }
             .fullScreenCover(isPresented: $showBarcodeScanner) {
                 BarcodeScannerView(
@@ -3360,13 +3376,18 @@ struct MultiPhotoCaptureSheet: View {
                                         .padding(10)
                                     }
                                     .overlay(alignment: .bottomLeading) {
-                                        Text("Photo \(index + 1)")
-                                            .font(.caption.weight(.semibold))
-                                            .foregroundStyle(.white)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 6)
-                                            .background(.black.opacity(0.55), in: Capsule())
-                                            .padding(10)
+                                        HStack(spacing: 6) {
+                                            Text("Photo \(index + 1)")
+                                            if PortionScaleRegistry.scale(for: image) != nil {
+                                                Label("Measured", systemImage: "ruler")
+                                            }
+                                        }
+                                        .font(.caption.weight(.semibold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 6)
+                                        .background(.black.opacity(0.55), in: Capsule())
+                                        .padding(10)
                                     }
                             }
                         }
@@ -3565,12 +3586,20 @@ struct CameraView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     let title: String?
     let onCancel: (() -> Void)?
+    /// Shows a Measure button that switches to the AR portion camera (#601).
+    let onMeasure: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
 
-    init(image: Binding<UIImage?>, title: String? = nil, onCancel: (() -> Void)? = nil) {
+    init(
+        image: Binding<UIImage?>,
+        title: String? = nil,
+        onCancel: (() -> Void)? = nil,
+        onMeasure: (() -> Void)? = nil
+    ) {
         _image = image
         self.title = title
         self.onCancel = onCancel
+        self.onMeasure = onMeasure
     }
 
     func makeUIViewController(context: Context) -> UIImagePickerController {
@@ -3639,6 +3668,22 @@ struct CameraView: UIViewControllerRepresentable {
             titleLabel = label
         }
 
+        var measureButton: UIButton?
+        if onMeasure != nil {
+            var config = UIButton.Configuration.plain()
+            config.image = UIImage(systemName: "ruler")
+            config.title = String(localized: "Measure")
+            config.imagePlacement = .top
+            config.imagePadding = 4
+            config.baseForegroundColor = .white
+            let button = UIButton(configuration: config)
+            button.accessibilityLabel = String(localized: "Measure portion size with AR")
+            button.translatesAutoresizingMaskIntoConstraints = false
+            button.addTarget(context.coordinator, action: #selector(Coordinator.measure), for: .touchUpInside)
+            bottomBar.addSubview(button)
+            measureButton = button
+        }
+
         NSLayoutConstraint.activate([
             bottomBar.leadingAnchor.constraint(equalTo: overlay.leadingAnchor),
             bottomBar.trailingAnchor.constraint(equalTo: overlay.trailingAnchor),
@@ -3669,6 +3714,12 @@ struct CameraView: UIViewControllerRepresentable {
                 titleLabel.topAnchor.constraint(equalTo: shutterOuter.bottomAnchor, constant: 14),
             ])
         }
+        if let measureButton {
+            NSLayoutConstraint.activate([
+                measureButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -12),
+                measureButton.centerYAnchor.constraint(equalTo: shutterOuter.centerYAnchor),
+            ])
+        }
 
         picker.cameraOverlayView = overlay
         context.coordinator.picker = picker
@@ -3697,6 +3748,10 @@ struct CameraView: UIViewControllerRepresentable {
         @objc func cancel() {
             parent.onCancel?()
             parent.dismiss()
+        }
+
+        @objc func measure() {
+            parent.onMeasure?()
         }
 
         func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]) {

@@ -397,7 +397,11 @@ struct GeminiService {
         }
     }
 
-    static func multiPhotoAnalysisPrompt(progressiveMeal: Bool, description: String? = nil) -> String {
+    static func multiPhotoAnalysisPrompt(
+        progressiveMeal: Bool,
+        description: String? = nil,
+        portionScaleSection: String? = nil
+    ) -> String {
         let interpretation: String
         if progressiveMeal {
             interpretation = """
@@ -434,6 +438,9 @@ struct GeminiService {
         if let description, !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             prompt += "\n\nAdditional context from the user about this complete meal: \(description)\nApply this note to the full image set."
         }
+        if let portionScaleSection {
+            prompt += "\n\n" + portionScaleSection
+        }
         return prompt
     }
 
@@ -445,7 +452,13 @@ struct GeminiService {
     ) async throws -> FoodAnalysis {
         guard !images.isEmpty else { throw AnalysisError.imageConversionFailed }
 
-        let prompt = multiPhotoAnalysisPrompt(progressiveMeal: progressiveMeal, description: description)
+        // Photos taken with the AR Measure camera carry the table's real-world scale (#601).
+        let portionScaleSection = PortionScale.promptSection(for: images.map(PortionScaleRegistry.scale(for:)))
+        let prompt = multiPhotoAnalysisPrompt(
+            progressiveMeal: progressiveMeal,
+            description: description,
+            portionScaleSection: portionScaleSection
+        )
 
         return try await runWithHostedQuota(.photoFood, skip: skipHostedMetering) {
             let labelText = OnDeviceLabelText(images: images)
@@ -453,7 +466,8 @@ struct GeminiService {
                 images: images,
                 description: description,
                 progressiveMeal: progressiveMeal,
-                labelText: labelText
+                labelText: labelText,
+                portionScaleSection: portionScaleSection
             ) {
                 var result = await addingFallbackServingUnits(to: onDevice, image: images[0], description: description)
                 result.progressiveMeal = progressiveMeal
@@ -870,7 +884,8 @@ struct GeminiService {
         images: [UIImage],
         description: String?,
         progressiveMeal: Bool = false,
-        labelText: OnDeviceLabelText? = nil
+        labelText: OnDeviceLabelText? = nil,
+        portionScaleSection: String? = nil
     ) async throws -> FoodAnalysis? {
         guard !AIModeSettings.isHosted else { return nil }
         let primary = AIProviderSettings.currentConfig(requiresVision: true)
@@ -882,7 +897,8 @@ struct GeminiService {
                     images: images,
                     description: description,
                     progressiveMeal: progressiveMeal,
-                    labelText: try await labelText?.section()
+                    labelText: try await labelText?.section(),
+                    portionScaleSection: portionScaleSection
                 )
                 analysis.progressiveMeal = progressiveMeal
                 return analysis
