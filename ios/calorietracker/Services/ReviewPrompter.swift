@@ -6,7 +6,7 @@ import StoreKit
 /// onboarding, where the user hasn't experienced the app yet. (The onboarding
 /// rating screen deep-links to the App Store write-review page instead.)
 enum ReviewPrompter {
-    private static let promptedKey = "didPromptReviewAfterFirstLog"
+    static let promptedKey = "didPromptReviewAfterFirstLog"
 
     static func foodWasLogged() {
         guard !UserDefaults.standard.bool(forKey: promptedKey) else { return }
@@ -15,6 +15,7 @@ enum ReviewPrompter {
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             if let scene = UIApplication.shared.connectedScenes
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene {
+                AppRating.recordNativeRequest()
                 AppStore.requestReview(in: scene)
             }
         }

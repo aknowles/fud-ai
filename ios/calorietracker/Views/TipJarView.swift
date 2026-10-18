@@ -6,18 +6,20 @@
 import SwiftUI
 import RevenueCat
 
-/// Compact food-themed tip rows shown immediately before About in Settings.
-/// Tips are consumable IAPs that fund development; everything in the app is
-/// already unlocked, so they grant nothing.
-struct TipJarSettingsSection: View {
-    private struct Tier: Identifiable {
+/// The four tip products, their store prices and purchase state, shared by the
+/// Settings tip rows and the What's New support page. Tips are consumable IAPs
+/// that fund development; everything in the app is already unlocked, so they
+/// grant nothing.
+@Observable
+final class TipJarStore {
+    struct Tier: Identifiable {
         let productID: String
         let icon: String
         let name: String
         var id: String { productID }
     }
 
-    private static let tiers: [Tier] = [
+    static let tiers: [Tier] = [
         Tier(productID: "com.apoorvdarshan.calorietracker.tip.snack",
              icon: "tip_snack", name: String(localized: "Snack")),
         Tier(productID: "com.apoorvdarshan.calorietracker.tip.proteinshake",
@@ -28,22 +30,52 @@ struct TipJarSettingsSection: View {
              icon: "tip_feast", name: String(localized: "Feast"))
     ]
 
-    @State private var products: [String: StoreProduct] = [:]
-    @State private var isLoading = true
-    @State private var purchasingID: String?
-    @State private var didTip = false
+    var products: [String: StoreProduct] = [:]
+    var isLoading = true
+    var purchasingID: String?
+    var didTip = false
+
+    func loadIfNeeded() async {
+        if products.isEmpty { await load() }
+    }
+
+    private func load() async {
+        isLoading = true
+        defer { isLoading = false }
+        guard Purchases.isConfigured else { return }
+        let fetched = await Purchases.shared.products(Self.tiers.map(\.productID))
+        products = Dictionary(uniqueKeysWithValues: fetched.map { ($0.productIdentifier, $0) })
+    }
+
+    func purchase(_ product: StoreProduct) async {
+        purchasingID = product.productIdentifier
+        defer { purchasingID = nil }
+        do {
+            let result = try await Purchases.shared.purchase(product: product)
+            if !result.userCancelled {
+                didTip = true
+            }
+        } catch {
+            // Cancelled or failed — the tip buttons simply stay usable.
+        }
+    }
+}
+
+/// Compact food-themed tip rows shown immediately before About in Settings.
+struct TipJarSettingsSection: View {
+    @State private var tipJar = TipJarStore()
 
     var body: some View {
         Section("Leave a Tip") {
-            ForEach(Self.tiers) { tier in
+            ForEach(TipJarStore.tiers) { tier in
                 tierRow(tier)
             }
         }
         .listRowBackground(AppColors.appCard)
         .task {
-            if products.isEmpty { await loadProducts() }
+            await tipJar.loadIfNeeded()
         }
-        .alert("Thank you!", isPresented: $didTip) {
+        .alert("Thank you!", isPresented: $tipJar.didTip) {
             Button("Done", role: .cancel) {}
         } message: {
             Text("Your support keeps Fud AI free for everyone.")
@@ -51,10 +83,10 @@ struct TipJarSettingsSection: View {
     }
 
     @ViewBuilder
-    private func tierRow(_ tier: Tier) -> some View {
-        let product = products[tier.productID]
+    private func tierRow(_ tier: TipJarStore.Tier) -> some View {
+        let product = tipJar.products[tier.productID]
         Button {
-            if let product { Task { await purchase(product) } }
+            if let product { Task { await tipJar.purchase(product) } }
         } label: {
             HStack(spacing: 10) {
                 // PixelLab-generated pixel art; .none interpolation keeps pixels crisp.
@@ -66,7 +98,7 @@ struct TipJarSettingsSection: View {
                 Text(tier.name)
                     .foregroundStyle(.primary)
                 Spacer()
-                if purchasingID == tier.productID || (product == nil && isLoading) {
+                if tipJar.purchasingID == tier.productID || (product == nil && tipJar.isLoading) {
                     ProgressView()
                 } else if let product {
                     Text(product.localizedPriceString)
@@ -80,27 +112,6 @@ struct TipJarSettingsSection: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .disabled(product == nil || purchasingID != nil)
-    }
-
-    private func loadProducts() async {
-        isLoading = true
-        defer { isLoading = false }
-        guard Purchases.isConfigured else { return }
-        let fetched = await Purchases.shared.products(Self.tiers.map(\.productID))
-        products = Dictionary(uniqueKeysWithValues: fetched.map { ($0.productIdentifier, $0) })
-    }
-
-    private func purchase(_ product: StoreProduct) async {
-        purchasingID = product.productIdentifier
-        defer { purchasingID = nil }
-        do {
-            let result = try await Purchases.shared.purchase(product: product)
-            if !result.userCancelled {
-                didTip = true
-            }
-        } catch {
-            // Cancelled or failed — the rows simply stay usable.
-        }
+        .disabled(product == nil || tipJar.purchasingID != nil)
     }
 }

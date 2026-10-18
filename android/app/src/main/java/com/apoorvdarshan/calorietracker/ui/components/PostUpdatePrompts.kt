@@ -46,6 +46,7 @@ import com.apoorvdarshan.calorietracker.models.FudAILinks
 import com.apoorvdarshan.calorietracker.services.ProductHuntLaunchReminder
 import com.apoorvdarshan.calorietracker.services.hosted.AiAccessMode
 import com.apoorvdarshan.calorietracker.services.hosted.HostedPrompt
+import com.apoorvdarshan.calorietracker.services.voice.VoiceSettingsSection
 import com.apoorvdarshan.calorietracker.ui.theme.AppColors
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
@@ -53,9 +54,10 @@ import kotlinx.coroutines.launch
 
 /**
  * One-time prompts for *existing* users the first time they open the app after
- * updating: the optional Hosted Plus/Pro upsell (only once plans are actually
- * purchasable), then Meet the developer, then a Product Hunt vote sheet during
- * the launch day, then arms the launch reminder.
+ * updating: the Live Voice What's new pop-up (once; it covers Plus/Pro and Meet the
+ * developer) or, after it, the optional Hosted Plus/Pro upsell (only once plans are
+ * actually purchasable), then Meet the developer, then a Product Hunt vote sheet
+ * during the launch day, then arms the launch reminder.
  * Fresh installs never qualify — onboarding marks prompts as seen
  * (see PreferencesStore.setOnboardingCompleted).
  */
@@ -69,6 +71,8 @@ fun PostUpdatePromptsHost(container: AppContainer, enabled: Boolean) {
     var waitingForPaywall by remember { mutableStateOf(false) }
     val hostedPrompt by container.hostedUi.prompt.collectAsState()
     var showProductHuntLaunch by remember { mutableStateOf(false) }
+    var showWhatsNew by remember { mutableStateOf(false) }
+    var whatsNewAccess by remember { mutableStateOf<WhatsNewAccess?>(null) }
 
     suspend fun armProductHuntReminder(): Boolean =
         container.notifications.scheduleProductHuntLaunchReminderIfNeeded(prefs)
@@ -134,11 +138,31 @@ fun PostUpdatePromptsHost(container: AppContainer, enabled: Boolean) {
         showMeetDeveloper = true
     }
 
+    /** Its last page covers Meet the developer and its access page the one-time upsell. */
+    suspend fun finishWhatsNew(reachedEnd: Boolean) {
+        prefs.setHasSeenWhatsNewLiveVoice(true)
+        if (reachedEnd) prefs.setHasSeenMeetDeveloperPrompt(true)
+        if (whatsNewAccess?.canBuyPlans == true || container.billing.entitlement.value.isEntitled) {
+            prefs.setHasSeenHostedUpsellPrompt(true)
+        }
+    }
+
     LaunchedEffect(enabled) {
         if (!enabled) return@LaunchedEffect
         // Let the first frame settle before interrupting.
         delay(2_500)
         if (!prefs.hasCompletedOnboarding.first()) return@LaunchedEffect
+        if (!prefs.hasSeenWhatsNewLiveVoice.first()) {
+            whatsNewAccess = loadWhatsNewAccess(container)
+            // A conversation that started meanwhile wins; the pop-up waits for the next launch.
+            if (container.voiceAssistant.isActive) {
+                finishFlow()
+                return@LaunchedEffect
+            }
+            container.notifications.cancelWhatsNew()
+            showWhatsNew = true
+            return@LaunchedEffect
+        }
         if (shouldShowHostedUpsell()) {
             showHostedUpsell = true
             return@LaunchedEffect
@@ -152,6 +176,28 @@ fun PostUpdatePromptsHost(container: AppContainer, enabled: Boolean) {
             waitingForPaywall = false
             continueToMeetDeveloper(delayMillis = 400)
         }
+    }
+
+    if (showWhatsNew) {
+        WhatsNewDialog(
+            container = container,
+            access = whatsNewAccess,
+            onClose = {
+                showWhatsNew = false
+                scope.launch {
+                    finishWhatsNew(reachedEnd = true)
+                    continueToProductHuntLaunch()
+                }
+            },
+            onAddKey = {
+                showWhatsNew = false
+                scope.launch {
+                    finishWhatsNew(reachedEnd = false)
+                    container.navigator.showSettings(VoiceSettingsSection.AI_PROVIDERS)
+                    finishFlow()
+                }
+            }
+        )
     }
 
     if (showHostedUpsell) {

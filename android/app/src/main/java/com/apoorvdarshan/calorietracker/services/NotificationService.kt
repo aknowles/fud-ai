@@ -260,6 +260,52 @@ class NotificationService(private val context: Context) {
         NotificationManagerCompat.from(context).notifySafely(context, APP_UPDATE_NOTIFICATION_ID, notif)
     }
 
+    // -- What's new (once, right after the app updates) ------------------
+
+    /**
+     * Posts the one "What's new" notification after an update, for existing users who
+     * haven't finished the in-app pop-up yet. Respects the in-app Notifications toggle and
+     * never asks for permission from the background.
+     */
+    suspend fun showWhatsNewIfNeeded(prefs: PreferencesStore) {
+        if (!prefs.hasCompletedOnboarding.first()) return
+        if (prefs.hasSeenWhatsNewLiveVoice.first() || prefs.hasNotifiedWhatsNewLiveVoice.first()) return
+        if (!prefs.notificationsEnabled.first() || !canPostNotifications()) return
+        showWhatsNew()
+        prefs.setHasNotifiedWhatsNewLiveVoice(true)
+    }
+
+    /** Tapping it opens the app, which shows the pop-up. */
+    fun showWhatsNew() {
+        val openIntent = Intent(context, MainActivity::class.java).apply {
+            component = ComponentName(context, MainActivity::class.java)
+            setPackage(context.packageName)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP
+        }
+        val open = PendingIntent.getActivity(
+            context,
+            REQUEST_WHATS_NEW,
+            openIntent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+        val text = context.getString(R.string.notif_whats_new_text)
+        val notif = NotificationCompat.Builder(context, CHANNEL_ANNOUNCEMENTS)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle(context.getString(R.string.notif_whats_new_title))
+            .setContentText(text)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(text))
+            .setContentIntent(open)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        NotificationManagerCompat.from(context).notifySafely(context, WHATS_NEW_NOTIFICATION_ID, notif)
+    }
+
+    /** The pop-up is on screen, so the notification about it has done its job. */
+    fun cancelWhatsNew() {
+        NotificationManagerCompat.from(context).cancel(WHATS_NEW_NOTIFICATION_ID)
+    }
+
     // -- Product Hunt launch (one-shot, absolute time) -------------------
 
     /**
@@ -461,6 +507,7 @@ class NotificationService(private val context: Context) {
         private const val APP_UPDATE_NOTIFICATION_ID = 5555
         private const val PRODUCT_HUNT_NOTIFICATION_ID = 6666
         private const val WORKOUT_REST_NOTIFICATION_ID = 7777
+        private const val WHATS_NEW_NOTIFICATION_ID = 8888
         private const val REQUEST_STREAK = 1001
         private const val REQUEST_DAILY = 1002
         private const val REQUEST_WEIGHT = 1003
@@ -470,6 +517,7 @@ class NotificationService(private val context: Context) {
         private const val REQUEST_FASTING = 1007
         private const val REQUEST_PRODUCT_HUNT = 1008
         private const val REQUEST_WORKOUT_REST = 1009
+        private const val REQUEST_WHATS_NEW = 1010
     }
 }
 
@@ -577,7 +625,10 @@ class FastingGoalReceiver : BroadcastReceiver() {
     }
 }
 
-/** Restores an active fast's one-shot goal alarm after reboot or app replacement. */
+/**
+ * Restores an active fast's one-shot goal alarm after reboot or app replacement, and after an
+ * update posts the one "What's new" notification.
+ */
 class FastingBootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED && intent.action != Intent.ACTION_MY_PACKAGE_REPLACED) return
@@ -607,6 +658,9 @@ class FastingBootReceiver : BroadcastReceiver() {
                             app.container.notifications.showProductHuntLaunch()
                         ProductHuntLaunchReminder.Plan.Skip -> Unit
                     }
+                }
+                if (intent.action == Intent.ACTION_MY_PACKAGE_REPLACED) {
+                    app.container.notifications.showWhatsNewIfNeeded(app.container.prefs)
                 }
             } finally {
                 pendingResult.finish()
