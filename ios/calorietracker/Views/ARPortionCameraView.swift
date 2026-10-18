@@ -3,18 +3,20 @@ import CoreImage
 import SwiftUI
 import UIKit
 
-/// Food camera that also measures the table under the food with ARKit, so photo
-/// analysis gets real-world scale (#601). A photo taken before the table is found,
-/// or from a steep angle, is still logged; it just carries no measurement.
+/// The food camera, running ARKit in the background so a photo can carry the
+/// real-world scale of the table under the food (#601). It looks and works like
+/// the standard camera; nothing about AR is shown. A photo is measured only when
+/// tracking is solid and a table plane is under the centre of the frame;
+/// otherwise it is a normal photo.
 struct ARPortionCameraView: UIViewControllerRepresentable {
     @Binding var image: UIImage?
     let title: String?
     let onCancel: (() -> Void)?
-    let onUseStandardCamera: () -> Void
+    /// ARKit couldn't run (camera access, hardware); the caller shows the standard camera.
+    let onSessionFailed: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     static var isSupported: Bool { ARWorldTrackingConfiguration.isSupported }
-    static let preferenceKey = "foodCameraUsesARMeasure"
 
     func makeUIViewController(context: Context) -> ARPortionCameraController {
         let controller = ARPortionCameraController(title: title)
@@ -29,7 +31,7 @@ struct ARPortionCameraView: UIViewControllerRepresentable {
             onCancel?()
             dismiss()
         }
-        controller.onUseStandardCamera = onUseStandardCamera
+        controller.onSessionFailed = onSessionFailed
         return controller
     }
 
@@ -39,21 +41,15 @@ struct ARPortionCameraView: UIViewControllerRepresentable {
 final class ARPortionCameraController: UIViewController, ARSessionDelegate {
     var onCapture: ((UIImage, PortionScale?) -> Void)?
     var onCancel: (() -> Void)?
-    var onUseStandardCamera: (() -> Void)?
+    var onSessionFailed: (() -> Void)?
 
     private let sceneView = ARSCNView()
-    private let statusLabel = UILabel()
-    private let statusBackground = UIView()
-    private let reticle = UIView()
-    private let shutterButton = UIButton(type: .system)
     private let titleText: String?
     private let ciContext = CIContext()
-    private var lastStatusUpdate: TimeInterval = 0
     private var isCapturing = false
     /// Set when the user leaves this camera, so a still that arrives afterwards is dropped.
     private var hasLeft = false
     private var sessionFailed = false
-    private var announcedStatus: String?
 
     init(title: String?) {
         titleText = title
@@ -73,25 +69,13 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         sceneView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(sceneView)
 
-        reticle.layer.cornerRadius = 18
-        reticle.layer.borderWidth = 2
-        reticle.layer.borderColor = UIColor.white.withAlphaComponent(0.8).cgColor
-        reticle.isUserInteractionEnabled = false
-        reticle.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(reticle)
-
-        statusBackground.backgroundColor = UIColor.black.withAlphaComponent(0.6)
-        statusBackground.layer.cornerRadius = 16
-        statusBackground.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(statusBackground)
-
-        statusLabel.textColor = .white
-        statusLabel.font = .systemFont(ofSize: 15, weight: .semibold)
-        statusLabel.numberOfLines = 0
-        statusLabel.textAlignment = .center
-        statusLabel.text = String(localized: "Move your phone slowly to find the table")
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        statusBackground.addSubview(statusLabel)
+        // Same layout as the standard camera: the full 4:3 frame, letterboxed
+        // above the bottom bar, so the preview matches the saved photo.
+        let screenSize = UIScreen.main.bounds.size
+        let previewHeight = screenSize.width * 4.0 / 3.0
+        let bottomBarHeight: CGFloat = 140
+        let availablePreviewHeight = max(0, screenSize.height - bottomBarHeight)
+        let previewOffset = max(0, (availablePreviewHeight - previewHeight) / 2)
 
         let bottomBar = UIView()
         bottomBar.backgroundColor = UIColor.black.withAlphaComponent(0.6)
@@ -114,6 +98,7 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         shutterInner.translatesAutoresizingMaskIntoConstraints = false
         shutterOuter.addSubview(shutterInner)
 
+        let shutterButton = UIButton(type: .system)
         shutterButton.accessibilityLabel = String(localized: "Take photo")
         shutterButton.translatesAutoresizingMaskIntoConstraints = false
         shutterButton.addTarget(self, action: #selector(capture), for: .touchUpInside)
@@ -127,41 +112,16 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         cancelButton.addTarget(self, action: #selector(cancel), for: .touchUpInside)
         bottomBar.addSubview(cancelButton)
 
-        var standardConfig = UIButton.Configuration.plain()
-        standardConfig.image = UIImage(systemName: "camera")
-        standardConfig.title = String(localized: "Camera")
-        standardConfig.imagePlacement = .top
-        standardConfig.imagePadding = 4
-        standardConfig.baseForegroundColor = .white
-        let standardButton = UIButton(configuration: standardConfig)
-        standardButton.accessibilityLabel = String(localized: "Standard camera")
-        standardButton.translatesAutoresizingMaskIntoConstraints = false
-        standardButton.addTarget(self, action: #selector(useStandardCamera), for: .touchUpInside)
-        bottomBar.addSubview(standardButton)
-
         NSLayoutConstraint.activate([
             sceneView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             sceneView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            sceneView.topAnchor.constraint(equalTo: view.topAnchor),
-            sceneView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-
-            reticle.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            reticle.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            reticle.widthAnchor.constraint(equalToConstant: 36),
-            reticle.heightAnchor.constraint(equalToConstant: 36),
-
-            statusBackground.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
-            statusBackground.centerXAnchor.constraint(equalTo: view.centerXAnchor),
-            statusBackground.leadingAnchor.constraint(greaterThanOrEqualTo: view.leadingAnchor, constant: 20),
-            statusLabel.topAnchor.constraint(equalTo: statusBackground.topAnchor, constant: 10),
-            statusLabel.bottomAnchor.constraint(equalTo: statusBackground.bottomAnchor, constant: -10),
-            statusLabel.leadingAnchor.constraint(equalTo: statusBackground.leadingAnchor, constant: 16),
-            statusLabel.trailingAnchor.constraint(equalTo: statusBackground.trailingAnchor, constant: -16),
+            sceneView.topAnchor.constraint(equalTo: view.topAnchor, constant: previewOffset),
+            sceneView.heightAnchor.constraint(equalToConstant: previewHeight),
 
             bottomBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
             bottomBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             bottomBar.bottomAnchor.constraint(equalTo: view.bottomAnchor),
-            bottomBar.heightAnchor.constraint(equalToConstant: 140),
+            bottomBar.heightAnchor.constraint(equalToConstant: bottomBarHeight),
 
             shutterOuter.centerXAnchor.constraint(equalTo: bottomBar.centerXAnchor),
             shutterOuter.centerYAnchor.constraint(equalTo: bottomBar.topAnchor, constant: 50),
@@ -178,8 +138,6 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
 
             cancelButton.leadingAnchor.constraint(equalTo: bottomBar.leadingAnchor, constant: 20),
             cancelButton.centerYAnchor.constraint(equalTo: shutterOuter.centerYAnchor),
-            standardButton.trailingAnchor.constraint(equalTo: bottomBar.trailingAnchor, constant: -12),
-            standardButton.centerYAnchor.constraint(equalTo: shutterOuter.centerYAnchor),
         ])
 
         if let titleText {
@@ -215,15 +173,10 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
 
     // MARK: - ARSessionDelegate
 
-    func session(_ session: ARSession, didUpdate frame: ARFrame) {
-        guard !sessionFailed, frame.timestamp - lastStatusUpdate > 0.2 else { return }
-        lastStatusUpdate = frame.timestamp
-        updateStatus(for: measure(frame, orientation: sceneOrientation))
-    }
-
     func session(_ session: ARSession, didFailWithError error: Error) {
+        guard !sessionFailed, !hasLeft else { return }
         sessionFailed = true
-        setStatus(String(localized: "AR measuring isn't available right now"), state: "failed", ready: false)
+        onSessionFailed?()
     }
 
     // MARK: - Measuring
@@ -232,9 +185,8 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         view.window?.windowScene?.effectiveGeometry.interfaceOrientation ?? .portrait
     }
 
-    /// The live status and the saved photo share this rule: no measurement
-    /// unless tracking is normal and a detected table plane, not the floor, is
-    /// under the centre of the frame.
+    /// No measurement unless tracking is normal and a detected table plane, not
+    /// the floor, is under the centre of the frame.
     private func measure(_ frame: ARFrame, orientation: UIInterfaceOrientation) -> PortionScale? {
         guard !sessionFailed, case .normal = frame.camera.trackingState else { return nil }
         let center = CGPoint(x: 0.5, y: 0.5)
@@ -263,48 +215,6 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         guard let plane = result.anchor as? ARPlaneAnchor else { return false }
         if case .floor = plane.classification { return true }
         return false
-    }
-
-    private func updateStatus(for scale: PortionScale?) {
-        guard let scale else {
-            setStatus(String(localized: "Move your phone slowly to find the table"), state: "searching", ready: false)
-            return
-        }
-        switch scale.readiness {
-        case .tooClose:
-            setStatus(String(localized: "Move your phone a little higher"), state: "tooClose", ready: false)
-        case .tooFar:
-            setStatus(String(localized: "Move your phone closer to the food"), state: "tooFar", ready: false)
-        case .tooTilted:
-            setStatus(String(localized: "Hold your phone flat above the food"), state: "tooTilted", ready: false)
-        case .ready:
-            let distance = Self.formattedHeight(cm: scale.cameraHeightCm)
-            setStatus(String(localized: "Ready · \(distance) above the table"), state: "ready", ready: true)
-        }
-    }
-
-    /// VoiceOver hears each state once; the live height in the ready text
-    /// changes every update and is only shown.
-    private func setStatus(_ text: String, state: String, ready: Bool) {
-        if statusLabel.text != text {
-            statusLabel.text = text
-        }
-        if announcedStatus != state {
-            announcedStatus = state
-            UIAccessibility.post(notification: .announcement, argument: text)
-        }
-        reticle.layer.borderColor = (ready ? UIColor.systemGreen : UIColor.white.withAlphaComponent(0.8)).cgColor
-    }
-
-    private static func formattedHeight(cm: Double) -> String {
-        let measurement: Measurement<UnitLength> = HeightUnit.current == .cm
-            ? Measurement(value: cm.rounded(), unit: .centimeters)
-            : Measurement(value: (cm / 2.54).rounded(), unit: .inches)
-        return measurement.formatted(.measurement(
-            width: .abbreviated,
-            usage: .asProvided,
-            numberFormatStyle: .number.precision(.fractionLength(0))
-        ))
     }
 
     // MARK: - Capture
@@ -368,10 +278,5 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
     @objc private func cancel() {
         hasLeft = true
         onCancel?()
-    }
-
-    @objc private func useStandardCamera() {
-        hasLeft = true
-        onUseStandardCamera?()
     }
 }
