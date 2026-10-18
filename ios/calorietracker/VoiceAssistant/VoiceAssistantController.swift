@@ -1161,3 +1161,36 @@ extension VoiceAssistantController: VoiceAssistantToolHost {
         }
     }
 }
+
+#if DEBUG && targetEnvironment(simulator)
+// MARK: - Screenshots
+
+extension VoiceAssistantController {
+    /// A finished turn for the README and website screenshots (ScreenshotMode), shown
+    /// without connecting: the meal is logged and its Undo card is up.
+    func showScreenshotConversation() {
+        provider = .gemini
+        phase = .live
+        presentation = .session
+        isExpanded = true
+        isAssistantSpeaking = true
+        userCaption = "Log two eggs and a latte for breakfast."
+        assistantCaption = "Done, logged to breakfast. That's 290 calories with 20 grams of protein."
+        cards.clear()
+        cards.show(VoiceAssistantCard(content: .draft(VoiceAssistantCard.Draft(
+            draftID: "screenshot",
+            isWorkout: false,
+            title: "Eggs & latte",
+            lines: ["2 large eggs · 100 g · 156 kcal", "Café latte · 245 g · 134 kcal"],
+            calories: 290,
+            macros: "20P · 11C · 18F",
+            thumbnail: nil,
+            isLogged: true
+        ))))
+        cards.show(VoiceAssistantCard(content: .undo(VoiceAssistantCard.Undo(
+            text: "Logged Eggs & latte · 290 kcal",
+            expiresAt: .now.addingTimeInterval(600)
+        ))))
+    }
+}
+#endif
