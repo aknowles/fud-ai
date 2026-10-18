@@ -123,13 +123,13 @@ class VoicePreviewController(
                         }
                     }
                 }
-                // GPT-Live's backend finishing doesn't end the spoken sample.
-                is LiveEvent.TurnComplete -> if (!completed && event.endsSpokenTurn) {
+                is LiveEvent.TurnComplete -> if (!completed) {
                     if (!event.successful) {
                         finish(id, VoicePreviewError.FAILED)
                         return
                     }
-                    completeSample(id)
+                    // GPT-Live's backend finishing doesn't end the spoken sample.
+                    if (event.endsSpokenTurn) completeSample(id)
                 }
                 is LiveEvent.Closed -> if (!completed) finish(id, VoicePreviewError.FAILED)
                 is LiveEvent.ProviderError, is LiveEvent.HostedNotice, is LiveEvent.ToolCalls ->

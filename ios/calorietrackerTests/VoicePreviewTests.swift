@@ -81,6 +81,15 @@ struct VoicePreviewTests {
         #expect(harness.preview.errorMessage == nil)
     }
 
+    @Test func gptLiveUnsuccessfulBackendCompletionFailsThePreview() async throws {
+        let harness = PreviewHarness(provider: .gptLive)
+        defer { harness.close() }
+        let session = try await harness.startReady()
+        session.emit(.responseDone(hasToolCalls: true, successful: false))
+        try await waitUntil { !harness.preview.isRunning }
+        #expect(harness.preview.errorMessage != nil)
+    }
+
     @Test func completionAfterPlaybackAlreadyDrainedReturnsIdle() async throws {
         let harness = PreviewHarness(provider: .openai)
         defer { harness.close() }

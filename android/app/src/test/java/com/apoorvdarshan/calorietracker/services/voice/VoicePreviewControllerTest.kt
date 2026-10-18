@@ -112,6 +112,21 @@ class VoicePreviewControllerTest {
         assertEquals(VoicePreviewState(), fixture.controller.state.value)
     }
 
+    @Test fun gptLiveUnsuccessfulBackendCompletionFailsThePreview() = runTest {
+        val fixture = Fixture(this, prepare = {
+            voicePreviewConfig(LiveProvider.GPT_LIVE, VoiceAssistantPreferences(), "en", "saved-key", null)
+        })
+        fixture.controller.start("Sample", "en")
+        runCurrent()
+        val connection = fixture.connections.single()
+        connection.emit(LiveEvent.Ready)
+        runCurrent()
+        connection.emit(LiveEvent.TurnComplete(successful = false, endsSpokenTurn = false))
+        runCurrent()
+        assertFalse(fixture.controller.state.value.active)
+        assertEquals(VoicePreviewError.FAILED, fixture.controller.state.value.error)
+    }
+
     @Test fun alreadyDrainedAudioFinishesWhenTheProviderCompletes() = runTest {
         val fixture = Fixture(this)
         fixture.controller.start("Sample", "en")

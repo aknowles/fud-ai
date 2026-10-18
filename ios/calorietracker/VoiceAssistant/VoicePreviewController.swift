@@ -203,8 +203,9 @@ final class VoicePreviewController {
             if !reportsTurnEnds { scheduleQuietFinish(generation: number) }
         case .turnComplete, .responseDone(hasToolCalls: false, successful: true):
             finishGeneration()
-        case .responseDone where !reportsTurnEnds:
-            // GPT-Live's backend finishes before the sample is spoken.
+        case .responseDone(_, true) where !reportsTurnEnds:
+            // GPT-Live's backend finishes before the sample is spoken; an
+            // unsuccessful one still fails below.
             break
         case .error, .hostedError, .closed, .toolCalls, .responseDone:
             showFailure()
