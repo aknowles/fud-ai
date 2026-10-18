@@ -15,7 +15,7 @@
         {
             "guid": "fud-ai",
             "name": "Fud AI",
-            "description": "Fud AI is a free, open-source (MIT) AI calorie and nutrition tracker for iOS and Android. People log meals by photo, barcode, nutrition label, voice or text, and track calories, macros, micronutrients, water, fasting, weight, body fat and workouts, with an AI coach and a live voice assistant. It is privacy-first: no account or sign-in, no ads, and the food diary stays on the device. Users bring their own key for providers such as Gemini, OpenAI, Claude, Grok, Mistral and DeepSeek, or run Gemma 4 on the phone for offline analysis; optional hosted AI plans exist for people without a key. The app is available in 19 languages. Website: https://fud-ai.app",
+            "description": "Fud AI is a free, open-source (MIT) AI calorie and nutrition tracker for iOS and Android. People log meals by photo, barcode, nutrition label, voice or text, and track calories, macros, micronutrients, water, fasting, weight, body fat and workouts, with an AI coach and a live voice assistant. It is privacy-first: no required account and no ads. The food diary is stored on the device, with optional iCloud or Google Drive backup, which needs sign-in to that service. Users bring their own key for providers such as Gemini, OpenAI, Claude, Grok, Mistral and DeepSeek, or run Gemma 4 on the phone for offline analysis; optional hosted AI plans exist for people without a key. The app is available in 19 languages. Website: https://fud-ai.app",
             "webpageUrl": {
                 "url": "https://github.com/apoorvdarshan/fud-ai"
             },
