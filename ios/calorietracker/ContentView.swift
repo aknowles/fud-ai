@@ -998,6 +998,8 @@ struct HomeView: View {
     @State private var dailySteps: Int?
     @State private var dailyStepsFetchGeneration = 0
     @State private var showCamera = false
+    /// Falls back to the standard camera for this session if ARKit can't run (#601).
+    @State private var foodCameraARFailed = false
     @State private var showBarcodeScanner = false
     @State private var capturedImage: UIImage?
     @State private var cameraMode: CameraMode = .snapFood
@@ -1894,20 +1896,31 @@ private var dailyStepsTaskKey: String {
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraView(
-                    image: $capturedImage,
-                    title: captureImages.isEmpty ? nil : "Photo \(captureImages.count + 1)",
-                    onCancel: {
-                        if !captureImages.isEmpty {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                                showMultiPhotoCaptureSheet = true
-                            }
-                        } else {
-                            labelScanBarcode.clear()
+                let title: String? = captureImages.isEmpty ? nil : "Photo \(captureImages.count + 1)"
+                let onCancel = {
+                    if !captureImages.isEmpty {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            showMultiPhotoCaptureSheet = true
                         }
+                    } else {
+                        labelScanBarcode.clear()
                     }
-                )
-                    .ignoresSafeArea()
+                }
+                Group {
+                    // Same camera either way; the AR one also measures the table
+                    // in the background when it can, for the analysis prompt.
+                    if ARPortionCameraView.isSupported && !foodCameraARFailed {
+                        ARPortionCameraView(
+                            image: $capturedImage,
+                            title: title,
+                            onCancel: onCancel,
+                            onSessionFailed: { foodCameraARFailed = true }
+                        )
+                    } else {
+                        CameraView(image: $capturedImage, title: title, onCancel: onCancel)
+                    }
+                }
+                .ignoresSafeArea()
             }
             .fullScreenCover(isPresented: $showBarcodeScanner) {
                 BarcodeScannerView(
