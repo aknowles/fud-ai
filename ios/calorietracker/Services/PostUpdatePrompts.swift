@@ -7,6 +7,7 @@ enum FudAILinks {
     static let instagram = URL(string: "https://www.instagram.com/apoorvcodes/")!
     static let discord = URL(string: "https://discord.gg/Py4VrFctP3")!
     static let productHunt = URL(string: "https://www.producthunt.com/products/fud-ai")!
+    static let appStore = URL(string: "https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726")!
 }
 
 /// One-time prompts shown to *existing* users the first time they open the app
@@ -22,6 +23,9 @@ enum PostUpdatePrompts {
     static let meetDeveloperSeenKey = "hasCompletedMeetDeveloperPrompt"
     /// Separate from Meet the developer so people who already tapped Done still get the launch-day sheet.
     static let productHuntLaunchPromptSeenKey = "hasSeenProductHuntLaunchPrompt.2026-09-29"
+    /// The Live Voice "What's new" pop-up. Set only when it is finished, so a swipe,
+    /// a system tear-down or a killed app shows it again on the next launch.
+    static let whatsNewSeenKey = "hasSeenWhatsNew.liveVoice"
 
     static var hasSeenHostedUpsell: Bool {
         get { UserDefaults.standard.bool(forKey: hostedUpsellSeenKey) }
@@ -38,11 +42,29 @@ enum PostUpdatePrompts {
         set { UserDefaults.standard.set(newValue, forKey: productHuntLaunchPromptSeenKey) }
     }
 
+    static var hasSeenWhatsNew: Bool {
+        get { UserDefaults.standard.bool(forKey: whatsNewSeenKey) }
+        set { UserDefaults.standard.set(newValue, forKey: whatsNewSeenKey) }
+    }
+
+    /// Ends the What's new pop-up for good. Its last page covers Meet the developer and its
+    /// access page the one-time Plus/Pro upsell, so those older prompts are consumed with it.
+    /// - Parameters:
+    ///   - showedPlans: the access page offered Plus and Pro.
+    ///   - reachedEnd: closed from the last page, rather than leaving early to add a key.
+    @MainActor
+    static func finishWhatsNew(showedPlans: Bool, reachedEnd: Bool) {
+        hasSeenWhatsNew = true
+        if reachedEnd { hasSeenMeetDeveloper = true }
+        if showedPlans || RevenueCatManager.shared.hasHostedEntitlement { hasSeenHostedUpsell = true }
+    }
+
     /// Called when onboarding completes so a brand-new user is never treated as
     /// an "existing user who just updated".
     static func markAllSeenForFreshInstall() {
         hasSeenHostedUpsell = true
         hasSeenMeetDeveloper = true
+        hasSeenWhatsNew = true
     }
 
     /// The hosted upsell is only relevant to BYOK users without an active Plus/Pro

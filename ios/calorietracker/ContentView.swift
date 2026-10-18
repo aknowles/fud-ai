@@ -138,6 +138,10 @@ struct ContentView: View {
     @State private var showHostedUpsellPaywall = false
     @State private var showMeetDeveloperPrompt = false
     @State private var showProductHuntLaunchPrompt = false
+    // The Live Voice "What's new" pop-up (see WhatsNewSheet).
+    @State private var showWhatsNew = false
+    @State private var whatsNewAccess: WhatsNewAccess?
+    @State private var whatsNewPage = 0
 
     private var workoutsTabIcon: String {
         WorkoutTabMode.mode(for: workoutTabModeRaw).tabIcon
@@ -185,6 +189,30 @@ struct ContentView: View {
                     PostUpdatePrompts.hasSeenMeetDeveloper = true
                     showMeetDeveloperPrompt = false
                 }
+            }
+            .sheet(isPresented: $showWhatsNew, onDismiss: {
+                if PostUpdatePrompts.hasSeenWhatsNew {
+                    continueToProductHuntLaunchPrompt()
+                } else {
+                    // Only Close (or Add an API Key) finishes it; anything else brings it back.
+                    DispatchQueue.main.async {
+                        showWhatsNew = true
+                    }
+                }
+            }) {
+                WhatsNewSheet(
+                    access: whatsNewAccess,
+                    selection: $whatsNewPage,
+                    onClose: {
+                        PostUpdatePrompts.finishWhatsNew(showedPlans: whatsNewAccess?.canBuyPlans == true, reachedEnd: true)
+                        showWhatsNew = false
+                    },
+                    onAddKey: {
+                        PostUpdatePrompts.finishWhatsNew(showedPlans: whatsNewAccess?.canBuyPlans == true, reachedEnd: false)
+                        showWhatsNew = false
+                        assistantNavigator.show(.settings, settingsSection: .aiProviders)
+                    }
+                )
             }
             .sheet(isPresented: $showProductHuntLaunchPrompt) {
                 ProductHuntLaunchSheet(
@@ -378,8 +406,9 @@ struct ContentView: View {
 
     // MARK: - Post-update prompts (existing users, one-time)
 
-    /// Sequence: hosted upsell (if eligible) → meet the developer → Product Hunt launch sheet
-    /// (only during the launch day) → arm the launch reminder. Never stacks two dialogs.
+    /// Sequence: the Live Voice What's new pop-up (once; it includes Plus/Pro and Meet the
+    /// developer) or, after it, hosted upsell (if eligible) → meet the developer → Product Hunt
+    /// launch sheet (only during the launch day) → arm the launch reminder. Never stacks two dialogs.
     /// Hosted upsell is marked seen when shown; meet-the-developer is marked seen only on Done.
     @MainActor
     private func runPostUpdatePromptsIfNeeded() async {
@@ -388,6 +417,19 @@ struct ContentView: View {
         try? await Task.sleep(for: .seconds(2))
         guard quickActionRequest == nil, foodLogMethodRequest == nil else {
             scheduleProductHuntLaunchReminder()
+            return
+        }
+
+        if !PostUpdatePrompts.hasSeenWhatsNew {
+            let access = await WhatsNewAccessCheck.current()
+            // A launch route or a conversation that started meanwhile wins; the pop-up waits for the next launch.
+            guard quickActionRequest == nil, foodLogMethodRequest == nil, !voiceAssistant.isActive else {
+                scheduleProductHuntLaunchReminder()
+                return
+            }
+            whatsNewAccess = access
+            whatsNewPage = 0
+            showWhatsNew = true
             return
         }
 

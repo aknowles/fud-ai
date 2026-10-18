@@ -265,6 +265,7 @@ class PreferencesStore(
                 prefs[Keys.HAS_SEEN_HOSTED_UPSELL_PROMPT] = true
                 prefs[Keys.HAS_SEEN_HOSTED_UPSELL_PROMPT_V2] = true
                 prefs[Keys.HAS_SEEN_MEET_DEVELOPER_PROMPT] = true
+                prefs[Keys.HAS_SEEN_WHATS_NEW_LIVE_VOICE] = true
             }
             prefs[Keys.ONBOARDING_COMPLETED] = value
         }
@@ -286,6 +287,17 @@ class PreferencesStore(
 
     val hasSeenMeetDeveloperPrompt: Flow<Boolean> = ds.data.map { it[Keys.HAS_SEEN_MEET_DEVELOPER_PROMPT] ?: false }
     suspend fun setHasSeenMeetDeveloperPrompt(v: Boolean) { ds.edit { it[Keys.HAS_SEEN_MEET_DEVELOPER_PROMPT] = v } }
+
+    /**
+     * The Live Voice "What's new" pop-up. Set only when it is finished, so back, a tap
+     * outside or a killed app shows it again on the next launch.
+     */
+    val hasSeenWhatsNewLiveVoice: Flow<Boolean> = ds.data.map { it[Keys.HAS_SEEN_WHATS_NEW_LIVE_VOICE] ?: false }
+    suspend fun setHasSeenWhatsNewLiveVoice(v: Boolean) { ds.edit { it[Keys.HAS_SEEN_WHATS_NEW_LIVE_VOICE] = v } }
+
+    /** The one notification about the pop-up, posted when the app updates, has gone out. */
+    val hasNotifiedWhatsNewLiveVoice: Flow<Boolean> = ds.data.map { it[Keys.HAS_NOTIFIED_WHATS_NEW_LIVE_VOICE] ?: false }
+    suspend fun setHasNotifiedWhatsNewLiveVoice(v: Boolean) { ds.edit { it[Keys.HAS_NOTIFIED_WHATS_NEW_LIVE_VOICE] = v } }
 
     val hasSeenProductHuntLaunchPrompt: Flow<Boolean> =
         ds.data.map { it[Keys.HAS_SEEN_PRODUCT_HUNT_LAUNCH_PROMPT] ?: false }
@@ -1634,6 +1646,8 @@ class PreferencesStore(
         val HAS_SEEN_MEET_DEVELOPER_PROMPT = booleanPreferencesKey("hasCompletedMeetDeveloperPrompt")
         val HAS_SEEN_PRODUCT_HUNT_LAUNCH_PROMPT = booleanPreferencesKey("hasSeenProductHuntLaunchPrompt.2026-09-29")
         val PRODUCT_HUNT_LAUNCH_NOTIFICATION_SCHEDULED = booleanPreferencesKey("productHuntLaunchNotificationScheduled.2026-09-29")
+        val HAS_SEEN_WHATS_NEW_LIVE_VOICE = booleanPreferencesKey("hasSeenWhatsNew.liveVoice")
+        val HAS_NOTIFIED_WHATS_NEW_LIVE_VOICE = booleanPreferencesKey("hasNotifiedWhatsNew.liveVoice")
         val ADAPTIVE_GOALS_PREVIOUS_TARGETS = stringPreferencesKey("adaptiveGoalsPreviousTargets")
         val ADAPTIVE_GOALS_LAST_CHECK_DAY = stringPreferencesKey("adaptiveGoalsLastCheckDay")
         val USE_METRIC = booleanPreferencesKey("useMetric")

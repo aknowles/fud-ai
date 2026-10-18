@@ -191518,6 +191518,2012 @@
           }
         }
       }
+    },
+    "New: Live Voice": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جديد: Live Voice"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni: Live Voice"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novinka: Live Voice"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neu: Live Voice"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "New: Live Voice"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novedad: Live Voice"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nouveau : Live Voice"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "नया: Live Voice"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novità: Live Voice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新機能：Live Voice"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "새 기능: Live Voice"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nieuw: Live Voice"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nowość: Live Voice"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Novidade: Live Voice"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nou: Live Voice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Новое: Live Voice"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeni: Live Voice"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нове: Live Voice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "新功能：Live Voice"
+          }
+        }
+      }
+    },
+    "Talk to Fud AI to log meals, scan barcodes and check your progress.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تحدّث إلى Fud AI لتسجيل الوجبات ومسح الباركود ومتابعة تقدّمك."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yeməkləri qeyd etmək, barkodları skan etmək və irəliləyişinizi yoxlamaq üçün Fud AI ilə danışın."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mluv s Fud AI a zapisuj jídla, skenuj čárové kódy a sleduj svůj pokrok."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sprich mit Fud AI, um Mahlzeiten zu erfassen, Barcodes zu scannen und deinen Fortschritt zu prüfen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Talk to Fud AI to log meals, scan barcodes and check your progress."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Habla con Fud AI para registrar comidas, escanear códigos de barras y ver tu progreso."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parlez à Fud AI pour enregistrer vos repas, scanner des codes-barres et suivre vos progrès."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "भोजन लॉग करने, बारकोड स्कैन करने और अपनी प्रगति देखने के लिए Fud AI से बात करें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Parla con Fud AI per registrare i pasti, scansionare codici a barre e controllare i tuoi progressi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AIに話しかけるだけで、食事の記録、バーコードのスキャン、進捗の確認ができます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI에게 말해서 식사를 기록하고, 바코드를 스캔하고, 진행 상황을 확인하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Praat met Fud AI om maaltijden te loggen, barcodes te scannen en je voortgang te bekijken."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rozmawiaj z Fud AI, aby zapisywać posiłki, skanować kody kreskowe i sprawdzać postępy."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fale com o Fud AI para registrar refeições, escanear códigos de barras e acompanhar seu progresso."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorbește cu Fud AI ca să înregistrezi mese, să scanezi coduri de bare și să-ți verifici progresul."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Говорите с Fud AI, чтобы записывать приёмы пищи, сканировать штрихкоды и следить за прогрессом."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Öğün kaydetmek, barkod taramak ve ilerlemenizi görmek için Fud AI ile konuşun."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Говоріть із Fud AI, щоб записувати прийоми їжі, сканувати штрихкоди й стежити за прогресом."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "和 Fud AI 说话，即可记录饮食、扫描条形码并查看进度。"
+          }
+        }
+      }
+    },
+    "Tap the orb on Home to start.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اضغط على الكرة في الصفحة الرئيسية للبدء."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başlamaq üçün Ana Səhifədəki kürəyə toxunun."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Začni klepnutím na kouli na kartě Domů."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tippe auf die Kugel auf der Startseite, um loszulegen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tap the orb on Home to start."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toca la esfera en Inicio para empezar."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Touchez la sphère sur l’accueil pour commencer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "शुरू करने के लिए होम पर गोले को टैप करें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tocca la sfera nella Home per iniziare."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ホームのオーブをタップして始めましょう。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "홈에서 구체를 눌러 시작하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tik op de bol op Home om te beginnen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dotknij kuli na ekranie głównym, aby zacząć."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Toque na esfera no Início para começar."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Atinge sfera de pe pagina principală ca să începi."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Нажмите на сферу на главном экране, чтобы начать."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Başlamak için Ana Sayfa’daki küreye dokunun."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Торкніться кулі на головному екрані, щоб почати."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "点按主页上的光球即可开始。"
+          }
+        }
+      }
+    },
+    "Included with Plus and Pro, or use your own AI key.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مضمَّن في Plus وPro، أو استخدم مفتاح الذكاء الاصطناعي الخاص بك."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus və Pro-ya daxildir və ya öz AI açarınızdan istifadə edin."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Součást Plus a Pro, nebo použij vlastní klíč k AI."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "In Plus und Pro enthalten – oder nutze deinen eigenen KI-Schlüssel."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Included with Plus and Pro, or use your own AI key."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluido en Plus y Pro, o usa tu propia clave de IA."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclus avec Plus et Pro, ou utilisez votre propre clé d’IA."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus और Pro में शामिल है, या अपनी AI कुंजी इस्तेमाल करें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluso in Plus e Pro, oppure usa la tua chiave IA."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PlusとProに含まれています。ご自身のAIキーでも使えます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus와 Pro에 포함되어 있으며, 내 AI 키로도 사용할 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inbegrepen bij Plus en Pro, of gebruik je eigen AI-sleutel."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "W ramach Plus i Pro albo z własnym kluczem AI."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Incluído no Plus e no Pro, ou use sua própria chave de IA."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Inclus în Plus și Pro sau folosește propria cheie AI."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Входит в Plus и Pro — или используйте свой ключ ИИ."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus ve Pro’ya dahildir ya da kendi yapay zekâ anahtarınızı kullanın."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Входить до Plus і Pro — або використовуйте власний ключ ШІ."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus 和 Pro 已包含，也可以使用你自己的 AI 密钥。"
+          }
+        }
+      }
+    },
+    "Live Voice demo video": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "فيديو توضيحي لـ Live Voice"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice demo videosu"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ukázkové video Live Voice"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demovideo zu Live Voice"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice demo video"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vídeo de demostración de Live Voice"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vidéo de démonstration de Live Voice"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice का डेमो वीडियो"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Video dimostrativo di Live Voice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voiceのデモ動画"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice 데모 동영상"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Demovideo van Live Voice"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Film demonstracyjny Live Voice"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vídeo de demonstração do Live Voice"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Videoclip demonstrativ Live Voice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Демовидео Live Voice"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice tanıtım videosu"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Демовідео Live Voice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice 演示视频"
+          }
+        }
+      }
+    },
+    "Turn sound on": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تشغيل الصوت"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Səsi aç"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zapnout zvuk"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton einschalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn sound on"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activar sonido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Activer le son"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आवाज़ चालू करें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Attiva audio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サウンドをオン"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소리 켜기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geluid aan"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włącz dźwięk"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ativar som"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pornește sunetul"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Включить звук"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesi aç"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Увімкнути звук"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开声音"
+          }
+        }
+      }
+    },
+    "Turn sound off": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إيقاف الصوت"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Səsi bağla"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vypnout zvuk"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ton ausschalten"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Turn sound off"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desactivar sonido"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Couper le son"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आवाज़ बंद करें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Disattiva audio"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "サウンドをオフ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "소리 끄기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geluid uit"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wyłącz dźwięk"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Desativar som"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Oprește sunetul"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выключить звук"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sesi kapat"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вимкнути звук"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "关闭声音"
+          }
+        }
+      }
+    },
+    "Get Live Voice": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على Live Voice"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice əldə edin"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Získej Live Voice"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hol dir Live Voice"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get Live Voice"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Consigue Live Voice"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenez Live Voice"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice पाएँ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ottieni Live Voice"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voiceを使う"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice 시작하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Krijg Live Voice"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Włącz Live Voice"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tenha o Live Voice"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obține Live Voice"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Подключите Live Voice"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice’u edinin"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отримайте Live Voice"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开通 Live Voice"
+          }
+        }
+      }
+    },
+    "Switch to Plus or Pro": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انتقل إلى Plus أو Pro"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus və ya Pro-ya keçin"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přejdi na Plus nebo Pro"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wechsle zu Plus oder Pro"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Switch to Plus or Pro"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cámbiate a Plus o Pro"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passez à Plus ou Pro"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus या Pro पर जाएँ"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Passa a Plus o Pro"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PlusまたはProに切り替える"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus 또는 Pro로 전환하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Stap over op Plus of Pro"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przejdź na Plus lub Pro"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mude para o Plus ou o Pro"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Treci la Plus sau Pro"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейдите на Plus или Pro"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus veya Pro’ya geçin"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Перейдіть на Plus або Pro"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "升级到 Plus 或 Pro"
+          }
+        }
+      }
+    },
+    "Pick Plus or Pro and we run the AI for you, or add your own Gemini, OpenAI, xAI or Qwen API key.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر Plus أو Pro لنشغّل الذكاء الاصطناعي نيابةً عنك، أو أضف مفتاح API خاصًا بك من Gemini أو OpenAI أو xAI أو Qwen."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus və ya Pro seçin, süni intellekti sizin üçün biz işlədək, ya da öz Gemini, OpenAI, xAI və ya Qwen API açarınızı əlavə edin."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vyber si Plus nebo Pro a AI provozujeme za tebe, nebo přidej vlastní API klíč od Gemini, OpenAI, xAI nebo Qwen."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle Plus oder Pro, dann betreiben wir die KI für dich – oder füge deinen eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pick Plus or Pro and we run the AI for you, or add your own Gemini, OpenAI, xAI or Qwen API key."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige Plus o Pro y nosotros ejecutamos la IA por ti, o añade tu propia clave de API de Gemini, OpenAI, xAI o Qwen."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisissez Plus ou Pro et nous faisons tourner l’IA pour vous, ou ajoutez votre propre clé d’API Gemini, OpenAI, xAI ou Qwen."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus या Pro चुनें और AI हम आपके लिए चलाएँगे, या अपनी Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli Plus o Pro e gestiamo noi l’IA per te, oppure aggiungi la tua chiave API di Gemini, OpenAI, xAI o Qwen."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PlusかProを選べばAIはこちらで動かします。または、Gemini、OpenAI、xAI、QwenのAPIキーを追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus나 Pro를 선택하면 AI를 대신 실행해 드려요. 또는 Gemini, OpenAI, xAI, Qwen API 키를 직접 추가하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies Plus of Pro en wij draaien de AI voor je, of voeg je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen toe."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz Plus lub Pro, a my uruchomimy AI za Ciebie, albo dodaj własny klucz API Gemini, OpenAI, xAI lub Qwen."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha o Plus ou o Pro e nós rodamos a IA para você, ou adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alege Plus sau Pro și rulăm noi AI-ul pentru tine sau adaugă propria cheie API Gemini, OpenAI, xAI ori Qwen."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите Plus или Pro, и мы будем запускать ИИ за вас, или добавьте свой ключ API Gemini, OpenAI, xAI или Qwen."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus veya Pro’yu seçin, yapay zekâyı sizin için biz çalıştıralım ya da kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyin."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оберіть Plus або Pro, і ми запускатимемо ШІ за вас, або додайте власний ключ API Gemini, OpenAI, xAI чи Qwen."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择 Plus 或 Pro，由我们为你运行 AI；或者添加你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥。"
+          }
+        }
+      }
+    },
+    "Plus and Pro run the AI for you, with Live Voice included and no API keys to manage. Fud AI stays free with your own keys.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مع Plus وPro نشغّل الذكاء الاصطناعي نيابةً عنك، مع Live Voice ومن دون مفاتيح API لإدارتها. ويبقى Fud AI مجانيًا مع مفاتيحك الخاصة."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus və Pro süni intellekti sizin üçün işlədir: Live Voice daxildir və idarə ediləcək API açarı yoxdur. Öz açarlarınızla Fud AI pulsuz qalır."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus a Pro za tebe provozují AI, včetně Live Voice a bez nutnosti spravovat API klíče. S vlastními klíči zůstává Fud AI zdarma."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus und Pro betreiben die KI für dich – mit Live Voice und ganz ohne API-Schlüssel. Mit eigenen Schlüsseln bleibt Fud AI kostenlos."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus and Pro run the AI for you, with Live Voice included and no API keys to manage. Fud AI stays free with your own keys."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus y Pro ejecutan la IA por ti, con Live Voice incluido y sin claves de API que gestionar. Con tus propias claves, Fud AI sigue siendo gratis."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus et Pro font tourner l’IA pour vous, Live Voice compris, sans clé d’API à gérer. Avec vos propres clés, Fud AI reste gratuit."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus और Pro आपके लिए AI चलाते हैं — Live Voice शामिल है और कोई API कुंजी संभालनी नहीं पड़ती। अपनी कुंजियों के साथ Fud AI मुफ़्त ही रहता है।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus e Pro gestiscono l’IA per te, con Live Voice incluso e nessuna chiave API da configurare. Con le tue chiavi, Fud AI resta gratuito."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "PlusとProならAIをこちらで動かすので、APIキーの管理は不要。Live Voiceも使えます。自分のキーを使えば、Fud AIはこれからも無料です。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus와 Pro는 AI를 대신 실행해 드려요. Live Voice가 포함되어 있고 API 키를 관리할 필요가 없어요. 내 키를 쓰면 Fud AI는 계속 무료예요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus en Pro draaien de AI voor je, inclusief Live Voice en zonder API-sleutels om te beheren. Met je eigen sleutels blijft Fud AI gratis."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus i Pro uruchamiają AI za Ciebie — z Live Voice i bez kluczy API do zarządzania. Z własnymi kluczami Fud AI pozostaje darmowe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Plus e o Pro rodam a IA para você, com o Live Voice incluído e sem chaves de API para gerenciar. Com suas próprias chaves, o Fud AI continua gratuito."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus și Pro rulează AI-ul pentru tine, cu Live Voice inclus și fără chei API de gestionat. Cu propriile chei, Fud AI rămâne gratuit."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus и Pro запускают ИИ за вас: Live Voice включён, а ключи API не нужны. Со своими ключами Fud AI остаётся бесплатным."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus ve Pro yapay zekâyı sizin için çalıştırır; Live Voice dahildir ve yönetmeniz gereken API anahtarı yoktur. Kendi anahtarlarınızla Fud AI ücretsiz kalır."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus і Pro запускають ШІ за вас: Live Voice включено, а ключі API не потрібні. Із власними ключами Fud AI залишається безкоштовним."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Plus 和 Pro 为你运行 AI，包含 Live Voice，无需管理 API 密钥。使用你自己的密钥，Fud AI 依然免费。"
+          }
+        }
+      }
+    },
+    "Fud AI is free and built by one developer. A rating, a share or a small tip helps keep it going.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI مجاني ويطوّره مطوّر واحد. تقييم أو مشاركة أو إكرامية صغيرة تساعد على استمراره."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI pulsuzdur və onu bir tərtibatçı hazırlayır. Qiymətləndirmə, paylaşım və ya kiçik bir bəxşiş onun davam etməsinə kömək edir."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI je zdarma a tvoří ho jediný vývojář. Hodnocení, sdílení nebo malé spropitné mu pomáhá pokračovat."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI ist kostenlos und wird von einem einzigen Entwickler gebaut. Eine Bewertung, eine Empfehlung oder ein kleines Trinkgeld hilft, dass es weitergeht."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI is free and built by one developer. A rating, a share or a small tip helps keep it going."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI es gratis y lo crea un solo desarrollador. Una valoración, compartirlo o una pequeña propina ayudan a que siga adelante."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI est gratuit et développé par une seule personne. Une note, un partage ou un petit pourboire l’aident à continuer."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI मुफ़्त है और इसे एक ही डेवलपर बनाता है। एक रेटिंग, शेयर या छोटी-सी टिप इसे आगे बढ़ाने में मदद करती है।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI è gratuito e lo sviluppa una sola persona. Una valutazione, una condivisione o una piccola mancia aiutano a portarlo avanti."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AIは無料で、1人の開発者が作っています。評価やシェア、ちょっとしたチップが開発の支えになります。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI는 무료이며 개발자 한 명이 만들고 있어요. 평가, 공유, 작은 팁이 큰 힘이 됩니다."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI is gratis en wordt door één ontwikkelaar gemaakt. Een beoordeling, een deel of een kleine fooi helpt om het draaiende te houden."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI jest darmowe i tworzy je jeden programista. Ocena, udostępnienie albo mały napiwek pomagają je rozwijać."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O Fud AI é gratuito e feito por um único desenvolvedor. Uma avaliação, um compartilhamento ou uma pequena gorjeta ajudam a mantê-lo."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI este gratuit și e creat de un singur dezvoltator. O evaluare, o distribuire sau un mic bacșiș îl ajută să continue."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI бесплатен, и его делает один разработчик. Оценка, репост или небольшие чаевые помогают ему развиваться."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI ücretsiz ve tek bir geliştirici tarafından yapılıyor. Bir puan, paylaşım ya da küçük bir bahşiş devam etmesine yardımcı olur."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI безкоштовний, і його створює один розробник. Оцінка, поширення чи невеликі чайові допомагають йому розвиватися."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI 免费，由一位开发者独立打造。评分、分享或一点小费，都能帮助它持续更新。"
+          }
+        }
+      }
+    },
+    "Join the Fud AI community": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "انضم إلى مجتمع Fud AI"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI icmasına qoşulun"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přidej se ke komunitě Fud AI"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tritt der Fud AI-Community bei"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Join the Fud AI community"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Únete a la comunidad de Fud AI"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rejoignez la communauté Fud AI"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI समुदाय से जुड़ें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unisciti alla community di Fud AI"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AIコミュニティに参加"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI 커뮤니티 참여하기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Word lid van de Fud AI-community"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dołącz do społeczności Fud AI"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Entre na comunidade do Fud AI"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alătură-te comunității Fud AI"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Присоединяйтесь к сообществу Fud AI"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI topluluğuna katılın"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приєднуйтеся до спільноти Fud AI"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "加入 Fud AI 社区"
+          }
+        }
+      }
+    },
+    "Get help, share ideas and meet other Fud AI users on Discord.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "احصل على المساعدة وشارك أفكارك وتعرّف على مستخدمي Fud AI الآخرين على Discord."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord-da kömək alın, ideyalarınızı bölüşün və digər Fud AI istifadəçiləri ilə tanış olun."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Na Discordu získáš pomoc, sdílíš nápady a potkáš další uživatele Fud AI."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hol dir Hilfe, teile Ideen und triff andere Fud AI-Nutzer auf Discord."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Get help, share ideas and meet other Fud AI users on Discord."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pide ayuda, comparte ideas y conoce a otros usuarios de Fud AI en Discord."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Obtenez de l’aide, partagez vos idées et rencontrez d’autres utilisateurs de Fud AI sur Discord."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord पर मदद पाएँ, अपने विचार साझा करें और Fud AI के दूसरे उपयोगकर्ताओं से मिलें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Chiedi aiuto, condividi idee e conosci altri utenti di Fud AI su Discord."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discordで質問したり、アイデアを共有したり、ほかのFud AIユーザーと交流したりできます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord에서 도움을 받고, 아이디어를 나누고, 다른 Fud AI 사용자들을 만나 보세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Krijg hulp, deel ideeën en ontmoet andere Fud AI-gebruikers op Discord."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uzyskaj pomoc, dziel się pomysłami i poznaj innych użytkowników Fud AI na Discordzie."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Peça ajuda, compartilhe ideias e conheça outros usuários do Fud AI no Discord."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primește ajutor, împărtășește idei și cunoaște alți utilizatori Fud AI pe Discord."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Получайте помощь, делитесь идеями и общайтесь с другими пользователями Fud AI в Discord."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Discord’da yardım alın, fikirlerinizi paylaşın ve diğer Fud AI kullanıcılarıyla tanışın."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Отримуйте допомогу, діліться ідеями та знайомтеся з іншими користувачами Fud AI у Discord."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "在 Discord 上获取帮助、分享想法，认识其他 Fud AI 用户。"
+          }
+        }
+      }
+    },
+    "Next": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "التالي"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Növbəti"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Další"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Weiter"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Next"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Siguiente"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Suivant"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आगे"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Avanti"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "次へ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다음"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Volgende"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dalej"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Próximo"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Înainte"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далее"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "İleri"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Далі"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下一步"
+          }
+        }
+      }
+    },
+    "Previous": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "السابق"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Əvvəlki"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Předchozí"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zurück"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Previous"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anterior"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Précédent"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पिछला"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Indietro"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "前へ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이전"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vorige"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wstecz"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anterior"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Înapoi"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Назад"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Geri"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Назад"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上一步"
+          }
+        }
+      }
+    },
+    "Add your own Gemini, OpenAI, xAI or Qwen API key to start using Live Voice.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف مفتاح API خاصًا بك من Gemini أو OpenAI أو xAI أو Qwen لبدء استخدام Live Voice."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice-dan istifadəyə başlamaq üçün öz Gemini, OpenAI, xAI və ya Qwen API açarınızı əlavə edin."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přidej vlastní API klíč od Gemini, OpenAI, xAI nebo Qwen a začni používat Live Voice."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge deinen eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu, um Live Voice zu nutzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your own Gemini, OpenAI, xAI or Qwen API key to start using Live Voice."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade tu propia clave de API de Gemini, OpenAI, xAI o Qwen para empezar a usar Live Voice."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez votre propre clé d’API Gemini, OpenAI, xAI ou Qwen pour commencer à utiliser Live Voice."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice इस्तेमाल करना शुरू करने के लिए अपनी Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi la tua chiave API di Gemini, OpenAI, xAI o Qwen per iniziare a usare Live Voice."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voiceを使うには、Gemini、OpenAI、xAI、QwenのAPIキーを追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice를 사용하려면 Gemini, OpenAI, xAI, Qwen API 키를 직접 추가하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen toe om Live Voice te gebruiken."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj własny klucz API Gemini, OpenAI, xAI lub Qwen, aby zacząć korzystać z Live Voice."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen para começar a usar o Live Voice."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă propria cheie API Gemini, OpenAI, xAI ori Qwen ca să începi să folosești Live Voice."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте свой ключ API Gemini, OpenAI, xAI или Qwen, чтобы начать пользоваться Live Voice."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice’u kullanmaya başlamak için kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyin."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додайте власний ключ API Gemini, OpenAI, xAI чи Qwen, щоб почати користуватися Live Voice."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥，即可开始使用 Live Voice。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

@@ -80,6 +80,7 @@ import com.apoorvdarshan.calorietracker.services.update.AndroidUpdateChecker
 import com.apoorvdarshan.calorietracker.services.update.AndroidUpdateState
 import com.apoorvdarshan.calorietracker.ui.components.FudGlassDialog
 import com.apoorvdarshan.calorietracker.ui.components.FudGlassDialogActions
+import com.apoorvdarshan.calorietracker.ui.components.TIP_TIERS
 import com.apoorvdarshan.calorietracker.ui.hosted.findActivity
 import com.revenuecat.purchases.models.StoreProduct
 import com.apoorvdarshan.calorietracker.ui.theme.AppColors
@@ -614,15 +615,6 @@ private fun Hairline() {
             .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f))
     )
 }
-
-private data class TipTier(val productId: String, @DrawableRes val icon: Int, val nameRes: Int)
-
-private val TIP_TIERS = listOf(
-    TipTier("tip_snack", R.drawable.tip_snack, R.string.tip_snack),
-    TipTier("tip_proteinshake", R.drawable.tip_proteinshake, R.string.tip_proteinshake),
-    TipTier("tip_lunch", R.drawable.tip_lunch, R.string.tip_lunch),
-    TipTier("tip_feast", R.drawable.tip_feast, R.string.tip_feast)
-)
 
 /** iOS tip jar parity: four consumable Play products with PixelLab pixel-art icons. */
 @Composable

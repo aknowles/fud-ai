@@ -35,6 +35,8 @@ object CloudBackupPolicy {
         "hasSeenProductHuntLaunchPrompt.2026-09-27",
         "productHuntLaunchNotificationScheduled.2026-09-29",
         "hasSeenProductHuntLaunchPrompt.2026-09-29",
+        // Whether this install already posted its one "What's new" notification.
+        "hasNotifiedWhatsNew.liveVoice",
     )
 
     /** Longest photo file name a backup carries; real ones are a UUID and an extension. */
