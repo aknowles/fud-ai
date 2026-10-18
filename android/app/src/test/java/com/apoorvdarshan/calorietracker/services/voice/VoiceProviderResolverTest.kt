@@ -75,6 +75,21 @@ class VoiceProviderResolverTest {
         assertEquals(CameraFrames.CONTINUOUS, LiveProvider.GEMINI.cameraFrames)
         assertEquals(CameraFrames.PER_TURN, LiveProvider.OPENAI.cameraFrames)
         assertEquals(CameraFrames.NONE, LiveProvider.XAI.cameraFrames)
+        assertEquals(listOf("qwen3.8-omni-flash-realtime"), LiveProvider.QWEN.models)
+        assertEquals("Tina", LiveProvider.QWEN.defaultVoice)
+        assertEquals(10, LiveProvider.QWEN.voices.size)
+        assertEquals(CameraFrames.CONTINUOUS, LiveProvider.QWEN.cameraFrames)
+        assertEquals(AIProvider.QWEN, LiveProvider.QWEN.aiProvider)
+        assertEquals(LiveProvider.QWEN, LiveProvider.forAiProvider(AIProvider.QWEN))
+        assertEquals(VoiceProviderChoice.QWEN, VoiceProviderChoice.fromStorage("qwen"))
+        assertEquals(
+            VoiceAccess.Ready(LiveProvider.QWEN),
+            VoiceProviderResolver.resolve(VoiceProviderChoice.QWEN, AIProvider.GEMINI, { it == LiveProvider.QWEN }, false)
+        )
+        assertEquals(
+            VoiceAccess.MissingKey(LiveProvider.QWEN),
+            VoiceProviderResolver.resolve(VoiceProviderChoice.QWEN, AIProvider.GEMINI, { it == LiveProvider.GEMINI }, true)
+        )
     }
 
     @Test

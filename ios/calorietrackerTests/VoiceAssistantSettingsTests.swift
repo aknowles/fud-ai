@@ -35,6 +35,10 @@ struct VoiceAssistantSettingsTests {
         #expect(route(.openai, keys: [.openai], hosted: false) == .ready(.openai))
         #expect(route(.openai, keys: [.gemini], hosted: true) == .needsAccess(.missingKey(.openai)))
         #expect(route(.xai, keys: [.xai], hosted: true) == .ready(.xai))
+        #expect(route(.qwen, keys: [.qwen], hosted: false) == .ready(.qwen))
+        #expect(route(.qwen, keys: [.gemini], hosted: true) == .needsAccess(.missingKey(.qwen)))
+        #expect(LiveProvider(aiProvider: .qwen) == .qwen)
+        #expect(LiveProvider.qwen.keyProvider == .qwen)
         #expect(route(.gemini, keys: [], hosted: true) == .needsAccess(.missingKey(.gemini)))
     }
 
@@ -100,6 +104,9 @@ struct VoiceAssistantSettingsTests {
         #expect(LiveProvider.gemini.voices.count == 12)
         #expect(LiveProvider.openai.voices.count == 10)
         #expect(LiveProvider.xai.voices == ["ara", "eve", "rex", "sal", "leo"])
+        #expect(LiveProvider.qwen.models == ["qwen3.8-omni-flash-realtime"])
+        #expect(LiveProvider.qwen.defaultVoice == "Tina")
+        #expect(LiveProvider.qwen.voices.count == 10)
         #expect(LiveProvider.hosted.voices == LiveProvider.gemini.voices)
     }
 

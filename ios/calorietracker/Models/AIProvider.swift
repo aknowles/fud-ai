@@ -15,6 +15,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
     case deepinfra = "DeepInfra"
     case mistral = "Mistral"
     case deepseek = "DeepSeek"
+    case qwen = "Alibaba Qwen"
     case cerebras = "Cerebras"
     case ollama = "Ollama (Local)"
     case customOpenAI = "Custom (OpenAI-compatible)"
@@ -33,7 +34,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
 
     var logoAssetName: String? {
         switch self {
-        case .appleIntelligence, .gemma4Local, .customOpenAI: nil
+        case .appleIntelligence, .gemma4Local, .customOpenAI, .qwen: nil
         case .gemini: "provider_gemini"
         case .openai: "provider_openai"
         case .anthropic: "provider_anthropic"
@@ -75,6 +76,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .deepinfra: "https://api.deepinfra.com/v1/openai"
         case .mistral: "https://api.mistral.ai/v1"
         case .deepseek: "https://api.deepseek.com"
+        // Model Studio's public international (Singapore) endpoint.
+        case .qwen: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
         case .cerebras: "https://api.cerebras.ai/v1"
         case .ollama: "http://localhost:11434/v1"
         case .customOpenAI: ""  // user must supply
@@ -289,6 +292,11 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
             "llava",
             "moondream",
         ]
+        case .qwen: [
+            "qwen3.7-plus",                                       // vision, balanced
+            "qwen3.8-max",                                        // vision, flagship
+            "qwen3-vl-plus",                                      // vision-specific
+        ]
         case .deepseek, .cerebras: [] // text-only; never offered for image requests
         case .customOpenAI: []  // user types model name in Settings
         }
@@ -326,6 +334,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
             ]
         case .deepseek:
             return ["deepseek-v4-flash", "deepseek-v4-pro"]
+        case .qwen:
+            return ["qwen3.8-flash", "qwen3.7-plus", "qwen3.8-max"]
         case .cerebras:
             return ["gpt-oss-120b", "gemma-4-31b"]
         case .ollama:
@@ -378,7 +388,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .gemma4Local: .liteRTLocal
         case .gemini: .gemini
         case .anthropic: .anthropic
-        case .openai, .xai, .openrouter, .togetherai, .groq, .huggingface, .fireworks, .deepinfra, .mistral, .deepseek, .cerebras, .ollama, .customOpenAI: .openaiCompatible
+        case .openai, .xai, .openrouter, .togetherai, .groq, .huggingface, .fireworks, .deepinfra, .mistral, .deepseek, .qwen, .cerebras, .ollama, .customOpenAI: .openaiCompatible
         }
     }
 
@@ -406,6 +416,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .deepinfra: "DeepInfra"
         case .mistral: "Mistral"
         case .deepseek: "DeepSeek"
+        case .qwen: "Qwen"
         case .cerebras: "Cerebras"
         case .customOpenAI: "API"
         case .appleIntelligence, .gemma4Local, .ollama: "API"
@@ -422,6 +433,12 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
 }
 
 extension AIProvider {
+    /// Qwen's hybrid models think by default, which slows replies and is refused
+    /// for non-streaming requests, so their requests turn it off.
+    var openAICompatibleExtraBody: [String: Any] {
+        self == .qwen ? ["enable_thinking": false] : [:]
+    }
+
     func openAICompatibleTokenLimitKey(for model: String) -> String {
         if self == .openai || (self == .customOpenAI && Self.usesOpenAICompletionTokenLimit(model: model)) {
             return "max_completion_tokens"

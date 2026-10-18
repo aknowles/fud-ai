@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Beendet</string>
@@ -79,13 +80,13 @@
     <string name="voice_action_voice_settings">Sprachassistent</string>
     <string name="voice_action_open_settings">Einstellungen öffnen</string>
     <string name="voice_notice_setup_title">Sprachassistent</string>
-    <string name="voice_notice_setup_body">Sprich, um Mahlzeiten einzutragen, Essen und Barcodes zu scannen und nach deinem Fortschritt zu fragen. Der Sprachassistent läuft mit einem Fud AI Plus- oder Pro-Abo oder mit deinem eigenen API-Schlüssel von Gemini, OpenAI oder xAI.</string>
+    <string name="voice_notice_setup_body">Sprich, um Mahlzeiten einzutragen, Essen und Barcodes zu scannen und nach deinem Fortschritt zu fragen. Der Sprachassistent läuft mit einem Fud AI Plus- oder Pro-Abo oder mit deinem eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen.</string>
     <string name="voice_notice_missing_key_title">Deinen %1$s-Schlüssel hinzufügen</string>
     <string name="voice_notice_missing_key_body">Der Sprachassistent ist auf %1$s eingestellt und benötigt deinen API-Schlüssel. Füge ihn unter KI-Anbieter hinzu oder wähle in den Einstellungen des Sprachassistenten einen anderen Anbieter.</string>
     <string name="voice_notice_subscription_title">Die Sprachfunktion von Fud AI braucht ein Plus- oder Pro-Abo</string>
-    <string name="voice_notice_subscription_body">Der von Fud AI bereitgestellte Sprachassistent ist in Plus (20 Minuten im Monat) und Pro (100 Minuten im Monat) enthalten. Du kannst auch deinen eigenen Gemini-, OpenAI- oder xAI-Schlüssel verwenden.</string>
+    <string name="voice_notice_subscription_body">Der von Fud AI bereitgestellte Sprachassistent ist in Plus (20 Minuten im Monat) und Pro (100 Minuten im Monat) enthalten. Du kannst auch deinen eigenen Gemini-, OpenAI-, xAI- oder Qwen-Schlüssel verwenden.</string>
     <string name="voice_notice_minutes_title">Deine Sprachminuten sind aufgebraucht</string>
-    <string name="voice_notice_minutes_body">Die Sprachminuten deines Abos für diesen Monat sind aufgebraucht. Kauf Credits, um weiterzusprechen (4 Credits pro Minute), oder nutze deinen eigenen Schlüssel von Gemini, OpenAI oder xAI.</string>
+    <string name="voice_notice_minutes_body">Die Sprachminuten deines Abos für diesen Monat sind aufgebraucht. Kauf Credits, um weiterzusprechen (4 Credits pro Minute), oder nutze deinen eigenen Schlüssel von Gemini, OpenAI, xAI oder Qwen.</string>
     <string name="voice_notice_limit_title">Gesprächslimit erreicht</string>
     <string name="voice_notice_limit_body">Dieses Gespräch hat das Limit von 15 Minuten erreicht. Starte ein neues, um weiterzumachen.</string>
     <string name="voice_notice_mic_title">Mikrofonzugriff erforderlich</string>
@@ -117,10 +118,10 @@
     <string name="voice_settings_add_key">Füge deinen %1$s-Schlüssel unter KI-Anbieter hinzu</string>
     <string name="voice_settings_key_missing">Kein API-Schlüssel für %1$s gespeichert</string>
     <string name="voice_settings_needs_plan">Die Sprachfunktion von Fud AI braucht ein Plus- oder Pro-Abo</string>
-    <string name="voice_settings_needs_setup">Schließe Plus oder Pro ab oder füge einen API-Schlüssel von Gemini, OpenAI oder xAI hinzu</string>
-    <string name="voice_settings_automatic_footer">Automatisch nutzt den in KI-Anbieter gewählten Anbieter, wenn es Gemini, OpenAI oder xAI ist und sein Schlüssel gespeichert ist; sonst Fud AI mit einem Plus- oder Pro-Abo. Eigene Schlüssel sind die in KI-Anbieter gespeicherten.</string>
+    <string name="voice_settings_needs_setup">Schließe Plus oder Pro ab oder füge einen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu</string>
+    <string name="voice_settings_automatic_footer">Automatisch nutzt den in KI-Anbieter gewählten Anbieter, wenn es Gemini, OpenAI, xAI oder Qwen ist und sein Schlüssel gespeichert ist; sonst Fud AI mit einem Plus- oder Pro-Abo. Eigene Schlüssel sind die in KI-Anbieter gespeicherten.</string>
     <string name="voice_settings_auto_capture">Fotos automatisch aufnehmen</string>
-    <string name="voice_settings_auto_capture_footer">Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI gar nicht.</string>
+    <string name="voice_settings_auto_capture_footer">Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini, Qwen und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI gar nicht.</string>
     <string name="voice_settings_confirm_saves">Vor dem Speichern bestätigen</string>
     <string name="voice_settings_confirm_saves_footer">Zeigt eine Karte zur Bestätigung jedes Eintrags und jeder Änderung. Wenn deaktiviert, werden Änderungen sofort gespeichert und können 8 Sekunden lang rückgängig gemacht werden.</string>
     <string name="voice_settings_save_to_coach">Gespräche im Coach speichern</string>

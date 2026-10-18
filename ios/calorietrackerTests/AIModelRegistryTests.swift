@@ -88,6 +88,11 @@ struct AIModelRegistryTests {
                 "mistral-large-2512",
                 "ministral-14b-2512",
             ]),
+            (.qwen, [
+                "qwen3.7-plus",
+                "qwen3.8-max",
+                "qwen3-vl-plus",
+            ]),
             (.ollama, [
                 "qwen3-vl",
                 "qwen3.8",
@@ -138,6 +143,11 @@ struct AIModelRegistryTests {
         #expect(!AIProvider.gemma4Local.requiresAPIKey)
         #expect(AIProvider.deepseek.textModels == ["deepseek-v4-flash", "deepseek-v4-pro"])
         #expect(AIProvider.cerebras.textModels == ["gpt-oss-120b", "gemma-4-31b"])
+        #expect(AIProvider.qwen.textModels == ["qwen3.8-flash", "qwen3.7-plus", "qwen3.8-max"])
+        #expect(AIProvider.qwen.apiFormat == .openaiCompatible)
+        #expect(AIProvider.qwen.baseURL == "https://dashscope-intl.aliyuncs.com/compatible-mode/v1")
+        #expect(AIProvider.qwen.openAICompatibleExtraBody["enable_thinking"] as? Bool == false)
+        #expect(AIProvider.openai.openAICompatibleExtraBody.isEmpty)
         #expect(AIProvider.groq.defaultTextModel == "openai/gpt-oss-20b")
         #expect(AIProvider.groq.textModels.contains("openai/gpt-oss-120b"))
         #expect(AIProvider.togetherai.textModels.contains("deepseek-ai/DeepSeek-V4-Pro"))

@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Завершено</string>
@@ -81,13 +82,13 @@
     <string name="voice_action_voice_settings">Голосовой ассистент</string>
     <string name="voice_action_open_settings">Открыть Настройки</string>
     <string name="voice_notice_setup_title">Голосовой ассистент</string>
-    <string name="voice_notice_setup_body">Говорите, чтобы записывать приёмы пищи, сканировать еду и штрихкоды и спрашивать о прогрессе. Голосовой ассистент работает с планом Fud AI Plus или Pro либо с вашим собственным API-ключом Gemini, OpenAI или xAI.</string>
+    <string name="voice_notice_setup_body">Говорите, чтобы записывать приёмы пищи, сканировать еду и штрихкоды и спрашивать о прогрессе. Голосовой ассистент работает с планом Fud AI Plus или Pro либо с вашим собственным API-ключом Gemini, OpenAI, xAI или Qwen.</string>
     <string name="voice_notice_missing_key_title">Добавьте ключ %1$s</string>
     <string name="voice_notice_missing_key_body">Голосовой помощник настроен на %1$s, для которого нужен ваш ключ API. Добавьте его в разделе «Провайдеры ИИ» или выберите другого провайдера в настройках голосового помощника.</string>
     <string name="voice_notice_subscription_title">Для голосового режима Fud AI нужен план Plus или Pro</string>
-    <string name="voice_notice_subscription_body">Голосовые разговоры через сервер Fud AI входят в планы Plus (20 минут в месяц) и Pro (100 минут в месяц). Можно также использовать собственный ключ Gemini, OpenAI или xAI.</string>
+    <string name="voice_notice_subscription_body">Голосовые разговоры через сервер Fud AI входят в планы Plus (20 минут в месяц) и Pro (100 минут в месяц). Можно также использовать собственный ключ Gemini, OpenAI, xAI или Qwen.</string>
     <string name="voice_notice_minutes_title">Голосовые минуты закончились</string>
-    <string name="voice_notice_minutes_body">Голосовые минуты вашего плана на этот месяц израсходованы. Купите кредиты, чтобы продолжить (4 кредита в минуту), или используйте свой ключ Gemini, OpenAI или xAI.</string>
+    <string name="voice_notice_minutes_body">Голосовые минуты вашего плана на этот месяц израсходованы. Купите кредиты, чтобы продолжить (4 кредита в минуту), или используйте свой ключ Gemini, OpenAI, xAI или Qwen.</string>
     <string name="voice_notice_limit_title">Достигнут лимит разговора</string>
     <string name="voice_notice_limit_body">Этот разговор достиг лимита в 15 минут. Начните новый, чтобы продолжить.</string>
     <string name="voice_notice_mic_title">Нужен доступ к микрофону</string>
@@ -119,10 +120,10 @@
     <string name="voice_settings_add_key">Добавьте ключ %1$s в разделе «Провайдеры ИИ»</string>
     <string name="voice_settings_key_missing">API-ключ %1$s не сохранён</string>
     <string name="voice_settings_needs_plan">Для голосового режима Fud AI нужен план Plus или Pro</string>
-    <string name="voice_settings_needs_setup">Оформите Plus или Pro либо добавьте API-ключ Gemini, OpenAI или xAI</string>
-    <string name="voice_settings_automatic_footer">В автоматическом режиме используется провайдер, выбранный в разделе «Провайдеры ИИ», если это Gemini, OpenAI или xAI и его ключ сохранён; иначе — Fud AI с планом Plus или Pro. Собственные ключи — это ключи, сохранённые в разделе «Провайдеры ИИ».</string>
+    <string name="voice_settings_needs_setup">Оформите Plus или Pro либо добавьте API-ключ Gemini, OpenAI, xAI или Qwen</string>
+    <string name="voice_settings_automatic_footer">В автоматическом режиме используется провайдер, выбранный в разделе «Провайдеры ИИ», если это Gemini, OpenAI, xAI или Qwen и его ключ сохранён; иначе — Fud AI с планом Plus или Pro. Собственные ключи — это ключи, сохранённые в разделе «Провайдеры ИИ».</string>
     <string name="voice_settings_auto_capture">Автоматическая съёмка</string>
-    <string name="voice_settings_auto_capture_footer">Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит.</string>
+    <string name="voice_settings_auto_capture_footer">Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит.</string>
     <string name="voice_settings_confirm_saves">Подтверждение перед сохранением</string>
     <string name="voice_settings_confirm_saves_footer">Показывать карточку для подтверждения каждой записи или изменения. Если выключено, изменения сохраняются сразу, и их можно отменить в течение 8 секунд.</string>
     <string name="voice_settings_save_to_coach">Сохранять разговоры в «Тренере»</string>

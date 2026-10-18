@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (लोकल)</string>
     <string name="ai_provider_custom">कस्टम (OpenAI-संगत)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">DeepInfra API कुंजी पेस्ट करें</string>
     <string name="ai_key_placeholder_mistral">Mistral API कुंजी पेस्ट करें</string>
     <string name="ai_key_placeholder_deepseek">DeepSeek API कुंजी पेस्ट करें</string>
+    <string name="ai_key_placeholder_qwen">Qwen API कुंजी पेस्ट करें</string>
     <string name="ai_key_placeholder_cerebras">Cerebras API कुंजी पेस्ट करें</string>
     <string name="ai_key_placeholder_ollama">कुंजी की ज़रूरत नहीं</string>
     <string name="ai_key_placeholder_custom">API कुंजी (या कुछ भी, अगर एंडपॉइंट को ज़रूरत न हो)</string>

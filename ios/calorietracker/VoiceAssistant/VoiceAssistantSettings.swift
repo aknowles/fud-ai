@@ -9,6 +9,7 @@ nonisolated enum VoiceAssistantProviderChoice: String, CaseIterable, Identifiabl
     case gemini
     case openai
     case xai
+    case qwen
 
     var id: String { rawValue }
 
@@ -20,6 +21,7 @@ nonisolated enum VoiceAssistantProviderChoice: String, CaseIterable, Identifiabl
         case .gemini: .gemini
         case .openai: .openai
         case .xai: .xai
+        case .qwen: .qwen
         }
     }
 }
@@ -44,7 +46,7 @@ nonisolated enum VoiceAssistantRoute: Equatable, Sendable {
 nonisolated enum VoiceAssistantRouting {
     /// - Parameters:
     ///   - selectedOwnKeyProvider: the AI provider selected in AI provider settings,
-    ///     when it is one the assistant can talk through (Gemini, OpenAI, xAI).
+    ///     when it is one the assistant can talk through (Gemini, OpenAI, xAI, Qwen).
     ///   - providersWithKeys: own-key providers with a key saved in AI provider settings.
     static func resolve(
         choice: VoiceAssistantProviderChoice,
@@ -60,7 +62,7 @@ nonisolated enum VoiceAssistantRouting {
             return hasHostedEntitlement ? .ready(.hosted) : .needsAccess(.noProvider)
         case .hosted:
             return hasHostedEntitlement ? .ready(.hosted) : .needsAccess(.needsSubscription)
-        case .gemini, .openai, .xai:
+        case .gemini, .openai, .xai, .qwen:
             let provider = choice.fixedProvider ?? .gemini
             return providersWithKeys.contains(provider) ? .ready(provider) : .needsAccess(.missingKey(provider))
         }
@@ -198,6 +200,7 @@ extension LiveProvider {
         case .gemini: .gemini
         case .openai: .openai
         case .xai: .xai
+        case .qwen: .qwen
         }
     }
 
@@ -207,6 +210,7 @@ extension LiveProvider {
         case .gemini: self = .gemini
         case .openai: self = .openai
         case .xai: self = .xai
+        case .qwen: self = .qwen
         default: return nil
         }
     }
@@ -233,6 +237,7 @@ extension VoiceAssistantProviderChoice {
         case .gemini: "Gemini"
         case .openai: "OpenAI"
         case .xai: "xAI"
+        case .qwen: "Qwen"
         }
     }
 }

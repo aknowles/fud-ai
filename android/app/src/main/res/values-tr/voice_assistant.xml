@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Bitti</string>
@@ -79,13 +80,13 @@
     <string name="voice_action_voice_settings">Sesli Asistan</string>
     <string name="voice_action_open_settings">Ayarları Aç</string>
     <string name="voice_notice_setup_title">Sesli Asistan</string>
-    <string name="voice_notice_setup_body">Öğün kaydetmek, yiyecek ve barkod taramak ve ilerlemenizi sormak için konuşun. Sesli asistan Fud AI Plus veya Pro planıyla ya da kendi Gemini, OpenAI veya xAI API anahtarınızla çalışır.</string>
+    <string name="voice_notice_setup_body">Öğün kaydetmek, yiyecek ve barkod taramak ve ilerlemenizi sormak için konuşun. Sesli asistan Fud AI Plus veya Pro planıyla ya da kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızla çalışır.</string>
     <string name="voice_notice_missing_key_title">%1$s anahtarınızı ekleyin</string>
     <string name="voice_notice_missing_key_body">Sesli asistan %1$s kullanacak şekilde ayarlı ve bunun için API anahtarınız gerekiyor. Anahtarınızı Yapay Zeka Sağlayıcıları bölümünde ekleyin veya Sesli Asistan ayarlarından başka bir sağlayıcı seçin.</string>
     <string name="voice_notice_subscription_title">Fud AI sesi için Plus veya Pro planı gerekir</string>
-    <string name="voice_notice_subscription_body">Fud AI tarafından barındırılan sesli asistan, Plus (ayda 20 dakika) ve Pro (ayda 100 dakika) planlarına dahildir. Kendi Gemini, OpenAI veya xAI anahtarınızı da kullanabilirsiniz.</string>
+    <string name="voice_notice_subscription_body">Fud AI tarafından barındırılan sesli asistan, Plus (ayda 20 dakika) ve Pro (ayda 100 dakika) planlarına dahildir. Kendi Gemini, OpenAI, xAI veya Qwen anahtarınızı da kullanabilirsiniz.</string>
     <string name="voice_notice_minutes_title">Ses dakikalarınız bitti</string>
-    <string name="voice_notice_minutes_body">Planınızın bu ayki ses dakikaları bitti. Konuşmaya devam etmek için kredi satın alın (dakikada 4 kredi) ya da kendi Gemini, OpenAI veya xAI anahtarınızı kullanın.</string>
+    <string name="voice_notice_minutes_body">Planınızın bu ayki ses dakikaları bitti. Konuşmaya devam etmek için kredi satın alın (dakikada 4 kredi) ya da kendi Gemini, OpenAI, xAI veya Qwen anahtarınızı kullanın.</string>
     <string name="voice_notice_limit_title">Sohbet sınırına ulaşıldı</string>
     <string name="voice_notice_limit_body">Bu konuşma 15 dakikalık sınıra ulaştı. Devam etmek için yeni bir konuşma başlatın.</string>
     <string name="voice_notice_mic_title">Mikrofon erişimi gerekli</string>
@@ -117,10 +118,10 @@
     <string name="voice_settings_add_key">%1$s anahtarınızı Yapay Zeka Sağlayıcıları bölümünde ekleyin</string>
     <string name="voice_settings_key_missing">Kayıtlı %1$s API anahtarı yok</string>
     <string name="voice_settings_needs_plan">Fud AI sesi için Plus veya Pro planı gerekir</string>
-    <string name="voice_settings_needs_setup">Plus veya Pro’ya abone olun ya da bir Gemini, OpenAI veya xAI API anahtarı ekleyin</string>
-    <string name="voice_settings_automatic_footer">Otomatik, Yapay Zekâ Sağlayıcıları’nda seçili sağlayıcı Gemini, OpenAI veya xAI ise ve anahtarı kayıtlıysa onu kullanır; değilse Plus veya Pro planıyla Fud AI’ı kullanır. Kendi anahtarlarınız Yapay Zekâ Sağlayıcıları’nda kayıtlı olanlardır.</string>
+    <string name="voice_settings_needs_setup">Plus veya Pro’ya abone olun ya da bir Gemini, OpenAI, xAI veya Qwen API anahtarı ekleyin</string>
+    <string name="voice_settings_automatic_footer">Otomatik, Yapay Zekâ Sağlayıcıları’nda seçili sağlayıcı Gemini, OpenAI, xAI veya Qwen ise ve anahtarı kayıtlıysa onu kullanır; değilse Plus veya Pro planıyla Fud AI’ı kullanır. Kendi anahtarlarınız Yapay Zekâ Sağlayıcıları’nda kayıtlı olanlardır.</string>
     <string name="voice_settings_auto_capture">Otomatik fotoğraf çekme</string>
-    <string name="voice_settings_auto_capture_footer">Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez.</string>
+    <string name="voice_settings_auto_capture_footer">Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez.</string>
     <string name="voice_settings_confirm_saves">Kaydetmeden önce onay</string>
     <string name="voice_settings_confirm_saves_footer">Her kaydı veya değişikliği onaylamanız için bir kart gösterir. Kapalıyken değişiklikler hemen kaydedilir ve 8 saniye boyunca geri alınabilir.</string>
     <string name="voice_settings_save_to_coach">Konuşmaları Koç’a kaydet</string>

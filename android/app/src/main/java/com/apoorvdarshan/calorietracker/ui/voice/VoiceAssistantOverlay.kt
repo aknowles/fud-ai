@@ -651,6 +651,7 @@ internal fun providerName(provider: LiveProvider): String = stringResource(
         LiveProvider.GEMINI -> R.string.voice_provider_gemini
         LiveProvider.OPENAI -> R.string.voice_provider_openai
         LiveProvider.XAI -> R.string.voice_provider_xai
+        LiveProvider.QWEN -> R.string.voice_provider_qwen
     }
 )
 

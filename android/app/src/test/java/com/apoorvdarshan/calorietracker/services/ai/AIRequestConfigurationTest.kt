@@ -95,6 +95,11 @@ class AIRequestConfigurationTest {
                 "mistral-large-2512",
                 "ministral-14b-2512"
             ),
+            AIProvider.QWEN to listOf(
+                "qwen3.7-plus",
+                "qwen3.8-max",
+                "qwen3-vl-plus"
+            ),
             AIProvider.LOCAL_GEMMA to listOf("gemma-4-E2B-it"),
             AIProvider.OLLAMA to listOf(
                 "qwen3-vl",
@@ -121,6 +126,11 @@ class AIRequestConfigurationTest {
         assertEquals(false, AIProvider.visionProviders.contains(AIProvider.CEREBRAS))
         assertEquals(listOf("deepseek-v4-flash", "deepseek-v4-pro"), AIProvider.DEEPSEEK.textModels)
         assertEquals(listOf("gpt-oss-120b", "gemma-4-31b"), AIProvider.CEREBRAS.textModels)
+        assertEquals(listOf("qwen3.8-flash", "qwen3.7-plus", "qwen3.8-max"), AIProvider.QWEN.textModels)
+        assertEquals(AIProvider.ApiFormat.OPENAI_COMPATIBLE, AIProvider.QWEN.apiFormat)
+        assertEquals("https://dashscope-intl.aliyuncs.com/compatible-mode/v1", AIProvider.QWEN.baseUrl)
+        assertEquals(mapOf("enable_thinking" to false), OpenAICompatibleClient.providerOptions(AIProvider.QWEN))
+        assertEquals(emptyMap<String, Any>(), OpenAICompatibleClient.providerOptions(AIProvider.OPENAI))
         assertEquals("openai/gpt-oss-20b", AIProvider.GROQ.defaultTextModel)
         assertEquals(true, AIProvider.GROQ.textModels.contains("openai/gpt-oss-120b"))
         assertEquals(true, AIProvider.TOGETHER_AI.textModels.contains("deepseek-ai/DeepSeek-V4-Pro"))

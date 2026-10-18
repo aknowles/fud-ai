@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Bitdi</string>
@@ -79,13 +80,13 @@
     <string name="voice_action_voice_settings">Səsli köməkçi</string>
     <string name="voice_action_open_settings">Ayarları aç</string>
     <string name="voice_notice_setup_title">Səsli köməkçi</string>
-    <string name="voice_notice_setup_body">Yeməkləri qeyd etmək, qidanı və ştrix-kodları skan etmək, irəliləyişiniz barədə soruşmaq üçün danışın. Səsli köməkçi Fud AI Plus və ya Pro planı ilə, yaxud öz Gemini, OpenAI və ya xAI API açarınızla işləyir.</string>
+    <string name="voice_notice_setup_body">Yeməkləri qeyd etmək, qidanı və ştrix-kodları skan etmək, irəliləyişiniz barədə soruşmaq üçün danışın. Səsli köməkçi Fud AI Plus və ya Pro planı ilə, yaxud öz Gemini, OpenAI, xAI və ya Qwen API açarınızla işləyir.</string>
     <string name="voice_notice_missing_key_title">%1$s açarını əlavə et</string>
     <string name="voice_notice_missing_key_body">Səsli köməkçi %1$s üçün qurulub və API açarına ehtiyacı var. Onu Süni intellekt provayderləri bölməsində əlavə et və ya Səsli köməkçi ayarlarında başqa provayder seç.</string>
     <string name="voice_notice_subscription_title">Fud AI səsi üçün Plus və ya Pro planı lazımdır</string>
-    <string name="voice_notice_subscription_body">Fud AI tərəfindən təmin edilən səs xidməti Plus (ayda 20 dəqiqə) və Pro (ayda 100 dəqiqə) planlarına daxildir. Öz Gemini, OpenAI və ya xAI açarından da istifadə edə bilərsən.</string>
+    <string name="voice_notice_subscription_body">Fud AI tərəfindən təmin edilən səs xidməti Plus (ayda 20 dəqiqə) və Pro (ayda 100 dəqiqə) planlarına daxildir. Öz Gemini, OpenAI, xAI və ya Qwen açarından da istifadə edə bilərsən.</string>
     <string name="voice_notice_minutes_title">Səs dəqiqələriniz bitdi</string>
-    <string name="voice_notice_minutes_body">Planınızın bu ay üçün səs dəqiqələri bitib. Danışmağa davam etmək üçün kredit alın (dəqiqəsi 4 kredit) və ya öz Gemini, OpenAI ya da xAI açarınızdan istifadə edin.</string>
+    <string name="voice_notice_minutes_body">Planınızın bu ay üçün səs dəqiqələri bitib. Danışmağa davam etmək üçün kredit alın (dəqiqəsi 4 kredit) və ya öz Gemini, OpenAI, xAI ya da Qwen açarınızdan istifadə edin.</string>
     <string name="voice_notice_limit_title">Söhbət limitinə çatılıb</string>
     <string name="voice_notice_limit_body">Bu söhbət 15 dəqiqəlik limitə çatdı. Davam etmək üçün yenisini başladın.</string>
     <string name="voice_notice_mic_title">Mikrofona giriş lazımdır</string>
@@ -117,10 +118,10 @@
     <string name="voice_settings_add_key">Süni intellekt provayderləri bölməsində %1$s açarını əlavə et</string>
     <string name="voice_settings_key_missing">Saxlanmış %1$s API açarı yoxdur</string>
     <string name="voice_settings_needs_plan">Fud AI səsi üçün Plus və ya Pro planı lazımdır</string>
-    <string name="voice_settings_needs_setup">Plus və ya Pro-ya abunə olun, ya da Gemini, OpenAI və ya xAI API açarı əlavə edin</string>
-    <string name="voice_settings_automatic_footer">Avtomatik rejim Süni İntellekt Təminatçılarında seçilmiş təminatçını istifadə edir, əgər o Gemini, OpenAI və ya xAI-dırsa və açarı saxlanıbsa; əks halda Plus və ya Pro planı ilə Fud AI istifadə olunur. Öz açarlarınız Süni İntellekt Təminatçılarında saxlanmış açarlardır.</string>
+    <string name="voice_settings_needs_setup">Plus və ya Pro-ya abunə olun, ya da Gemini, OpenAI, xAI və ya Qwen API açarı əlavə edin</string>
+    <string name="voice_settings_automatic_footer">Avtomatik rejim Süni İntellekt Təminatçılarında seçilmiş təminatçını istifadə edir, əgər o Gemini, OpenAI, xAI və ya Qwen-dirsə və açarı saxlanıbsa; əks halda Plus və ya Pro planı ilə Fud AI istifadə olunur. Öz açarlarınız Süni İntellekt Təminatçılarında saxlanmış açarlardır.</string>
     <string name="voice_settings_auto_capture">Şəkilləri avtomatik çəkmə</string>
-    <string name="voice_settings_auto_capture_footer">Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir.</string>
+    <string name="voice_settings_auto_capture_footer">Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir.</string>
     <string name="voice_settings_confirm_saves">Saxlamazdan əvvəl təsdiq</string>
     <string name="voice_settings_confirm_saves_footer">Hər qeydi və ya dəyişikliyi təsdiqləmək üçün kart göstərir. Söndürüldükdə dəyişikliklər dərhal yadda saxlanılır və 8 saniyə ərzində geri qaytarıla bilər.</string>
     <string name="voice_settings_save_to_coach">Söhbətləri Məşqçiyə saxla</string>

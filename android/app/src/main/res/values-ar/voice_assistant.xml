@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">انتهى</string>
@@ -83,13 +84,13 @@
     <string name="voice_action_voice_settings">المساعد الصوتي</string>
     <string name="voice_action_open_settings">فتح الإعدادات</string>
     <string name="voice_notice_setup_title">المساعد الصوتي</string>
-    <string name="voice_notice_setup_body">تحدّث لتسجيل الوجبات ومسح الطعام والرموز الشريطية والسؤال عن تقدّمك. يعمل المساعد الصوتي مع خطة Fud AI Plus أو Pro، أو بمفتاح API الخاص بك من Gemini أو OpenAI أو xAI.</string>
+    <string name="voice_notice_setup_body">تحدّث لتسجيل الوجبات ومسح الطعام والرموز الشريطية والسؤال عن تقدّمك. يعمل المساعد الصوتي مع خطة Fud AI Plus أو Pro، أو بمفتاح API الخاص بك من Gemini أو OpenAI أو xAI أو Qwen.</string>
     <string name="voice_notice_missing_key_title">أضف مفتاح %1$s الخاص بك</string>
     <string name="voice_notice_missing_key_body">المساعد الصوتي مضبوط على %1$s، ويحتاج إلى مفتاح API الخاص بك. أضفه في موفري الذكاء الاصطناعي، أو اختر موفرًا آخر في إعدادات المساعد الصوتي.</string>
     <string name="voice_notice_subscription_title">يتطلب صوت Fud AI خطة Plus أو Pro</string>
-    <string name="voice_notice_subscription_body">تتوفر الخدمة الصوتية المستضافة لدى Fud AI ضمن Plus (20 دقيقة شهريًا) وPro (100 دقيقة شهريًا). يمكنك أيضًا استخدام مفتاح Gemini أو OpenAI أو xAI الخاص بك.</string>
+    <string name="voice_notice_subscription_body">تتوفر الخدمة الصوتية المستضافة لدى Fud AI ضمن Plus (20 دقيقة شهريًا) وPro (100 دقيقة شهريًا). يمكنك أيضًا استخدام مفتاح Gemini أو OpenAI أو xAI أو Qwen الخاص بك.</string>
     <string name="voice_notice_minutes_title">نفدت دقائقك الصوتية</string>
-    <string name="voice_notice_minutes_body">استُهلكت دقائق الصوت في خطتك لهذا الشهر. اشترِ أرصدة لمواصلة الحديث (4 أرصدة للدقيقة)، أو استخدم مفتاحك الخاص من Gemini أو OpenAI أو xAI.</string>
+    <string name="voice_notice_minutes_body">استُهلكت دقائق الصوت في خطتك لهذا الشهر. اشترِ أرصدة لمواصلة الحديث (4 أرصدة للدقيقة)، أو استخدم مفتاحك الخاص من Gemini أو OpenAI أو xAI أو Qwen.</string>
     <string name="voice_notice_limit_title">تم بلوغ حد المحادثة</string>
     <string name="voice_notice_limit_body">بلغت هذه المحادثة حد الـ 15 دقيقة. ابدأ محادثة جديدة لتتابع.</string>
     <string name="voice_notice_mic_title">يلزم السماح بالوصول إلى الميكروفون</string>
@@ -121,10 +122,10 @@
     <string name="voice_settings_add_key">أضف مفتاح %1$s الخاص بك في موفري الذكاء الاصطناعي</string>
     <string name="voice_settings_key_missing">لا يوجد مفتاح API محفوظ لـ %1$s</string>
     <string name="voice_settings_needs_plan">يتطلب صوت Fud AI خطة Plus أو Pro</string>
-    <string name="voice_settings_needs_setup">اشترك في Plus أو Pro، أو أضف مفتاح API من Gemini أو OpenAI أو xAI</string>
-    <string name="voice_settings_automatic_footer">يستخدم الخيار التلقائي المزوّد المحدد في موفري الذكاء الاصطناعي إذا كان Gemini أو OpenAI أو xAI ومفتاحه محفوظ؛ وإلا فيستخدم Fud AI مع خطة Plus أو Pro. المفاتيح الخاصة هي تلك المحفوظة في موفري الذكاء الاصطناعي.</string>
+    <string name="voice_settings_needs_setup">اشترك في Plus أو Pro، أو أضف مفتاح API من Gemini أو OpenAI أو xAI أو Qwen</string>
+    <string name="voice_settings_automatic_footer">يستخدم الخيار التلقائي المزوّد المحدد في موفري الذكاء الاصطناعي إذا كان Gemini أو OpenAI أو xAI أو Qwen ومفتاحه محفوظ؛ وإلا فيستخدم Fud AI مع خطة Plus أو Pro. المفاتيح الخاصة هي تلك المحفوظة في موفري الذكاء الاصطناعي.</string>
     <string name="voice_settings_auto_capture">الالتقاط التلقائي للصور</string>
-    <string name="voice_settings_auto_capture_footer">عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها.</string>
+    <string name="voice_settings_auto_capture_footer">عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها.</string>
     <string name="voice_settings_confirm_saves">التأكيد قبل الحفظ</string>
     <string name="voice_settings_confirm_saves_footer">عرض بطاقة للموافقة على كل تسجيل أو تغيير. عند إيقاف هذا الخيار، تُحفظ التغييرات فورًا ويمكن التراجع عنها لمدة 8 ثوانٍ.</string>
     <string name="voice_settings_save_to_coach">حفظ المحادثات في المدرب</string>

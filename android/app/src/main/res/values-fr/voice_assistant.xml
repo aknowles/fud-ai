@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Terminé</string>
@@ -80,13 +81,13 @@
     <string name="voice_action_voice_settings">Assistant vocal</string>
     <string name="voice_action_open_settings">Ouvrir Réglages</string>
     <string name="voice_notice_setup_title">Assistant vocal</string>
-    <string name="voice_notice_setup_body">Parlez pour enregistrer vos repas, scanner aliments et codes-barres, et poser des questions sur vos progrès. L’assistant vocal fonctionne avec un forfait Fud AI Plus ou Pro, ou avec votre propre clé API Gemini, OpenAI ou xAI.</string>
+    <string name="voice_notice_setup_body">Parlez pour enregistrer vos repas, scanner aliments et codes-barres, et poser des questions sur vos progrès. L’assistant vocal fonctionne avec un forfait Fud AI Plus ou Pro, ou avec votre propre clé API Gemini, OpenAI, xAI ou Qwen.</string>
     <string name="voice_notice_missing_key_title">Ajoutez votre clé %1$s</string>
     <string name="voice_notice_missing_key_body">L’assistant vocal est réglé sur %1$s, qui nécessite votre clé API. Ajoutez-la dans Fournisseurs d’IA ou choisissez un autre fournisseur dans les réglages de l’assistant vocal.</string>
     <string name="voice_notice_subscription_title">La voix Fud AI nécessite un forfait Plus ou Pro</string>
-    <string name="voice_notice_subscription_body">La voix hébergée par Fud AI est incluse dans Plus (20 minutes par mois) et Pro (100 minutes par mois). Vous pouvez aussi utiliser votre propre clé Gemini, OpenAI ou xAI.</string>
+    <string name="voice_notice_subscription_body">La voix hébergée par Fud AI est incluse dans Plus (20 minutes par mois) et Pro (100 minutes par mois). Vous pouvez aussi utiliser votre propre clé Gemini, OpenAI, xAI ou Qwen.</string>
     <string name="voice_notice_minutes_title">Vous n’avez plus de minutes vocales</string>
-    <string name="voice_notice_minutes_body">Les minutes vocales de votre forfait sont épuisées pour ce mois. Achetez des crédits pour continuer à parler (4 crédits par minute), ou utilisez votre propre clé Gemini, OpenAI ou xAI.</string>
+    <string name="voice_notice_minutes_body">Les minutes vocales de votre forfait sont épuisées pour ce mois. Achetez des crédits pour continuer à parler (4 crédits par minute), ou utilisez votre propre clé Gemini, OpenAI, xAI ou Qwen.</string>
     <string name="voice_notice_limit_title">Limite de conversation atteinte</string>
     <string name="voice_notice_limit_body">Cette conversation a atteint la limite de 15 minutes. Lancez-en une nouvelle pour continuer.</string>
     <string name="voice_notice_mic_title">Accès au microphone requis</string>
@@ -118,10 +119,10 @@
     <string name="voice_settings_add_key">Ajoutez votre clé %1$s dans Fournisseurs d’IA</string>
     <string name="voice_settings_key_missing">Aucune clé API %1$s enregistrée</string>
     <string name="voice_settings_needs_plan">La voix Fud AI nécessite un forfait Plus ou Pro</string>
-    <string name="voice_settings_needs_setup">Abonnez-vous à Plus ou Pro, ou ajoutez une clé API Gemini, OpenAI ou xAI</string>
-    <string name="voice_settings_automatic_footer">Automatique utilise le fournisseur choisi dans Fournisseurs d’IA s’il s’agit de Gemini, OpenAI ou xAI et que sa clé est enregistrée ; sinon Fud AI avec un forfait Plus ou Pro. Vos propres clés sont celles enregistrées dans Fournisseurs d’IA.</string>
+    <string name="voice_settings_needs_setup">Abonnez-vous à Plus ou Pro, ou ajoutez une clé API Gemini, OpenAI, xAI ou Qwen</string>
+    <string name="voice_settings_automatic_footer">Automatique utilise le fournisseur choisi dans Fournisseurs d’IA s’il s’agit de Gemini, OpenAI, xAI ou Qwen et que sa clé est enregistrée ; sinon Fud AI avec un forfait Plus ou Pro. Vos propres clés sont celles enregistrées dans Fournisseurs d’IA.</string>
     <string name="voice_settings_auto_capture">Capture automatique des photos</string>
-    <string name="voice_settings_auto_capture_footer">Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas.</string>
+    <string name="voice_settings_auto_capture_footer">Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas.</string>
     <string name="voice_settings_confirm_saves">Confirmation avant enregistrement</string>
     <string name="voice_settings_confirm_saves_footer">Affiche une carte pour approuver chaque ajout ou modification. Si cette option est désactivée, les changements sont enregistrés immédiatement et peuvent être annulés pendant 8 secondes.</string>
     <string name="voice_settings_save_to_coach">Enregistrer les conversations dans Coach</string>

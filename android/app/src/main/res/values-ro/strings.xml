@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (Local)</string>
     <string name="ai_provider_custom">Personalizat (compatibil OpenAI)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">Lipește cheia API DeepInfra</string>
     <string name="ai_key_placeholder_mistral">Lipește cheia API Mistral</string>
     <string name="ai_key_placeholder_deepseek">Lipește cheia API DeepSeek</string>
+    <string name="ai_key_placeholder_qwen">Lipește cheia API Qwen</string>
     <string name="ai_key_placeholder_cerebras">Lipește cheia API Cerebras</string>
     <string name="ai_key_placeholder_ollama">Nu e nevoie de cheie</string>
     <string name="ai_key_placeholder_custom">Cheie API (sau orice dacă endpoint-ul nu cere)</string>

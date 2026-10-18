@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (Lokal)</string>
     <string name="ai_provider_custom">Fərdi (OpenAI uyğun)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">DeepInfra API açarını yapışdırın</string>
     <string name="ai_key_placeholder_mistral">Mistral API açarını yapışdırın</string>
     <string name="ai_key_placeholder_deepseek">DeepSeek API açarını yapışdırın</string>
+    <string name="ai_key_placeholder_qwen">Qwen API açarını yapışdırın</string>
     <string name="ai_key_placeholder_cerebras">Cerebras API açarını yapışdırın</string>
     <string name="ai_key_placeholder_ollama">Açar lazım deyil</string>
     <string name="ai_key_placeholder_custom">API açarı (və ya endpoint tələb etmirsə hər şey)</string>

@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Beëindigd</string>
@@ -79,13 +80,13 @@
     <string name="voice_action_voice_settings">Spraakassistent</string>
     <string name="voice_action_open_settings">Open Instellingen</string>
     <string name="voice_notice_setup_title">Spraakassistent</string>
-    <string name="voice_notice_setup_body">Praat om maaltijden te loggen, eten en barcodes te scannen en naar je voortgang te vragen. De spraakassistent werkt met een Fud AI Plus- of Pro-abonnement, of met je eigen API-sleutel van Gemini, OpenAI of xAI.</string>
+    <string name="voice_notice_setup_body">Praat om maaltijden te loggen, eten en barcodes te scannen en naar je voortgang te vragen. De spraakassistent werkt met een Fud AI Plus- of Pro-abonnement, of met je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen.</string>
     <string name="voice_notice_missing_key_title">Voeg je %1$s-sleutel toe</string>
     <string name="voice_notice_missing_key_body">De spraakassistent is ingesteld op %1$s. Daarvoor is je API-sleutel nodig. Voeg die toe bij AI-providers of kies een andere provider in de instellingen van de spraakassistent.</string>
     <string name="voice_notice_subscription_title">Fud AI-spraak vereist een Plus- of Pro-abonnement</string>
-    <string name="voice_notice_subscription_body">Spraakgesprekken die door Fud AI worden gehost, zijn inbegrepen bij Plus (20 minuten per maand) en Pro (100 minuten per maand). Je kunt ook je eigen Gemini-, OpenAI- of xAI-sleutel gebruiken.</string>
+    <string name="voice_notice_subscription_body">Spraakgesprekken die door Fud AI worden gehost, zijn inbegrepen bij Plus (20 minuten per maand) en Pro (100 minuten per maand). Je kunt ook je eigen Gemini-, OpenAI-, xAI- of Qwen-sleutel gebruiken.</string>
     <string name="voice_notice_minutes_title">Je spraakminuten zijn op</string>
-    <string name="voice_notice_minutes_body">De spraakminuten van je abonnement voor deze maand zijn op. Koop credits om door te praten (4 credits per minuut), of gebruik je eigen sleutel van Gemini, OpenAI of xAI.</string>
+    <string name="voice_notice_minutes_body">De spraakminuten van je abonnement voor deze maand zijn op. Koop credits om door te praten (4 credits per minuut), of gebruik je eigen sleutel van Gemini, OpenAI, xAI of Qwen.</string>
     <string name="voice_notice_limit_title">Gesprekslimiet bereikt</string>
     <string name="voice_notice_limit_body">Dit gesprek heeft de limiet van 15 minuten bereikt. Begin een nieuw gesprek om door te gaan.</string>
     <string name="voice_notice_mic_title">Toegang tot de microfoon nodig</string>
@@ -117,10 +118,10 @@
     <string name="voice_settings_add_key">Voeg je %1$s-sleutel toe bij AI-providers</string>
     <string name="voice_settings_key_missing">Geen API-sleutel voor %1$s bewaard</string>
     <string name="voice_settings_needs_plan">Fud AI-spraak vereist een Plus- of Pro-abonnement</string>
-    <string name="voice_settings_needs_setup">Neem Plus of Pro, of voeg een API-sleutel van Gemini, OpenAI of xAI toe</string>
-    <string name="voice_settings_automatic_footer">Automatisch gebruikt de provider die bij AI-providers is gekozen als dat Gemini, OpenAI of xAI is en de sleutel is bewaard; anders Fud AI met een Plus- of Pro-abonnement. Eigen sleutels zijn de sleutels die bij AI-providers zijn bewaard.</string>
+    <string name="voice_settings_needs_setup">Neem Plus of Pro, of voeg een API-sleutel van Gemini, OpenAI, xAI of Qwen toe</string>
+    <string name="voice_settings_automatic_footer">Automatisch gebruikt de provider die bij AI-providers is gekozen als dat Gemini, OpenAI, xAI of Qwen is en de sleutel is bewaard; anders Fud AI met een Plus- of Pro-abonnement. Eigen sleutels zijn de sleutels die bij AI-providers zijn bewaard.</string>
     <string name="voice_settings_auto_capture">Foto’s automatisch maken</string>
-    <string name="voice_settings_auto_capture_footer">Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien.</string>
+    <string name="voice_settings_auto_capture_footer">Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien.</string>
     <string name="voice_settings_confirm_saves">Bevestigen vóór bewaren</string>
     <string name="voice_settings_confirm_saves_footer">Toon een kaart om elke registratie of wijziging goed te keuren. Als dit uitstaat, worden wijzigingen meteen opgeslagen en kun je ze 8 seconden lang ongedaan maken.</string>
     <string name="voice_settings_save_to_coach">Bewaar gesprekken in Coach</string>

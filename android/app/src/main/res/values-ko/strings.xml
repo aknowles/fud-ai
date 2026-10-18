@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (로컬)</string>
     <string name="ai_provider_custom">사용자 지정 (OpenAI 호환)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">DeepInfra API 키 붙여넣기</string>
     <string name="ai_key_placeholder_mistral">Mistral API 키 붙여넣기</string>
     <string name="ai_key_placeholder_deepseek">DeepSeek API 키 붙여넣기</string>
+    <string name="ai_key_placeholder_qwen">Qwen API 키 붙여넣기</string>
     <string name="ai_key_placeholder_cerebras">Cerebras API 키 붙여넣기</string>
     <string name="ai_key_placeholder_ollama">키 필요 없음</string>
     <string name="ai_key_placeholder_custom">API 키 (엔드포인트가 키를 요구하지 않으면 아무 값)</string>

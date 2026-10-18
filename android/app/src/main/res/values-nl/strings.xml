@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (lokaal)</string>
     <string name="ai_provider_custom">Aangepast (OpenAI-compatibel)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">Plak de DeepInfra-API-sleutel</string>
     <string name="ai_key_placeholder_mistral">Plak de Mistral-API-sleutel</string>
     <string name="ai_key_placeholder_deepseek">Plak de DeepSeek-API-sleutel</string>
+    <string name="ai_key_placeholder_qwen">Plak de Qwen-API-sleutel</string>
     <string name="ai_key_placeholder_cerebras">Plak de Cerebras-API-sleutel</string>
     <string name="ai_key_placeholder_ollama">Geen sleutel nodig</string>
     <string name="ai_key_placeholder_custom">API-sleutel (of wat dan ook als endpoint er geen nodig heeft)</string>

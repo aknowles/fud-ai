@@ -1237,6 +1237,7 @@ struct GeminiService {
                 "messages": messages,
             ]
             body[provider.openAICompatibleTokenLimitKey(for: model)] = AIProviderSettings.maxResponseTokens
+            body.merge(provider.openAICompatibleExtraBody) { current, _ in current }
             if provider == .openrouter {
                 body["reasoning"] = AIProviderSettings.openRouterReasoningEffort.requestOptions(compactRetry: compactRetry, exclude: true)
             }
