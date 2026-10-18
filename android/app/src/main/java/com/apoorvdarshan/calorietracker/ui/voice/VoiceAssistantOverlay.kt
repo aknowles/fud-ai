@@ -652,6 +652,7 @@ internal fun providerName(provider: LiveProvider): String = stringResource(
         LiveProvider.OPENAI -> R.string.voice_provider_openai
         LiveProvider.XAI -> R.string.voice_provider_xai
         LiveProvider.QWEN -> R.string.voice_provider_qwen
+        LiveProvider.GPT_LIVE -> R.string.voice_provider_gpt_live
     }
 )
 

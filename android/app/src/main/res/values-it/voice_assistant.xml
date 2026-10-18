@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Terminato</string>
@@ -122,7 +123,7 @@
     <string name="voice_settings_needs_setup">Abbonati a Plus o Pro, oppure aggiungi una chiave API di Gemini, OpenAI, xAI o Qwen</string>
     <string name="voice_settings_automatic_footer">Automatico usa il provider scelto in Provider IA se è Gemini, OpenAI, xAI o Qwen e la sua chiave è salvata; altrimenti Fud AI con un piano Plus o Pro. Le chiavi personali sono quelle salvate in Provider IA.</string>
     <string name="voice_settings_auto_capture">Scatto automatico delle foto</string>
-    <string name="voice_settings_auto_capture_footer">Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini, Qwen e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI non può vederla.</string>
+    <string name="voice_settings_auto_capture_footer">Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini, Qwen e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI e GPT-Live non possono vederla.</string>
     <string name="voice_settings_confirm_saves">Conferma prima di salvare</string>
     <string name="voice_settings_confirm_saves_footer">Mostra una scheda per approvare ogni registrazione o modifica. Se disattivato, le modifiche vengono salvate subito e possono essere annullate per 8 secondi.</string>
     <string name="voice_settings_save_to_coach">Salva le conversazioni in Coach</string>

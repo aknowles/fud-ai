@@ -82,6 +82,13 @@ class VoiceProviderResolverTest {
         assertEquals(AIProvider.QWEN, LiveProvider.QWEN.aiProvider)
         assertEquals(LiveProvider.QWEN, LiveProvider.forAiProvider(AIProvider.QWEN))
         assertEquals(VoiceProviderChoice.QWEN, VoiceProviderChoice.fromStorage("qwen"))
+        assertEquals(listOf("gpt-live-1"), LiveProvider.GPT_LIVE.models)
+        assertEquals("quartz", LiveProvider.GPT_LIVE.defaultVoice)
+        assertEquals(CameraFrames.NONE, LiveProvider.GPT_LIVE.cameraFrames)
+        assertEquals(AIProvider.OPENAI, LiveProvider.GPT_LIVE.aiProvider)
+        // An OpenAI key keeps Automatic on the realtime models.
+        assertEquals(LiveProvider.OPENAI, LiveProvider.forAiProvider(AIProvider.OPENAI))
+        assertEquals(VoiceProviderChoice.GPT_LIVE, VoiceProviderChoice.fromStorage("gpt_live"))
         assertEquals(
             VoiceAccess.Ready(LiveProvider.QWEN),
             VoiceProviderResolver.resolve(VoiceProviderChoice.QWEN, AIProvider.GEMINI, { it == LiveProvider.QWEN }, false)

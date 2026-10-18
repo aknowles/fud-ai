@@ -168798,114 +168798,114 @@
         }
       }
     },
-    "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.": {
+    "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI and GPT-Live can't see it.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها."
+            "value": "عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI وGPT-Live رؤيتها."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir."
+            "value": "Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI və GPT-Live isə onu görə bilmir."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini, Qwen a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ji nevidí."
+            "value": "Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini, Qwen a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ani GPT-Live ji nevidí."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini, Qwen und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI gar nicht."
+            "value": "Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini, Qwen und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI und GPT-Live gar nicht."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con la cámara abierta, el asistente hace la foto en cuanto ve la comida. Gemini, Qwen y Fud AI ven la cámara de forma continua; OpenAI, cada vez que hablas; xAI no puede verla."
+            "value": "Con la cámara abierta, el asistente hace la foto en cuanto ve la comida. Gemini, Qwen y Fud AI ven la cámara de forma continua; OpenAI, cada vez que hablas; xAI y GPT-Live no pueden verla."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas."
+            "value": "Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI et GPT-Live ne la voient pas."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini, Qwen और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI इसे नहीं देख सकता।"
+            "value": "कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini, Qwen और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI और GPT-Live इसे नहीं देख सकते।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini, Qwen e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI non può vederla."
+            "value": "Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini, Qwen e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI e GPT-Live non possono vederla."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。"
+            "value": "カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIとGPT-Liveは見ることができません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "카메라가 열려 있으면 어시스턴트가 음식을 보는 즉시 사진을 찍습니다. Gemini, Qwen, Fud AI는 카메라를 계속 보고, OpenAI는 말할 때마다 보며, xAI는 볼 수 없습니다."
+            "value": "카메라가 열려 있으면 어시스턴트가 음식을 보는 즉시 사진을 찍습니다. Gemini, Qwen, Fud AI는 카메라를 계속 보고, OpenAI는 말할 때마다 보며, xAI와 GPT-Live는 볼 수 없습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien."
+            "value": "Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI en GPT-Live kunnen hem niet zien."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini, Qwen i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI go nie widzi."
+            "value": "Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini, Qwen i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI i GPT-Live go nie widzą."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Com a câmera aberta, o assistente tira a foto assim que vê a comida. O Gemini, o Qwen e o Fud AI veem a câmera continuamente; o OpenAI, a cada vez que você fala; o xAI não consegue ver."
+            "value": "Com a câmera aberta, o assistente tira a foto assim que vê a comida. O Gemini, o Qwen e o Fud AI veem a câmera continuamente; o OpenAI, a cada vez que você fala; o xAI e o GPT-Live não conseguem ver."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini, Qwen și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI nu o poate vedea."
+            "value": "Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini, Qwen și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI și GPT-Live nu o pot vedea."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит."
+            "value": "Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI и GPT-Live её не видят."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez."
+            "value": "Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ve GPT-Live ise göremez."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Коли камеру відкрито, асистент робить знімок, щойно бачить їжу. Gemini, Qwen і Fud AI бачать камеру постійно, OpenAI — щоразу, коли ви говорите, а xAI її не бачить."
+            "value": "Коли камеру відкрито, асистент робить знімок, щойно бачить їжу. Gemini, Qwen і Fud AI бачать камеру постійно, OpenAI — щоразу, коли ви говорите, а xAI і GPT-Live її не бачать."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "相机打开时，助手一看到食物就会拍照。Gemini、Qwen 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 看不到。"
+            "value": "相机打开时，助手一看到食物就会拍照。Gemini、Qwen 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 和 GPT-Live 看不到。"
           }
         }
       }

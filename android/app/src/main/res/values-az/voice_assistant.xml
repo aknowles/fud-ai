@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Bitdi</string>
@@ -121,7 +122,7 @@
     <string name="voice_settings_needs_setup">Plus və ya Pro-ya abunə olun, ya da Gemini, OpenAI, xAI və ya Qwen API açarı əlavə edin</string>
     <string name="voice_settings_automatic_footer">Avtomatik rejim Süni İntellekt Təminatçılarında seçilmiş təminatçını istifadə edir, əgər o Gemini, OpenAI, xAI və ya Qwen-dirsə və açarı saxlanıbsa; əks halda Plus və ya Pro planı ilə Fud AI istifadə olunur. Öz açarlarınız Süni İntellekt Təminatçılarında saxlanmış açarlardır.</string>
     <string name="voice_settings_auto_capture">Şəkilləri avtomatik çəkmə</string>
-    <string name="voice_settings_auto_capture_footer">Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir.</string>
+    <string name="voice_settings_auto_capture_footer">Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI və GPT-Live isə onu görə bilmir.</string>
     <string name="voice_settings_confirm_saves">Saxlamazdan əvvəl təsdiq</string>
     <string name="voice_settings_confirm_saves_footer">Hər qeydi və ya dəyişikliyi təsdiqləmək üçün kart göstərir. Söndürüldükdə dəyişikliklər dərhal yadda saxlanılır və 8 saniyə ərzində geri qaytarıla bilər.</string>
     <string name="voice_settings_save_to_coach">Söhbətləri Məşqçiyə saxla</string>

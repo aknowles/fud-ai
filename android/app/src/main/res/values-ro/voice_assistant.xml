@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Încheiat</string>
@@ -122,7 +123,7 @@
     <string name="voice_settings_needs_setup">Abonează-te la Plus sau Pro ori adaugă o cheie API Gemini, OpenAI, xAI sau Qwen</string>
     <string name="voice_settings_automatic_footer">Automat folosește furnizorul ales în Furnizori AI dacă este Gemini, OpenAI, xAI sau Qwen și are cheia salvată; altfel, Fud AI cu un plan Plus sau Pro. Cheile proprii sunt cele salvate în Furnizori AI.</string>
     <string name="voice_settings_auto_capture">Fotografiere automată</string>
-    <string name="voice_settings_auto_capture_footer">Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini, Qwen și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI nu o poate vedea.</string>
+    <string name="voice_settings_auto_capture_footer">Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini, Qwen și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI și GPT-Live nu o pot vedea.</string>
     <string name="voice_settings_confirm_saves">Confirmare înainte de salvare</string>
     <string name="voice_settings_confirm_saves_footer">Afișează un card pentru aprobarea fiecărei înregistrări sau modificări. Dacă este dezactivat, modificările se salvează imediat și pot fi anulate timp de 8 secunde.</string>
     <string name="voice_settings_save_to_coach">Salvează conversațiile în Antrenor</string>

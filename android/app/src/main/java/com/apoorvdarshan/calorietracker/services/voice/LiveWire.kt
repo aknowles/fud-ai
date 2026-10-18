@@ -78,8 +78,16 @@ sealed interface LiveEvent {
     /** OpenAI/xAI started a response. */
     data class ResponseStarted(val responseId: String?) : LiveEvent
 
-    /** The turn ended; Realtime can end an incomplete or cancelled response too. */
-    data class TurnComplete(val responseId: String? = null, val successful: Boolean = true) : LiveEvent
+    /**
+     * The turn ended; Realtime can end an incomplete or cancelled response too. GPT-Live
+     * splits the two: [endsResponse] frees `response.create`, [endsSpokenTurn] saves the turn.
+     */
+    data class TurnComplete(
+        val responseId: String? = null,
+        val successful: Boolean = true,
+        val endsSpokenTurn: Boolean = true,
+        val endsResponse: Boolean = true
+    ) : LiveEvent
 
     data class ToolCalls(val calls: List<LiveToolCall>) : LiveEvent
     data class ToolCallsCancelled(val ids: List<String>) : LiveEvent
@@ -140,6 +148,7 @@ interface LiveWire {
             LiveProvider.OPENAI -> OpenAIRealtimeWire()
             LiveProvider.XAI -> XAIVoiceWire()
             LiveProvider.QWEN -> QwenRealtimeWire()
+            LiveProvider.GPT_LIVE -> GPTLiveWire()
         }
     }
 }
@@ -686,6 +695,143 @@ class QwenRealtimeWire : OpenAIRealtimeWire() {
 
         /** Transcribes what the user says; Model Studio fixes this model for Qwen Omni Realtime. */
         const val TRANSCRIPTION_MODEL = "qwen3-asr-flash-realtime"
+    }
+}
+
+// MARK: - OpenAI GPT-Live
+
+/**
+ * OpenAI's GPT-Live: a full-duplex voice model that hands tool use to a backend
+ * Responses model ("Responses delegation"). Its own events are `session.*`; the
+ * backend's arrive wrapped in `response.event` and follow the Responses API, which the
+ * Realtime parser reads once unwrapped. It takes no images. Mirrors iOS GPTLiveWire.
+ */
+class GPTLiveWire : OpenAIRealtimeWire() {
+    override val provider: LiveProvider = LiveProvider.GPT_LIVE
+    override val endpoint: String = "https://api.openai.com/v1/live/sessions"
+
+    private var assistantSpokeLast = false
+
+    override fun request(config: LiveSessionConfig): Request = Request.Builder()
+        .url(endpoint)
+        .header("Authorization", "Bearer ${config.apiKey.orEmpty()}")
+        .build()
+
+    override fun setupMessages(config: LiveSessionConfig, resumptionHandle: String?): List<String> {
+        val session = buildJsonObject {
+            put("model", config.model)
+            put("instructions", config.instructions)
+            putJsonObject("audio") { putJsonObject("output") { put("voice", config.voice) } }
+            putJsonObject("delegation") {
+                put("type", "responses")
+                putJsonObject("responses") {
+                    put("model", BACKEND_MODEL)
+                    put("instructions", config.instructions)
+                    if (config.tools.isNotEmpty()) {
+                        put("tools", VoiceToolCatalog.realtimeTools(config.tools))
+                        put("tool_choice", "auto")
+                    }
+                }
+            }
+        }
+        return listOf(buildJsonObject {
+            put("type", "session.start")
+            put("session", session)
+        }.toString())
+    }
+
+    override fun audioMessage(pcm16: ByteArray): String = buildJsonObject {
+        put("type", "session.input_audio.append")
+        put("audio", base64(pcm16))
+    }.toString()
+
+    /** Card taps go to the backend as a user message. */
+    override fun textMessages(text: String, respond: Boolean): List<String> {
+        val item = itemCreate(buildJsonObject {
+            put("type", "message")
+            put("role", "user")
+            put("content", buildJsonArray { add(buildJsonObject { put("type", "input_text"); put("text", text) }) })
+        })
+        return if (respond) listOf(item, responseCreateMessage()) else listOf(item)
+    }
+
+    override fun imageMessages(jpeg: ByteArray): List<String> = emptyList()
+
+    override fun toolResultMessages(results: List<LiveToolResult>): List<String> = results.map { result ->
+        itemCreate(buildJsonObject {
+            put("type", "function_call_output")
+            put("call_id", result.callId)
+            put("output", result.result.toString())
+        })
+    }
+
+    private fun itemCreate(item: JsonObject): String = buildJsonObject {
+        put("type", "response.item.create")
+        put("item", item)
+    }.toString()
+
+    override fun truncateMessage(itemId: String, audioEndMs: Int): String? = null
+
+    override fun parse(message: String): List<LiveEvent> {
+        val json = LiveJson.objectOrNull(message) ?: return emptyList()
+        return when (LiveJson.string(json, "type")) {
+            "session.started" -> listOf(LiveEvent.Ready)
+            "session.output_audio.delta" -> {
+                val data = LiveJson.string(json, "delta") ?: return emptyList()
+                val pcm = runCatching { Base64.getDecoder().decode(data) }.getOrNull() ?: return emptyList()
+                assistantSpokeLast = true
+                listOf(LiveEvent.Audio(pcm, null))
+            }
+            "session.output_transcript.delta" -> {
+                val delta = LiveJson.string(json, "delta")?.takeIf { it.isNotEmpty() } ?: return emptyList()
+                assistantSpokeLast = true
+                listOf(LiveEvent.AssistantText(delta))
+            }
+            "session.input_transcript.delta" -> {
+                val delta = LiveJson.string(json, "delta")?.takeIf { it.isNotEmpty() } ?: return emptyList()
+                // GPT-Live reports no turn ends, so the user speaking after the assistant
+                // closes the assistant's turn: it is saved and its playback stops.
+                val ended = if (assistantSpokeLast) {
+                    listOf(LiveEvent.TurnComplete(endsResponse = false), LiveEvent.UserSpeechStarted)
+                } else {
+                    emptyList()
+                }
+                assistantSpokeLast = false
+                ended + LiveEvent.UserText(delta, replacing = false)
+            }
+            "response.event" -> backendEvents(json["event"] as? JsonObject ?: return emptyList())
+            "error" -> super.parse(message)
+            else -> emptyList()
+        }
+    }
+
+    /**
+     * The backend's Responses lifecycle drives tool calls and `response.create`. Its text
+     * is spoken by GPT-Live and arrives again as the output transcript, so it isn't read twice.
+     */
+    private fun backendEvents(nested: JsonObject): List<LiveEvent> {
+        val type = LiveJson.string(nested, "type") ?: return emptyList()
+        return when (type) {
+            "response.created", "response.output_item.added", "response.output_item.done" -> super.parse(nested.toString())
+            "response.completed", "response.failed", "response.incomplete", "response.cancelled" -> {
+                val response = nested["response"] as? JsonObject ?: JsonObject(emptyMap())
+                val withStatus = if (response.containsKey("status")) response else JsonObject(
+                    response + ("status" to JsonPrimitive(if (type == "response.completed") "completed" else type.removePrefix("response.")))
+                )
+                // The backend finishing frees response.create but doesn't end the spoken
+                // turn: GPT-Live may still be speaking the answer.
+                super.parse(buildJsonObject {
+                    put("type", "response.done")
+                    put("response", withStatus)
+                }.toString()).map { if (it is LiveEvent.TurnComplete) it.copy(endsSpokenTurn = false) else it }
+            }
+            else -> emptyList()
+        }
+    }
+
+    companion object {
+        /** The Responses model GPT-Live delegates the assistant's tools to. */
+        const val BACKEND_MODEL = "gpt-6-luna"
     }
 }
 

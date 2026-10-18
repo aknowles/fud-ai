@@ -259,6 +259,67 @@ struct VoiceAssistantWireTests {
         #expect(audio == [.audio(Data([0, 1]), itemID: nil)])
     }
 
+    // MARK: GPT-Live
+
+    @Test func gptLiveStartsWithResponsesDelegationAndTakesNoImages() throws {
+        let wire = GPTLiveWire()
+        let request = wire.request(for: Self.config(.gptLive))
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer secret-key")
+        #expect(request.url?.absoluteString == "wss://api.openai.com/v1/live/sessions")
+        #expect(wire.inputSampleRate == 24_000)
+
+        let start = try Self.json(try #require(wire.setupMessages(for: Self.config(.gptLive), resumptionHandle: nil).first))
+        #expect(start["type"] as? String == "session.start")
+        let session = try #require(start["session"] as? [String: Any])
+        #expect(session["model"] as? String == "gpt-live-1")
+        #expect((session["audio"] as? [String: Any]).flatMap { $0["output"] as? [String: Any] }?["voice"] as? String == "quartz")
+        let delegation = try #require(session["delegation"] as? [String: Any])
+        #expect(delegation["type"] as? String == "responses")
+        let backend = try #require(delegation["responses"] as? [String: Any])
+        #expect(backend["model"] as? String == GPTLiveWire.backendModel)
+        #expect((backend["tools"] as? [[String: Any]])?.count == 2)
+        #expect(backend["tool_choice"] as? String == "auto")
+
+        let audio = try Self.json(wire.audioMessage(Data([0, 1])))
+        #expect(audio["type"] as? String == "session.input_audio.append")
+        #expect(wire.imageMessages(Data([1])).isEmpty)
+        #expect(LiveProvider.gptLive.cameraFrames == .none)
+        #expect(LiveProvider.gptLive.keyProvider == .openai)
+
+        let output = try Self.json(try #require(wire.toolResponseMessages([
+            LiveToolResponse(id: "call_1", name: "log_water", outputJSON: #"{"ok":true}"#),
+        ]).first))
+        #expect(output["type"] as? String == "response.item.create")
+        #expect((output["item"] as? [String: Any])?["call_id"] as? String == "call_1")
+        let text = try Self.json(try #require(wire.contextTextMessages("Saved.").first))
+        #expect(text["type"] as? String == "response.item.create")
+    }
+
+    @Test func gptLiveReadsBackendCallsAndEndsTurnsWhenTheUserSpeaks() throws {
+        let wire = GPTLiveWire()
+        #expect(wire.parse(#"{"type":"session.started","session":{"id":"sess_1"}}"#) == [.ready])
+        #expect(wire.parse(#"{"type":"session.output_audio.delta","delta":"AAE=","start_ms":0,"end_ms":100}"#)
+            == [.audio(Data([0, 1]), itemID: nil)])
+        #expect(wire.parse(#"{"type":"session.output_transcript.delta","delta":"Logging it."}"#) == [.assistantText("Logging it.")])
+        #expect(wire.parse(#"{"type":"session.input_transcript.delta","delta":"thanks"}"#)
+            == [.turnComplete, .userSpeechStarted, .userText("thanks", replacing: false)])
+        #expect(wire.parse(#"{"type":"session.input_transcript.delta","delta":" a lot"}"#) == [.userText(" a lot", replacing: false)])
+
+        #expect(wire.parse(#"{"type":"response.event","delegation_id":"d1","event":{"type":"response.created","response":{"id":"resp_1"}}}"#)
+            == [.responseStarted])
+        #expect(wire.parse(#"{"type":"response.event","delegation_id":"d1","event":{"type":"response.output_item.done","item":{"type":"function_call","status":"completed","call_id":"call_9","name":"log_water","arguments":"{\"amount\":250,\"unit\":\"ml\"}"}}}"#).isEmpty)
+        // Backend text is spoken by GPT-Live, so it isn't shown twice.
+        #expect(wire.parse(#"{"type":"response.event","delegation_id":"d1","event":{"type":"response.output_text.delta","delta":"Done"}}"#).isEmpty)
+        #expect(wire.parse(#"{"type":"response.event","delegation_id":"d1","event":{"type":"response.completed","response":{"id":"resp_1","status":"completed"}}}"#) == [
+            .toolCalls([LiveToolCall(id: "call_9", name: "log_water", argumentsJSON: #"{"amount":250,"unit":"ml"}"#)]),
+            .responseDone(hasToolCalls: true),
+        ])
+        // A backend answer without tools still doesn't end the spoken turn.
+        _ = wire.parse(#"{"type":"response.event","delegation_id":"d2","event":{"type":"response.created","response":{"id":"resp_2"}}}"#)
+        #expect(wire.parse(#"{"type":"response.event","delegation_id":"d2","event":{"type":"response.completed","response":{"id":"resp_2"}}}"#)
+            == [.responseDone(hasToolCalls: true)])
+    }
+
     @Test func xaiDeclaresToolsAndTakesNoImages() throws {
         let wire = XAIVoiceWire()
         let request = wire.request(for: Self.config(.xai))

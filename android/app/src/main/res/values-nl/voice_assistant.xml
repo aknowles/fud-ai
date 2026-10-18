@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Beëindigd</string>
@@ -121,7 +122,7 @@
     <string name="voice_settings_needs_setup">Neem Plus of Pro, of voeg een API-sleutel van Gemini, OpenAI, xAI of Qwen toe</string>
     <string name="voice_settings_automatic_footer">Automatisch gebruikt de provider die bij AI-providers is gekozen als dat Gemini, OpenAI, xAI of Qwen is en de sleutel is bewaard; anders Fud AI met een Plus- of Pro-abonnement. Eigen sleutels zijn de sleutels die bij AI-providers zijn bewaard.</string>
     <string name="voice_settings_auto_capture">Foto’s automatisch maken</string>
-    <string name="voice_settings_auto_capture_footer">Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien.</string>
+    <string name="voice_settings_auto_capture_footer">Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI en GPT-Live kunnen hem niet zien.</string>
     <string name="voice_settings_confirm_saves">Bevestigen vóór bewaren</string>
     <string name="voice_settings_confirm_saves_footer">Toon een kaart om elke registratie of wijziging goed te keuren. Als dit uitstaat, worden wijzigingen meteen opgeslagen en kun je ze 8 seconden lang ongedaan maken.</string>
     <string name="voice_settings_save_to_coach">Bewaar gesprekken in Coach</string>

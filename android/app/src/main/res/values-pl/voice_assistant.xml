@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Zakończono</string>
@@ -123,7 +124,7 @@
     <string name="voice_settings_needs_setup">Wykup Plus lub Pro albo dodaj klucz API Gemini, OpenAI, xAI lub Qwen</string>
     <string name="voice_settings_automatic_footer">Tryb automatyczny używa dostawcy wybranego w Dostawcach AI, jeśli to Gemini, OpenAI, xAI lub Qwen i ma zapisany klucz; w przeciwnym razie Fud AI z planem Plus lub Pro. Własne klucze to te zapisane w Dostawcach AI.</string>
     <string name="voice_settings_auto_capture">Automatyczne zdjęcia</string>
-    <string name="voice_settings_auto_capture_footer">Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini, Qwen i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI go nie widzi.</string>
+    <string name="voice_settings_auto_capture_footer">Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini, Qwen i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI i GPT-Live go nie widzą.</string>
     <string name="voice_settings_confirm_saves">Potwierdzanie przed zapisaniem</string>
     <string name="voice_settings_confirm_saves_footer">Pokaż kartę do zatwierdzenia każdego wpisu lub zmiany. Gdy ta opcja jest wyłączona, zmiany zapisują się od razu i można je cofnąć w ciągu 8 sekund.</string>
     <string name="voice_settings_save_to_coach">Zapisuj rozmowy w Trenerze</string>

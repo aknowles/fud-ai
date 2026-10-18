@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">结束</string>
@@ -120,7 +121,7 @@
     <string name="voice_settings_needs_setup">订阅 Plus 或 Pro，或添加 Gemini、OpenAI、xAI 或 Qwen API 密钥</string>
     <string name="voice_settings_automatic_footer">“自动”会在 AI 提供商中所选的提供商为 Gemini、OpenAI、xAI 或 Qwen 且已保存密钥时使用它；否则使用 Plus 或 Pro 订阅的 Fud AI。自己的密钥即保存在 AI 提供商中的密钥。</string>
     <string name="voice_settings_auto_capture">自动拍照</string>
-    <string name="voice_settings_auto_capture_footer">相机打开时，助手一看到食物就会拍照。Gemini、Qwen 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 看不到。</string>
+    <string name="voice_settings_auto_capture_footer">相机打开时，助手一看到食物就会拍照。Gemini、Qwen 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 和 GPT-Live 看不到。</string>
     <string name="voice_settings_confirm_saves">保存前确认</string>
     <string name="voice_settings_confirm_saves_footer">显示卡片以确认每次记录或更改。关闭后，更改会立即保存，并可在 8 秒内撤销。</string>
     <string name="voice_settings_save_to_coach">将对话保存到教练</string>

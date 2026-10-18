@@ -312,7 +312,7 @@ struct VoiceAssistantSettingsView: View {
         Section {
             toggleRow(
                 title: "Auto-capture Photos",
-                detail: "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.",
+                detail: "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI and GPT-Live can't see it.",
                 systemImage: "camera.viewfinder",
                 isOn: $autoCapture,
                 identifier: "settings.voiceAssistant.autoCapture"
