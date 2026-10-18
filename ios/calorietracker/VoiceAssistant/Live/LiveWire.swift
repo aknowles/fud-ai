@@ -16,6 +16,8 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
     case xai
     /// Alibaba's Qwen Omni Realtime (Model Studio, international region).
     case qwen
+    /// OpenAI's GPT-Live, which hands tool use to a backend model. Uses the OpenAI key.
+    case gptLive
 
     /// The provider's name for settings and messages.
     var displayName: String {
@@ -25,6 +27,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .openai: "OpenAI"
         case .xai: "xAI"
         case .qwen: "Qwen"
+        case .gptLive: "OpenAI GPT-Live"
         }
     }
 
@@ -37,6 +40,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .openai: ["gpt-realtime-2.1-mini", "gpt-realtime-2.1"]
         case .xai: ["grok-voice-latest", "grok-voice-3.0"]
         case .qwen: ["qwen3.8-omni-flash-realtime"]
+        case .gptLive: ["gpt-live-1"]
         }
     }
 
@@ -54,6 +58,8 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
             ["ara", "eve", "rex", "sal", "leo"]
         case .qwen:
             ["Tina", "Cindy", "Raymond", "Katerina", "Ryan", "Mia", "Jennifer", "Aiden", "Sohee", "Lenn"]
+        case .gptLive:
+            ["quartz", "ripple", "vesper", "willow", "stone", "gleam", "meridian", "bossa", "tempo", "beacon", "delta", "cinder"]
         }
     }
 
@@ -64,7 +70,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         switch self {
         case .hosted, .gemini, .qwen: .continuous
         case .openai: .perTurn
-        case .xai: .none
+        case .xai, .gptLive: .none
         }
     }
 
@@ -81,6 +87,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .openai: OpenAIRealtimeWire()
         case .xai: XAIVoiceWire()
         case .qwen: QwenRealtimeWire()
+        case .gptLive: GPTLiveWire()
         }
     }
 }
@@ -91,7 +98,7 @@ nonisolated enum LiveCameraFrames: String, Sendable {
     case continuous
     /// The latest frame with each user turn (OpenAI).
     case perTurn = "per_turn"
-    /// The model sees no images (xAI); it asks the user to say when the food is in frame.
+    /// The model sees no images (xAI, GPT-Live); it asks the user to say when the food is in frame.
     case none
 }
 
@@ -757,6 +764,147 @@ nonisolated struct QwenRealtimeWire: LiveWire {
         let type = LiveJSON.object(message)?["type"] as? String
         if type == "response.text.delta" || type == "response.output_text.delta" { return [] }
         return events.parse(message)
+    }
+}
+
+// MARK: - OpenAI GPT-Live
+
+/// OpenAI's GPT-Live: a full-duplex voice model that hands tool use to a backend
+/// Responses model ("Responses delegation"). Its own events are `session.*`; the
+/// backend's arrive wrapped in `response.event` and follow the Responses API.
+/// It takes no images.
+nonisolated struct GPTLiveWire: LiveWire {
+    private let events = RealtimeLiveEvents()
+    private let turns = GPTLiveTurns()
+    let inputSampleRate = 24_000.0
+    let outputSampleRate = 24_000.0
+    let waitsForSetupAcknowledgement = true
+    let needsResponseCreate = true
+
+    /// The Responses model GPT-Live delegates the assistant's tools to.
+    static let backendModel = "gpt-6-luna"
+
+    func request(for config: LiveSessionConfig) -> URLRequest {
+        var request = URLRequest(url: URL(string: "wss://api.openai.com/v1/live/sessions")!)
+        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    func setupMessages(for config: LiveSessionConfig, resumptionHandle: String?) -> [String] {
+        var backend: [String: Any] = ["model": Self.backendModel, "instructions": config.instructions]
+        if !config.tools.isEmpty {
+            backend["tools"] = config.tools.map(OpenAIRealtimeWire.functionTool)
+            backend["tool_choice"] = "auto"
+        }
+        let session: [String: Any] = [
+            "model": config.model,
+            "instructions": config.instructions,
+            "audio": ["output": ["voice": config.voice]],
+            "delegation": ["type": "responses", "responses": backend],
+        ]
+        return [LiveJSON.string(["type": "session.start", "session": session])]
+    }
+
+    func audioMessage(_ pcm16: Data) -> String {
+        LiveJSON.string(["type": "session.input_audio.append", "audio": pcm16.base64EncodedString()])
+    }
+
+    func imageMessages(_ jpeg: Data) -> [String] {
+        []
+    }
+
+    /// Card taps go to the backend as a user message; `response.create` follows.
+    func contextTextMessages(_ text: String) -> [String] {
+        let content: [[String: Any]] = [["type": "input_text", "text": text]]
+        return [LiveJSON.string(["type": "response.item.create", "item": ["type": "message", "role": "user", "content": content]])]
+    }
+
+    func toolResponseMessages(_ responses: [LiveToolResponse]) -> [String] {
+        responses.map { response in
+            LiveJSON.string(["type": "response.item.create", "item": [
+                "type": "function_call_output",
+                "call_id": response.id,
+                "output": response.outputJSON,
+            ]])
+        }
+    }
+
+    func responseCreateMessage() -> String? {
+        LiveJSON.string(["type": "response.create"])
+    }
+
+    func truncateMessage(itemID: String, audioEndMs: Int) -> String? {
+        nil
+    }
+
+    func parse(_ message: String) -> [LiveEvent] {
+        guard let json = LiveJSON.object(message), let type = json["type"] as? String else { return [] }
+        switch type {
+        case "session.started":
+            return [.ready]
+        case "session.output_audio.delta":
+            guard let base64 = json["delta"] as? String, let audio = Data(base64Encoded: base64) else { return [] }
+            turns.assistantSpoke()
+            return [.audio(audio, itemID: nil)]
+        case "session.output_transcript.delta":
+            guard let delta = json["delta"] as? String, !delta.isEmpty else { return [] }
+            turns.assistantSpoke()
+            return [.assistantText(delta)]
+        case "session.input_transcript.delta":
+            guard let delta = json["delta"] as? String, !delta.isEmpty else { return [] }
+            // GPT-Live reports no turn ends, so the user speaking after the
+            // assistant closes the assistant's turn.
+            let ended: [LiveEvent] = turns.userSpoke() ? [.turnComplete] : []
+            return ended + [.userText(delta, replacing: false)]
+        case "response.event":
+            guard let nested = json["event"] as? [String: Any] else { return [] }
+            return backendEvents(nested)
+        case "error":
+            let error = json["error"] as? [String: Any]
+            return [.error(error?["message"] as? String ?? "The provider reported an error.", code: error?["code"] as? String)]
+        default:
+            return []
+        }
+    }
+
+    /// The backend's Responses lifecycle drives tool calls and `response.create`.
+    /// Its text is spoken by GPT-Live and arrives again as the output transcript,
+    /// so it isn't shown twice, and its completion never ends a spoken turn.
+    private func backendEvents(_ nested: [String: Any]) -> [LiveEvent] {
+        guard let type = nested["type"] as? String else { return [] }
+        switch type {
+        case "response.created", "response.output_item.added", "response.output_item.done":
+            return events.parse(LiveJSON.string(nested))
+        case "response.completed", "response.failed", "response.incomplete", "response.cancelled":
+            var response = nested["response"] as? [String: Any] ?? [:]
+            if response["status"] == nil {
+                response["status"] = type == "response.completed" ? "completed" : String(type.dropFirst("response.".count))
+            }
+            return events.parse(LiveJSON.string(["type": "response.done", "response": response])).map { event in
+                if case .responseDone(_, let successful) = event { return .responseDone(hasToolCalls: true, successful: successful) }
+                return event
+            }
+        default:
+            return []
+        }
+    }
+}
+
+/// Who spoke last in a GPT-Live session, to find where turns end.
+nonisolated final class GPTLiveTurns: @unchecked Sendable {
+    private let lock = NSLock()
+    private var assistantSpokeLast = false
+
+    func assistantSpoke() {
+        lock.withLock { assistantSpokeLast = true }
+    }
+
+    /// True when the user starts speaking after the assistant did.
+    func userSpoke() -> Bool {
+        lock.withLock {
+            defer { assistantSpokeLast = false }
+            return assistantSpokeLast
+        }
     }
 }
 

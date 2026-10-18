@@ -406,6 +406,63 @@ class LiveWireTest {
         )
     }
 
+    // MARK: - GPT-Live
+
+    @Test
+    fun gptLiveStartsWithResponsesDelegationAndTakesNoImages() {
+        val wire = GPTLiveWire()
+        val request = wire.request(config(LiveProvider.GPT_LIVE))
+        assertEquals("https://api.openai.com/v1/live/sessions", request.url.toString())
+        assertEquals("Bearer test-key", request.header("Authorization"))
+        assertEquals(24_000, wire.inputSampleRate)
+
+        val start = json(wire.setupMessages(config(LiveProvider.GPT_LIVE), null).single())
+        assertEquals("session.start", start["type"]!!.jsonPrimitive.content)
+        val session = start["session"]!!.jsonObject
+        assertEquals("gpt-live-1", session["model"]!!.jsonPrimitive.content)
+        assertEquals("quartz", session["audio"]!!.jsonObject["output"]!!.jsonObject["voice"]!!.jsonPrimitive.content)
+        val delegation = session["delegation"]!!.jsonObject
+        assertEquals("responses", delegation["type"]!!.jsonPrimitive.content)
+        val backend = delegation["responses"]!!.jsonObject
+        assertEquals(GPTLiveWire.BACKEND_MODEL, backend["model"]!!.jsonPrimitive.content)
+        assertEquals(tools.size, backend["tools"]!!.jsonArray.size)
+
+        assertEquals("session.input_audio.append", json(wire.audioMessage(byteArrayOf(0, 1)))["type"]!!.jsonPrimitive.content)
+        assertTrue(wire.imageMessages(byteArrayOf(1)).isEmpty())
+        val output = json(wire.toolResultMessages(listOf(LiveToolResult("call_1", "log_water", JsonObject(emptyMap())))).single())
+        assertEquals("response.item.create", output["type"]!!.jsonPrimitive.content)
+        assertEquals("call_1", output["item"]!!.jsonObject["call_id"]!!.jsonPrimitive.content)
+        assertEquals(2, wire.textMessages("Saved.", respond = true).size)
+    }
+
+    @Test
+    fun gptLiveReadsBackendCallsAndEndsTurnsWhenTheUserSpeaks() {
+        val wire = GPTLiveWire()
+        assertEquals(listOf(LiveEvent.Ready), wire.parse("""{"type":"session.started","session":{"id":"s1"}}"""))
+        assertEquals(
+            listOf(LiveEvent.AssistantText("Logging it.")),
+            wire.parse("""{"type":"session.output_transcript.delta","delta":"Logging it."}""")
+        )
+        assertEquals(
+            listOf(LiveEvent.TurnComplete(), LiveEvent.UserText("thanks", replacing = false)),
+            wire.parse("""{"type":"session.input_transcript.delta","delta":"thanks"}""")
+        )
+        assertEquals(
+            listOf(LiveEvent.UserText(" a lot", replacing = false)),
+            wire.parse("""{"type":"session.input_transcript.delta","delta":" a lot"}""")
+        )
+        wire.parse("""{"type":"response.event","delegation_id":"d1","event":{"type":"response.created","response":{"id":"resp_1"}}}""")
+        wire.parse(
+            """{"type":"response.event","delegation_id":"d1","event":{"type":"response.output_item.done","item":{"type":"function_call","status":"completed","call_id":"call_9","name":"log_water","arguments":"{\"amount\":250,\"unit\":\"ml\"}"}}}"""
+        )
+        assertTrue(wire.parse("""{"type":"response.event","event":{"type":"response.output_text.delta","delta":"Done"}}""").isEmpty())
+        val events = wire.parse("""{"type":"response.event","delegation_id":"d1","event":{"type":"response.completed","response":{"id":"resp_1"}}}""")
+        val call = (events[0] as LiveEvent.ToolCalls).calls.single()
+        assertEquals("log_water", call.name)
+        assertEquals("250", call.arguments["amount"]!!.jsonPrimitive.content)
+        assertTrue(events.last() is LiveEvent.TurnComplete)
+    }
+
     @Test
     fun wiresUseTheContractSampleRates() {
         assertEquals(16_000, GeminiLiveWire().inputSampleRate)

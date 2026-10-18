@@ -23,6 +23,7 @@ Worker (`web/`). Change it here first, then on every platform.
 | Gemini (own key) | Gemini Live WebSocket, key in `x-goog-api-key` header | User |
 | OpenAI (own key) | Realtime WebSocket, `Authorization: Bearer` | User |
 | xAI (own key) | Grok Voice realtime WebSocket, `Authorization: Bearer` | User |
+| OpenAI GPT-Live (own OpenAI key) | GPT-Live WebSocket (`wss://api.openai.com/v1/live/sessions`), `Authorization: Bearer`; tools run through Responses delegation to `gpt-6-luna` | User |
 | Qwen (own key) | Qwen Omni Realtime WebSocket (`wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime`, international region), `Authorization: Bearer` | User |
 
 Settings offer **Automatic** (default): the selected own-key provider when its key
@@ -33,25 +34,26 @@ keys already saved in AI provider settings; nothing new is stored.
 Built-in models (first is the default): Gemini `gemini-3.8-live`,
 `gemini-3.1-flash-live-preview`; OpenAI `gpt-realtime-2.1-mini`,
 `gpt-realtime-2.1`; xAI `grok-voice-latest`, `grok-voice-3.0`; Qwen
-`qwen3.8-omni-flash-realtime`. Hosted sessions
+`qwen3.8-omni-flash-realtime`; GPT-Live `gpt-live-1`. Hosted sessions
 always use the Worker's model.
 
 Voices: Gemini Kore (default), Puck, Charon, Fenrir, Aoede, Leda, Orus, Zephyr,
 Sulafat, Achird, Despina, Gacrux; OpenAI marin (default), cedar, coral, sage,
 shimmer, ash, ballad, alloy, echo, verse; xAI ara (default), eve, rex, sal, leo;
 Qwen Tina (default), Cindy, Raymond, Katerina, Ryan, Mia, Jennifer, Aiden, Sohee,
-Lenn.
+Lenn; GPT-Live quartz (default), ripple, vesper, willow, stone, gleam, meridian,
+bossa, tempo, beacon, delta, cinder.
 
 Camera frames the model can see: Gemini, Qwen and hosted `continuous` (one JPEG
 per second while the camera is open, ≤ 768 px long side; Qwen drops frames over
 256 KB and takes them with `input_image_buffer.append` after audio has started); OpenAI `per_turn` (the
-latest frame with each user turn and before capture decisions); xAI `none`
-(the model asks the user to say when the food is in frame).
+latest frame with each user turn and before capture decisions); xAI and GPT-Live
+`none` (the model asks the user to say when the food is in frame).
 
 ## Session
 
-- Audio: 16-bit mono PCM. Gemini/hosted/Qwen: 16 kHz in, 24 kHz out. OpenAI/xAI:
-  24 kHz both ways. Echo cancellation on (iOS voice processing, Android
+- Audio: 16-bit mono PCM. Gemini/hosted/Qwen: 16 kHz in, 24 kHz out. OpenAI/xAI/
+  GPT-Live: 24 kHz both ways. Echo cancellation on (iOS voice processing, Android
   `VOICE_COMMUNICATION` + `AcousticEchoCanceler`). Speaking over the assistant
   stops its playback (OpenAI also gets `conversation.item.truncate`).
 - Ends after 45 s with no speech either way (not while a tool is waiting for
@@ -72,6 +74,20 @@ latest frame with each user turn and before capture decisions); xAI `none`
   captions. The declared set is `tools.json`
   plus the Coach data tools; tools marked `"workout": true` and the Coach
   workout tools are left out when the workout diary is turned off.
+
+### GPT-Live
+
+GPT-Live starts with `session.start` (model, instructions, voice, and
+`delegation: {type: "responses", responses: {model, instructions, tools,
+tool_choice}}`), acknowledged by `session.started`. Audio goes up as
+`session.input_audio.append` and comes back as `session.output_audio.delta`;
+captions are `session.input_transcript.delta` / `session.output_transcript.delta`.
+The backend's Responses events arrive inside `response.event`: function calls
+in `response.output_item.done`, the end in `response.completed`. Results go back
+as `response.item.create {function_call_output}` followed by `response.create`,
+and card taps as a `response.item.create` user message. GPT-Live reports no turn
+ends, so a turn ends when the user speaks after the assistant; a backend
+completion never ends a spoken turn on iOS.
 
 ### Instructions
 

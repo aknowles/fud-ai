@@ -39,6 +39,9 @@ struct VoiceAssistantSettingsTests {
         #expect(route(.qwen, keys: [.gemini], hosted: true) == .needsAccess(.missingKey(.qwen)))
         #expect(LiveProvider(aiProvider: .qwen) == .qwen)
         #expect(LiveProvider.qwen.keyProvider == .qwen)
+        // GPT-Live uses the OpenAI key; Automatic keeps OpenAI on its realtime models.
+        #expect(route(.gptLive, keys: [.gptLive], hosted: false) == .ready(.gptLive))
+        #expect(LiveProvider(aiProvider: .openai) == .openai)
         #expect(route(.gemini, keys: [], hosted: true) == .needsAccess(.missingKey(.gemini)))
     }
 
@@ -107,6 +110,8 @@ struct VoiceAssistantSettingsTests {
         #expect(LiveProvider.qwen.models == ["qwen3.8-omni-flash-realtime"])
         #expect(LiveProvider.qwen.defaultVoice == "Tina")
         #expect(LiveProvider.qwen.voices.count == 10)
+        #expect(LiveProvider.gptLive.models == ["gpt-live-1"])
+        #expect(LiveProvider.gptLive.defaultVoice == "quartz")
         #expect(LiveProvider.hosted.voices == LiveProvider.gemini.voices)
     }
 

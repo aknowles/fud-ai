@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">انتهى</string>
@@ -125,7 +126,7 @@
     <string name="voice_settings_needs_setup">اشترك في Plus أو Pro، أو أضف مفتاح API من Gemini أو OpenAI أو xAI أو Qwen</string>
     <string name="voice_settings_automatic_footer">يستخدم الخيار التلقائي المزوّد المحدد في موفري الذكاء الاصطناعي إذا كان Gemini أو OpenAI أو xAI أو Qwen ومفتاحه محفوظ؛ وإلا فيستخدم Fud AI مع خطة Plus أو Pro. المفاتيح الخاصة هي تلك المحفوظة في موفري الذكاء الاصطناعي.</string>
     <string name="voice_settings_auto_capture">الالتقاط التلقائي للصور</string>
-    <string name="voice_settings_auto_capture_footer">عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها.</string>
+    <string name="voice_settings_auto_capture_footer">عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI وGPT-Live رؤيتها.</string>
     <string name="voice_settings_confirm_saves">التأكيد قبل الحفظ</string>
     <string name="voice_settings_confirm_saves_footer">عرض بطاقة للموافقة على كل تسجيل أو تغيير. عند إيقاف هذا الخيار، تُحفظ التغييرات فورًا ويمكن التراجع عنها لمدة 8 ثوانٍ.</string>
     <string name="voice_settings_save_to_coach">حفظ المحادثات في المدرب</string>

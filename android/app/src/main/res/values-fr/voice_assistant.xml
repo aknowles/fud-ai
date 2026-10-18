@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Terminé</string>
@@ -122,7 +123,7 @@
     <string name="voice_settings_needs_setup">Abonnez-vous à Plus ou Pro, ou ajoutez une clé API Gemini, OpenAI, xAI ou Qwen</string>
     <string name="voice_settings_automatic_footer">Automatique utilise le fournisseur choisi dans Fournisseurs d’IA s’il s’agit de Gemini, OpenAI, xAI ou Qwen et que sa clé est enregistrée ; sinon Fud AI avec un forfait Plus ou Pro. Vos propres clés sont celles enregistrées dans Fournisseurs d’IA.</string>
     <string name="voice_settings_auto_capture">Capture automatique des photos</string>
-    <string name="voice_settings_auto_capture_footer">Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas.</string>
+    <string name="voice_settings_auto_capture_footer">Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI et GPT-Live ne la voient pas.</string>
     <string name="voice_settings_confirm_saves">Confirmation avant enregistrement</string>
     <string name="voice_settings_confirm_saves_footer">Affiche une carte pour approuver chaque ajout ou modification. Si cette option est désactivée, les changements sont enregistrés immédiatement et peuvent être annulés pendant 8 secondes.</string>
     <string name="voice_settings_save_to_coach">Enregistrer les conversations dans Coach</string>

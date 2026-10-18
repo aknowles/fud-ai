@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Завершено</string>
@@ -123,7 +124,7 @@
     <string name="voice_settings_needs_setup">Оформите Plus или Pro либо добавьте API-ключ Gemini, OpenAI, xAI или Qwen</string>
     <string name="voice_settings_automatic_footer">В автоматическом режиме используется провайдер, выбранный в разделе «Провайдеры ИИ», если это Gemini, OpenAI, xAI или Qwen и его ключ сохранён; иначе — Fud AI с планом Plus или Pro. Собственные ключи — это ключи, сохранённые в разделе «Провайдеры ИИ».</string>
     <string name="voice_settings_auto_capture">Автоматическая съёмка</string>
-    <string name="voice_settings_auto_capture_footer">Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит.</string>
+    <string name="voice_settings_auto_capture_footer">Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI и GPT-Live её не видят.</string>
     <string name="voice_settings_confirm_saves">Подтверждение перед сохранением</string>
     <string name="voice_settings_confirm_saves_footer">Показывать карточку для подтверждения каждой записи или изменения. Если выключено, изменения сохраняются сразу, и их можно отменить в течение 8 секунд.</string>
     <string name="voice_settings_save_to_coach">Сохранять разговоры в «Тренере»</string>

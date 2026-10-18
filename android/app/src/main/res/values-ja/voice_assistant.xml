@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">終了</string>
@@ -120,7 +121,7 @@
     <string name="voice_settings_needs_setup">PlusかProに登録するか、Gemini・OpenAI・xAI・QwenのAPIキーを追加してください</string>
     <string name="voice_settings_automatic_footer">「自動」は、AIプロバイダーで選択中のプロバイダーがGemini・OpenAI・xAI・Qwenのいずれかでキーが保存されていればそれを使い、そうでなければPlusまたはProプランのFud AIを使います。自分のキーとはAIプロバイダーに保存したキーのことです。</string>
     <string name="voice_settings_auto_capture">写真の自動撮影</string>
-    <string name="voice_settings_auto_capture_footer">カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。</string>
+    <string name="voice_settings_auto_capture_footer">カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIとGPT-Liveは見ることができません。</string>
     <string name="voice_settings_confirm_saves">保存前の確認</string>
     <string name="voice_settings_confirm_saves_footer">記録や変更のたびに承認用のカードを表示します。オフの場合はすぐに保存され、8秒間は取り消せます。</string>
     <string name="voice_settings_save_to_coach">会話をコーチに保存</string>

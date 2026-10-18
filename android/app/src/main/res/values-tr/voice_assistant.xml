@@ -14,6 +14,7 @@
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
     <string name="voice_provider_qwen">Alibaba Qwen</string>
+    <string name="voice_provider_gpt_live">OpenAI GPT-Live</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Bitti</string>
@@ -121,7 +122,7 @@
     <string name="voice_settings_needs_setup">Plus veya Pro’ya abone olun ya da bir Gemini, OpenAI, xAI veya Qwen API anahtarı ekleyin</string>
     <string name="voice_settings_automatic_footer">Otomatik, Yapay Zekâ Sağlayıcıları’nda seçili sağlayıcı Gemini, OpenAI, xAI veya Qwen ise ve anahtarı kayıtlıysa onu kullanır; değilse Plus veya Pro planıyla Fud AI’ı kullanır. Kendi anahtarlarınız Yapay Zekâ Sağlayıcıları’nda kayıtlı olanlardır.</string>
     <string name="voice_settings_auto_capture">Otomatik fotoğraf çekme</string>
-    <string name="voice_settings_auto_capture_footer">Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez.</string>
+    <string name="voice_settings_auto_capture_footer">Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ve GPT-Live ise göremez.</string>
     <string name="voice_settings_confirm_saves">Kaydetmeden önce onay</string>
     <string name="voice_settings_confirm_saves_footer">Her kaydı veya değişikliği onaylamanız için bir kart gösterir. Kapalıyken değişiklikler hemen kaydedilir ve 8 saniye boyunca geri alınabilir.</string>
     <string name="voice_settings_save_to_coach">Konuşmaları Koç’a kaydet</string>

@@ -10,6 +10,7 @@ nonisolated enum VoiceAssistantProviderChoice: String, CaseIterable, Identifiabl
     case openai
     case xai
     case qwen
+    case gptLive
 
     var id: String { rawValue }
 
@@ -22,6 +23,7 @@ nonisolated enum VoiceAssistantProviderChoice: String, CaseIterable, Identifiabl
         case .openai: .openai
         case .xai: .xai
         case .qwen: .qwen
+        case .gptLive: .gptLive
         }
     }
 }
@@ -62,7 +64,7 @@ nonisolated enum VoiceAssistantRouting {
             return hasHostedEntitlement ? .ready(.hosted) : .needsAccess(.noProvider)
         case .hosted:
             return hasHostedEntitlement ? .ready(.hosted) : .needsAccess(.needsSubscription)
-        case .gemini, .openai, .xai, .qwen:
+        case .gemini, .openai, .xai, .qwen, .gptLive:
             let provider = choice.fixedProvider ?? .gemini
             return providersWithKeys.contains(provider) ? .ready(provider) : .needsAccess(.missingKey(provider))
         }
@@ -198,7 +200,7 @@ extension LiveProvider {
         switch self {
         case .hosted: nil
         case .gemini: .gemini
-        case .openai: .openai
+        case .openai, .gptLive: .openai
         case .xai: .xai
         case .qwen: .qwen
         }
@@ -238,6 +240,7 @@ extension VoiceAssistantProviderChoice {
         case .openai: "OpenAI"
         case .xai: "xAI"
         case .qwen: "Qwen"
+        case .gptLive: "OpenAI GPT-Live"
         }
     }
 }
