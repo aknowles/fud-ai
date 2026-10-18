@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">开通 Live Voice</string>
     <string name="whats_new_access_title_plans">升级到 Plus 或 Pro</string>
     <string name="whats_new_access_body_setup">选择 Plus 或 Pro，由我们为你运行 AI；或者添加你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥。</string>
+    <string name="whats_new_access_body_key_only">添加你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥，即可开始使用 Live Voice。</string>
     <string name="whats_new_access_body_plans">Plus 和 Pro 为你运行 AI，包含 Live Voice，无需管理 API 密钥。使用你自己的密钥，Fud AI 依然免费。</string>
     <string name="whats_new_support_body">Fud AI 免费，由一位开发者独立打造。评分、分享或一点小费，都能帮助它持续更新。</string>
     <string name="whats_new_community_title">加入 Fud AI 社区</string>

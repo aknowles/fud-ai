@@ -392,20 +392,19 @@ private fun LoopingRawVideo(@RawRes resId: Int, muted: Boolean, playing: Boolean
         }
     )
 
-    LaunchedEffect(prepared, muted) {
+    LaunchedEffect(prepared, playing, muted) {
         if (!prepared) return@LaunchedEffect
         val volume = if (muted) 0f else 1f
         runCatching { player.setVolume(volume, volume) }
-        if (muted) {
-            audioManager?.abandonAudioFocusRequest(focusRequest)
-        } else {
-            audioManager?.requestAudioFocus(focusRequest)
-        }
-    }
-    LaunchedEffect(prepared, playing) {
-        if (!prepared) return@LaunchedEffect
         runCatching {
             if (playing) player.start() else if (player.isPlaying) player.pause()
+        }
+        // Hold focus only while sound is actually playing, so a paused or muted demo never
+        // keeps the user's music stopped.
+        if (playing && !muted) {
+            audioManager?.requestAudioFocus(focusRequest)
+        } else {
+            audioManager?.abandonAudioFocusRequest(focusRequest)
         }
     }
 }
@@ -428,22 +427,33 @@ private fun AccessPage(access: WhatsNewAccess, onPlans: () -> Unit, onAddKey: ()
         )
         PageBody(
             stringResource(
-                if (access.needsLiveVoiceSetup) R.string.whats_new_access_body_setup else R.string.whats_new_access_body_plans
+                when {
+                    !access.needsLiveVoiceSetup -> R.string.whats_new_access_body_plans
+                    access.canBuyPlans -> R.string.whats_new_access_body_setup
+                    else -> R.string.whats_new_access_body_key_only
+                }
             )
         )
         Spacer(Modifier.height(4.dp))
-        FudGlassPrimaryButton(text = "", onClick = onPlans) {
-            Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
-            Spacer(Modifier.width(8.dp))
-            Text(stringResource(R.string.hosted_upsell_cta), color = Color.White, fontWeight = FontWeight.SemiBold)
+        // Only plans that can actually be bought; otherwise the paywall would be empty.
+        if (access.canBuyPlans) {
+            FudGlassPrimaryButton(text = "", onClick = onPlans) {
+                Icon(Icons.Filled.AutoAwesome, contentDescription = null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(stringResource(R.string.hosted_upsell_cta), color = Color.White, fontWeight = FontWeight.SemiBold)
+            }
         }
         if (access.needsLiveVoiceSetup) {
-            SecondaryButton(
-                text = stringResource(R.string.voice_action_add_key),
-                onClick = onAddKey,
-                icon = { Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(18.dp)) },
-                modifier = Modifier.fillMaxWidth()
-            )
+            if (access.canBuyPlans) {
+                SecondaryButton(
+                    text = stringResource(R.string.voice_action_add_key),
+                    onClick = onAddKey,
+                    icon = { Icon(Icons.Filled.Key, contentDescription = null, modifier = Modifier.size(18.dp)) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                FudGlassPrimaryButton(text = stringResource(R.string.voice_action_add_key), onClick = onAddKey)
+            }
             Row(
                 horizontalArrangement = Arrangement.spacedBy(18.dp),
                 modifier = Modifier.padding(top = 4.dp)

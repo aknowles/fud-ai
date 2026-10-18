@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Live Voice’u edinin</string>
     <string name="whats_new_access_title_plans">Plus veya Pro’ya geçin</string>
     <string name="whats_new_access_body_setup">Plus veya Pro’yu seçin, yapay zekâyı sizin için biz çalıştıralım ya da kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyin.</string>
+    <string name="whats_new_access_body_key_only">Live Voice’u kullanmaya başlamak için kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyin.</string>
     <string name="whats_new_access_body_plans">Plus ve Pro yapay zekâyı sizin için çalıştırır; Live Voice dahildir ve yönetmeniz gereken API anahtarı yoktur. Kendi anahtarlarınızla Fud AI ücretsiz kalır.</string>
     <string name="whats_new_support_body">Fud AI ücretsiz ve tek bir geliştirici tarafından yapılıyor. Bir puan, paylaşım ya da küçük bir bahşiş devam etmesine yardımcı olur.</string>
     <string name="whats_new_community_title">Fud AI topluluğuna katılın</string>

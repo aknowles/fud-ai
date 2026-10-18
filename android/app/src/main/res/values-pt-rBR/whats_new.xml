@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Tenha o Live Voice</string>
     <string name="whats_new_access_title_plans">Mude para o Plus ou o Pro</string>
     <string name="whats_new_access_body_setup">Escolha o Plus ou o Pro e nós rodamos a IA para você, ou adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen.</string>
+    <string name="whats_new_access_body_key_only">Adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen para começar a usar o Live Voice.</string>
     <string name="whats_new_access_body_plans">O Plus e o Pro rodam a IA para você, com o Live Voice incluído e sem chaves de API para gerenciar. Com suas próprias chaves, o Fud AI continua gratuito.</string>
     <string name="whats_new_support_body">O Fud AI é gratuito e feito por um único desenvolvedor. Uma avaliação, um compartilhamento ou uma pequena gorjeta ajudam a mantê-lo.</string>
     <string name="whats_new_community_title">Entre na comunidade do Fud AI</string>

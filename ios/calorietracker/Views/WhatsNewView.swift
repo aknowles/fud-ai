@@ -129,6 +129,7 @@ struct WhatsNewSheet: View {
 
     @State private var muted = true
     @State private var showPlans = false
+    @Environment(\.scenePhase) private var scenePhase
 
     private var pages: [WhatsNewPage] { WhatsNewPages.pages(access: access) }
     private var isLast: Bool { selection >= pages.count - 1 }
@@ -164,6 +165,10 @@ struct WhatsNewSheet: View {
         }
         .onChange(of: muted) { _, isMuted in
             WhatsNewAudio.apply(muted: isMuted)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            // Leaving the app turns the sound back off, so other audio is never held up.
+            if phase != .active { muted = true }
         }
     }
 
@@ -377,10 +382,12 @@ private struct WhatsNewAccessPage: View {
                 .font(.system(.title2, design: .rounded, weight: .bold))
                 .accessibilityAddTraits(.isHeader)
                 Group {
-                    if access.needsLiveVoiceSetup {
+                    if !access.needsLiveVoiceSetup {
+                        Text("Plus and Pro run the AI for you, with Live Voice included and no API keys to manage. Fud AI stays free with your own keys.")
+                    } else if access.canBuyPlans {
                         Text("Pick Plus or Pro and we run the AI for you, or add your own Gemini, OpenAI, xAI or Qwen API key.")
                     } else {
-                        Text("Plus and Pro run the AI for you, with Live Voice included and no API keys to manage. Fud AI stays free with your own keys.")
+                        Text("Add your own Gemini, OpenAI, xAI or Qwen API key to start using Live Voice.")
                     }
                 }
                 .font(.system(.body, design: .rounded))
@@ -390,15 +397,18 @@ private struct WhatsNewAccessPage: View {
             .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 10) {
-                Button(action: onPlans) {
-                    WhatsNewButtonLabel(title: "See Plus & Pro Plans", systemImage: "sparkles", prominent: true)
+                // Only plans that can actually be bought; otherwise the paywall would be empty.
+                if access.canBuyPlans {
+                    Button(action: onPlans) {
+                        WhatsNewButtonLabel(title: "See Plus & Pro Plans", systemImage: "sparkles", prominent: true)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("whatsNew.plans")
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("whatsNew.plans")
 
                 if access.needsLiveVoiceSetup {
                     Button(action: onAddKey) {
-                        WhatsNewButtonLabel(title: "Add an API Key", systemImage: "key.fill", prominent: false)
+                        WhatsNewButtonLabel(title: "Add an API Key", systemImage: "key.fill", prominent: !access.canBuyPlans)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("whatsNew.addKey")

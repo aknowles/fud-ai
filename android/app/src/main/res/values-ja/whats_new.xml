@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Live Voiceを使う</string>
     <string name="whats_new_access_title_plans">PlusまたはProに切り替える</string>
     <string name="whats_new_access_body_setup">PlusかProを選べばAIはこちらで動かします。または、Gemini、OpenAI、xAI、QwenのAPIキーを追加してください。</string>
+    <string name="whats_new_access_body_key_only">Live Voiceを使うには、Gemini、OpenAI、xAI、QwenのAPIキーを追加してください。</string>
     <string name="whats_new_access_body_plans">PlusとProならAIをこちらで動かすので、APIキーの管理は不要。Live Voiceも使えます。自分のキーを使えば、Fud AIはこれからも無料です。</string>
     <string name="whats_new_support_body">Fud AIは無料で、1人の開発者が作っています。評価やシェア、ちょっとしたチップが開発の支えになります。</string>
     <string name="whats_new_community_title">Fud AIコミュニティに参加</string>

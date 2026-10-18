@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Live Voice 시작하기</string>
     <string name="whats_new_access_title_plans">Plus 또는 Pro로 전환하기</string>
     <string name="whats_new_access_body_setup">Plus나 Pro를 선택하면 AI를 대신 실행해 드려요. 또는 Gemini, OpenAI, xAI, Qwen API 키를 직접 추가하세요.</string>
+    <string name="whats_new_access_body_key_only">Live Voice를 사용하려면 Gemini, OpenAI, xAI, Qwen API 키를 직접 추가하세요.</string>
     <string name="whats_new_access_body_plans">Plus와 Pro는 AI를 대신 실행해 드려요. Live Voice가 포함되어 있고 API 키를 관리할 필요가 없어요. 내 키를 쓰면 Fud AI는 계속 무료예요.</string>
     <string name="whats_new_support_body">Fud AI는 무료이며 개발자 한 명이 만들고 있어요. 평가, 공유, 작은 팁이 큰 힘이 됩니다.</string>
     <string name="whats_new_community_title">Fud AI 커뮤니티 참여하기</string>

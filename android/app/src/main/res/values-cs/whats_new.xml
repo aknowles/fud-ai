@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Získej Live Voice</string>
     <string name="whats_new_access_title_plans">Přejdi na Plus nebo Pro</string>
     <string name="whats_new_access_body_setup">Vyber si Plus nebo Pro a AI provozujeme za tebe, nebo přidej vlastní API klíč od Gemini, OpenAI, xAI nebo Qwen.</string>
+    <string name="whats_new_access_body_key_only">Přidej vlastní API klíč od Gemini, OpenAI, xAI nebo Qwen a začni používat Live Voice.</string>
     <string name="whats_new_access_body_plans">Plus a Pro za tebe provozují AI, včetně Live Voice a bez nutnosti spravovat API klíče. S vlastními klíči zůstává Fud AI zdarma.</string>
     <string name="whats_new_support_body">Fud AI je zdarma a tvoří ho jediný vývojář. Hodnocení, sdílení nebo malé spropitné mu pomáhá pokračovat.</string>
     <string name="whats_new_community_title">Přidej se ke komunitě Fud AI</string>

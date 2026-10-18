@@ -193406,6 +193406,124 @@
           }
         }
       }
+    },
+    "Add your own Gemini, OpenAI, xAI or Qwen API key to start using Live Voice.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أضف مفتاح API خاصًا بك من Gemini أو OpenAI أو xAI أو Qwen لبدء استخدام Live Voice."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice-dan istifadəyə başlamaq üçün öz Gemini, OpenAI, xAI və ya Qwen API açarınızı əlavə edin."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Přidej vlastní API klíč od Gemini, OpenAI, xAI nebo Qwen a začni používat Live Voice."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Füge deinen eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu, um Live Voice zu nutzen."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Add your own Gemini, OpenAI, xAI or Qwen API key to start using Live Voice."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Añade tu propia clave de API de Gemini, OpenAI, xAI o Qwen para empezar a usar Live Voice."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ajoutez votre propre clé d’API Gemini, OpenAI, xAI ou Qwen pour commencer à utiliser Live Voice."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice इस्तेमाल करना शुरू करने के लिए अपनी Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aggiungi la tua chiave API di Gemini, OpenAI, xAI o Qwen per iniziare a usare Live Voice."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voiceを使うには、Gemini、OpenAI、xAI、QwenのAPIキーを追加してください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice를 사용하려면 Gemini, OpenAI, xAI, Qwen API 키를 직접 추가하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Voeg je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen toe om Live Voice te gebruiken."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dodaj własny klucz API Gemini, OpenAI, xAI lub Qwen, aby zacząć korzystać z Live Voice."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen para começar a usar o Live Voice."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Adaugă propria cheie API Gemini, OpenAI, xAI ori Qwen ca să începi să folosești Live Voice."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Добавьте свой ключ API Gemini, OpenAI, xAI или Qwen, чтобы начать пользоваться Live Voice."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Live Voice’u kullanmaya başlamak için kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyin."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Додайте власний ключ API Gemini, OpenAI, xAI чи Qwen, щоб почати користуватися Live Voice."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "添加你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥，即可开始使用 Live Voice。"
+          }
+        }
+      }
     }
   },
   "version": "1.1"

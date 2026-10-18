@@ -11,6 +11,7 @@
     <string name="whats_new_access_title_setup">Obține Live Voice</string>
     <string name="whats_new_access_title_plans">Treci la Plus sau Pro</string>
     <string name="whats_new_access_body_setup">Alege Plus sau Pro și rulăm noi AI-ul pentru tine sau adaugă propria cheie API Gemini, OpenAI, xAI ori Qwen.</string>
+    <string name="whats_new_access_body_key_only">Adaugă propria cheie API Gemini, OpenAI, xAI ori Qwen ca să începi să folosești Live Voice.</string>
     <string name="whats_new_access_body_plans">Plus și Pro rulează AI-ul pentru tine, cu Live Voice inclus și fără chei API de gestionat. Cu propriile chei, Fud AI rămâne gratuit.</string>
     <string name="whats_new_support_body">Fud AI este gratuit și e creat de un singur dezvoltator. O evaluare, o distribuire sau un mic bacșiș îl ajută să continue.</string>
     <string name="whats_new_community_title">Alătură-te comunității Fud AI</string>
