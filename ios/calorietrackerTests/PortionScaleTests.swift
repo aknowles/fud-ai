@@ -30,14 +30,16 @@ struct PortionScaleTests {
     private func measure(
         cameraAt position: SIMD3<Float>,
         tilt: Float = 0,
-        planePoint: SIMD3<Float> = .zero
+        planePoint: SIMD3<Float> = .zero,
+        portrait: Bool = true
     ) -> PortionScale? {
         PortionScale.measure(
             cameraTransform: camera(at: position, tilt: tilt),
             planePoint: planePoint,
             planeNormal: SIMD3<Float>(0, 1, 0),
             intrinsics: intrinsics,
-            imageResolution: resolution
+            imageResolution: resolution,
+            portrait: portrait
         )
     }
 
@@ -48,6 +50,24 @@ struct PortionScaleTests {
         // 1440 / 1500 × 40 cm across the upright photo, 1920 / 1500 × 40 cm down it.
         #expect(abs(scale.photoWidthCm - 38.4) < 0.01)
         #expect(abs(scale.photoHeightCm - 51.2) < 0.01)
+        #expect(scale.readiness == .ready)
+    }
+
+    @Test func landscapePhotoKeepsTheSensorAxes() throws {
+        let scale = try #require(measure(cameraAt: SIMD3<Float>(0, 0.4, 0), portrait: false))
+        #expect(abs(scale.photoWidthCm - 51.2) < 0.01)
+        #expect(abs(scale.photoHeightCm - 38.4) < 0.01)
+    }
+
+    @Test func tiltedPhotoSpansTheTableItReallySees() throws {
+        // 40 cm above the table, tilted 30° along the portrait width: the far
+        // half of the frame reaches much further across the table than the near half.
+        let scale = try #require(measure(cameraAt: SIMD3<Float>(0, 0.4, 0.4 * tan(.pi / 6)), tilt: 30))
+        #expect(abs(scale.tiltDegrees - 30) < 0.01)
+        #expect(abs(scale.cameraHeightCm - 40) < 0.01)
+        // 40 × (tan(30° + atan 0.48) − tan(30° − atan 0.48)), and 40 / cos 30° × 1.28.
+        #expect(abs(scale.photoWidthCm - 55.46) < 0.05)
+        #expect(abs(scale.photoHeightCm - 59.12) < 0.05)
         #expect(scale.readiness == .ready)
     }
 
@@ -91,7 +111,7 @@ struct PortionScaleTests {
         let section = try #require(PortionScale.promptSection(for: [nil, ready, tilted]))
         #expect(section.hasPrefix("REAL-WORLD SCALE"))
         #expect(section.contains("- Photo 2: taken from about 40 cm above the table, looking straight down."))
-        #expect(section.contains("covers about 38 × 51 cm of the table"))
+        #expect(section.contains("the photo spans about 38 cm of table across and 51 cm top to bottom"))
         #expect(!section.contains("Photo 1:"))
         #expect(!section.contains("Photo 3:"))
 

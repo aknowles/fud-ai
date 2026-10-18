@@ -453,7 +453,9 @@ struct GeminiService {
         guard !images.isEmpty else { throw AnalysisError.imageConversionFailed }
 
         // Photos taken with the AR Measure camera carry the table's real-world scale (#601).
-        let portionScaleSection = PortionScale.promptSection(for: images.map(PortionScaleRegistry.scale(for:)))
+        // Hosted requests send only the first few photos, so describe only those.
+        let sentImages = AIModeSettings.isHosted ? Array(images.prefix(HostedAIConstants.maxHostedImages)) : images
+        let portionScaleSection = PortionScale.promptSection(for: sentImages.map(PortionScaleRegistry.scale(for:)))
         let prompt = multiPhotoAnalysisPrompt(
             progressiveMeal: progressiveMeal,
             description: description,

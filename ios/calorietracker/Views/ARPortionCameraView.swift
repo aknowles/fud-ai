@@ -50,7 +50,10 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
     private let ciContext = CIContext()
     private var lastStatusUpdate: TimeInterval = 0
     private var isCapturing = false
+    /// Set when the user leaves this camera, so a still that arrives afterwards is dropped.
+    private var hasLeft = false
     private var sessionFailed = false
+    private var announcedStatus: String?
 
     init(title: String?) {
         titleText = title
@@ -206,6 +209,7 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
+        hasLeft = true
         sceneView.session.pause()
     }
 
@@ -214,62 +218,79 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
     func session(_ session: ARSession, didUpdate frame: ARFrame) {
         guard !sessionFailed, frame.timestamp - lastStatusUpdate > 0.2 else { return }
         lastStatusUpdate = frame.timestamp
-        let tracking: Bool
-        if case .normal = frame.camera.trackingState { tracking = true } else { tracking = false }
-        updateStatus(for: tracking ? measure(frame) : nil)
+        updateStatus(for: measure(frame, orientation: sceneOrientation))
     }
 
     func session(_ session: ARSession, didFailWithError error: Error) {
         sessionFailed = true
-        setStatus(String(localized: "AR measuring isn't available right now"), ready: false)
+        setStatus(String(localized: "AR measuring isn't available right now"), state: "failed", ready: false)
     }
 
     // MARK: - Measuring
 
-    private func measure(_ frame: ARFrame) -> PortionScale? {
+    private var sceneOrientation: UIInterfaceOrientation {
+        view.window?.windowScene?.effectiveGeometry.interfaceOrientation ?? .portrait
+    }
+
+    /// The live status and the saved photo share this rule: no measurement
+    /// unless tracking is normal and a detected table plane, not the floor, is
+    /// under the centre of the frame.
+    private func measure(_ frame: ARFrame, orientation: UIInterfaceOrientation) -> PortionScale? {
+        guard !sessionFailed, case .normal = frame.camera.trackingState else { return nil }
         let center = CGPoint(x: 0.5, y: 0.5)
-        // The food covers the table under the centre, so extend the detected
-        // table plane beneath it before falling back to an estimate.
-        var results = sceneView.session.raycast(
-            frame.raycastQuery(from: center, allowing: .existingPlaneInfinite, alignment: .horizontal)
-        )
-        if results.isEmpty {
-            results = sceneView.session.raycast(
-                frame.raycastQuery(from: center, allowing: .estimatedPlane, alignment: .horizontal)
+        // The food can hide the table under the centre, so extend the detected
+        // plane beneath it when the ray misses the plane's mapped area.
+        for target in [ARRaycastQuery.Target.existingPlaneGeometry, .existingPlaneInfinite] {
+            let results = sceneView.session.raycast(
+                frame.raycastQuery(from: center, allowing: target, alignment: .horizontal)
             )
+            if let hit = results.first(where: { !Self.isFloor($0) }) {
+                let transform = hit.worldTransform
+                return PortionScale.measure(
+                    cameraTransform: frame.camera.transform,
+                    planePoint: SIMD3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z),
+                    planeNormal: SIMD3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z),
+                    intrinsics: frame.camera.intrinsics,
+                    imageResolution: frame.camera.imageResolution,
+                    portrait: orientation.isPortrait || orientation == .unknown
+                )
+            }
         }
-        guard let hit = results.first else { return nil }
-        let transform = hit.worldTransform
-        return PortionScale.measure(
-            cameraTransform: frame.camera.transform,
-            planePoint: SIMD3(transform.columns.3.x, transform.columns.3.y, transform.columns.3.z),
-            planeNormal: SIMD3(transform.columns.1.x, transform.columns.1.y, transform.columns.1.z),
-            intrinsics: frame.camera.intrinsics,
-            imageResolution: frame.camera.imageResolution
-        )
+        return nil
+    }
+
+    private static func isFloor(_ result: ARRaycastResult) -> Bool {
+        guard let plane = result.anchor as? ARPlaneAnchor else { return false }
+        if case .floor = plane.classification { return true }
+        return false
     }
 
     private func updateStatus(for scale: PortionScale?) {
         guard let scale else {
-            setStatus(String(localized: "Move your phone slowly to find the table"), ready: false)
+            setStatus(String(localized: "Move your phone slowly to find the table"), state: "searching", ready: false)
             return
         }
         switch scale.readiness {
         case .tooClose:
-            setStatus(String(localized: "Move your phone a little higher"), ready: false)
+            setStatus(String(localized: "Move your phone a little higher"), state: "tooClose", ready: false)
         case .tooFar:
-            setStatus(String(localized: "Move your phone closer to the food"), ready: false)
+            setStatus(String(localized: "Move your phone closer to the food"), state: "tooFar", ready: false)
         case .tooTilted:
-            setStatus(String(localized: "Hold your phone flat above the food"), ready: false)
+            setStatus(String(localized: "Hold your phone flat above the food"), state: "tooTilted", ready: false)
         case .ready:
             let distance = Self.formattedHeight(cm: scale.cameraHeightCm)
-            setStatus(String(localized: "Ready · \(distance) above the table"), ready: true)
+            setStatus(String(localized: "Ready · \(distance) above the table"), state: "ready", ready: true)
         }
     }
 
-    private func setStatus(_ text: String, ready: Bool) {
+    /// VoiceOver hears each state once; the live height in the ready text
+    /// changes every update and is only shown.
+    private func setStatus(_ text: String, state: String, ready: Bool) {
         if statusLabel.text != text {
             statusLabel.text = text
+        }
+        if announcedStatus != state {
+            announcedStatus = state
             UIAccessibility.post(notification: .announcement, argument: text)
         }
         reticle.layer.borderColor = (ready ? UIColor.systemGreen : UIColor.white.withAlphaComponent(0.8)).cgColor
@@ -289,10 +310,10 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
     // MARK: - Capture
 
     @objc private func capture() {
-        guard !isCapturing, let frame = sceneView.session.currentFrame else { return }
+        guard !isCapturing, !hasLeft, let frame = sceneView.session.currentFrame else { return }
         isCapturing = true
-        let orientation = view.window?.windowScene?.effectiveGeometry.interfaceOrientation ?? .portrait
-        let fallbackScale = measure(frame)
+        let orientation = sceneOrientation
+        let fallbackScale = measure(frame, orientation: orientation)
         sceneView.session.captureHighResolutionFrame { [weak self] highResolutionFrame, _ in
             let finish: () -> Void = {
                 self?.finishCapture(
@@ -316,31 +337,41 @@ final class ARPortionCameraController: UIViewController, ARSessionDelegate {
         fallbackScale: PortionScale?,
         orientation: UIInterfaceOrientation
     ) {
+        guard !hasLeft else { return }
         let photoFrame = highResolutionFrame ?? fallbackFrame
         // The high-resolution still has its own intrinsics for its size.
-        let scale = (highResolutionFrame.flatMap { measure($0) } ?? fallbackScale)
+        let scale = (highResolutionFrame.flatMap { measure($0, orientation: orientation) } ?? fallbackScale)
             .flatMap { $0.readiness == .ready ? $0 : nil }
         guard let image = uprightImage(from: photoFrame.capturedImage, orientation: orientation) else {
             isCapturing = false
             return
         }
+        hasLeft = true
         onCapture?(image, scale)
     }
 
     private func uprightImage(from pixelBuffer: CVPixelBuffer, orientation: UIInterfaceOrientation) -> UIImage? {
-        // The sensor buffer is landscape; draw it upright so every provider sees
-        // the photo the right way up, with or without EXIF support.
-        let rotation: CGImagePropertyOrientation = orientation == .portraitUpsideDown ? .left : .right
+        // The sensor buffer is landscape-right; draw it upright so every provider
+        // sees the photo the right way up, with or without EXIF support.
+        let rotation: CGImagePropertyOrientation
+        switch orientation {
+        case .portraitUpsideDown: rotation = .left
+        case .landscapeRight: rotation = .up
+        case .landscapeLeft: rotation = .down
+        default: rotation = .right
+        }
         let ciImage = CIImage(cvPixelBuffer: pixelBuffer).oriented(rotation)
         guard let cgImage = ciContext.createCGImage(ciImage, from: ciImage.extent) else { return nil }
         return UIImage(cgImage: cgImage, scale: 1, orientation: .up)
     }
 
     @objc private func cancel() {
+        hasLeft = true
         onCancel?()
     }
 
     @objc private func useStandardCamera() {
+        hasLeft = true
         onUseStandardCamera?()
     }
 }
