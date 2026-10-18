@@ -34,7 +34,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
 
     var logoAssetName: String? {
         switch self {
-        case .appleIntelligence, .gemma4Local, .customOpenAI, .qwen: nil
+        case .appleIntelligence, .gemma4Local, .customOpenAI: nil
         case .gemini: "provider_gemini"
         case .openai: "provider_openai"
         case .anthropic: "provider_anthropic"
@@ -47,6 +47,7 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .deepinfra: "provider_deepinfra"
         case .mistral: "provider_mistral"
         case .deepseek: "provider_deepseek"
+        case .qwen: "provider_qwen"
         case .cerebras: "provider_cerebras"
         case .ollama: "provider_ollama"
         }

@@ -68,8 +68,9 @@ latest frame with each user turn and before capture decisions); xAI `none`
 - Tools are declared at setup: Gemini `tools: [{functionDeclarations}]`;
   OpenAI/xAI/Qwen `session.tools: [{type: "function", name, description,
   parameters}]`, with `tool_choice: "auto"` for OpenAI/xAI. Qwen's tools go
-  in a second `session.update`, and Qwen reads only audio-transcript deltas as
-  captions. The declared set is `tools.json`
+  in a second `session.update` and its input transcription
+  (`qwen3-asr-flash-realtime`) in a third; Qwen reads only audio-transcript
+  deltas as captions and drops camera frames until audio has been sent. The declared set is `tools.json`
   plus the Coach data tools; tools marked `"workout": true` and the Coach
   workout tools are left out when the workout diary is turned off.
 

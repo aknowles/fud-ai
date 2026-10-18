@@ -370,7 +370,7 @@ class LiveWireTest {
         assertEquals(24_000, wire.outputSampleRate)
 
         val messages = wire.setupMessages(config(LiveProvider.QWEN), null).map(::json)
-        assertEquals(2, messages.size)
+        assertEquals(3, messages.size)
         val session = messages[0]["session"]!!.jsonObject
         assertEquals("Tina", session["voice"]!!.jsonPrimitive.content)
         assertEquals("pcm", session["input_audio_format"]!!.jsonPrimitive.content)
@@ -378,11 +378,18 @@ class LiveWireTest {
         assertEquals("semantic_vad", session["turn_detection"]!!.jsonObject["type"]!!.jsonPrimitive.content)
         assertFalse(session.containsKey("tools"))
         assertEquals(tools.size, messages[1]["session"]!!.jsonObject["tools"]!!.jsonArray.size)
+        assertEquals(
+            "qwen3-asr-flash-realtime",
+            messages[2]["session"]!!.jsonObject["input_audio_transcription"]!!.jsonObject["model"]!!.jsonPrimitive.content
+        )
     }
 
     @Test
     fun qwenSeesTheCameraAndReadsCallsAndAudioTranscripts() {
         val wire = QwenRealtimeWire()
+        // Qwen takes images only after some audio.
+        assertTrue(wire.imageMessages(byteArrayOf(1, 2, 3)).isEmpty())
+        wire.audioMessage(byteArrayOf(0, 1))
         val image = json(wire.imageMessages(byteArrayOf(1, 2, 3)).single())
         assertEquals("input_image_buffer.append", image["type"]!!.jsonPrimitive.content)
         assertEquals(b64(byteArrayOf(1, 2, 3)), image["image"]!!.jsonPrimitive.content)

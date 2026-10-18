@@ -689,6 +689,7 @@ nonisolated struct XAIVoiceWire: LiveWire {
 /// through `input_image_buffer.append`.
 nonisolated struct QwenRealtimeWire: LiveWire {
     private let events = RealtimeLiveEvents()
+    private let audioGate = QwenAudioGate()
     let inputSampleRate = 16_000.0
     let outputSampleRate = 24_000.0
     let waitsForSetupAcknowledgement = true
@@ -696,6 +697,9 @@ nonisolated struct QwenRealtimeWire: LiveWire {
 
     /// Qwen refuses camera frames larger than this.
     static let maxImageBytes = 256 * 1024
+    /// Transcribes what the user says so captions and Coach get the user's words.
+    /// Model Studio fixes this model for Qwen Omni Realtime.
+    static let transcriptionModel = "qwen3-asr-flash-realtime"
 
     func request(for config: LiveSessionConfig) -> URLRequest {
         var components = URLComponents(string: "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime")!
@@ -722,16 +726,22 @@ nonisolated struct QwenRealtimeWire: LiveWire {
                 "tools": config.tools.map(OpenAIRealtimeWire.functionTool),
             ]]))
         }
+        // Transcription goes alone too, so a problem with it can't drop the tools.
+        messages.append(LiveJSON.string(["type": "session.update", "session": [
+            "input_audio_transcription": ["model": Self.transcriptionModel],
+        ]]))
         return messages
     }
 
     func audioMessage(_ pcm16: Data) -> String {
-        LiveJSON.string(["type": "input_audio_buffer.append", "audio": pcm16.base64EncodedString()])
+        audioGate.audioSent()
+        return LiveJSON.string(["type": "input_audio_buffer.append", "audio": pcm16.base64EncodedString()])
     }
 
-    /// Microphone audio is always sent first, as Qwen requires before any image.
+    /// Qwen takes images only after some audio and refuses frames over 256 KB;
+    /// both are skipped rather than sent.
     func imageMessages(_ jpeg: Data) -> [String] {
-        guard jpeg.count <= Self.maxImageBytes else { return [] }
+        guard audioGate.hasSentAudio, jpeg.count <= Self.maxImageBytes else { return [] }
         return [LiveJSON.string(["type": "input_image_buffer.append", "image": jpeg.base64EncodedString()])]
     }
 
@@ -757,6 +767,20 @@ nonisolated struct QwenRealtimeWire: LiveWire {
         let type = LiveJSON.object(message)?["type"] as? String
         if type == "response.text.delta" || type == "response.output_text.delta" { return [] }
         return events.parse(message)
+    }
+}
+
+/// Whether a Qwen session has sent microphone audio yet; images must come after it.
+nonisolated final class QwenAudioGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var sent = false
+
+    func audioSent() {
+        lock.withLock { sent = true }
+    }
+
+    var hasSentAudio: Bool {
+        lock.withLock { sent }
     }
 }
 

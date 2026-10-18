@@ -219,7 +219,7 @@ struct VoiceAssistantWireTests {
         #expect(wire.outputSampleRate == 24_000)
 
         let messages = try wire.setupMessages(for: Self.config(.qwen), resumptionHandle: nil).map(Self.json)
-        #expect(messages.count == 2)
+        #expect(messages.count == 3)
         let session = try #require(messages[0]["session"] as? [String: Any])
         #expect(session["voice"] as? String == "Tina")
         #expect(session["instructions"] as? String == "Be brief.")
@@ -228,7 +228,12 @@ struct VoiceAssistantWireTests {
         // Tools go alone, so a rejection can't drop the voice settings.
         let tools = try #require((messages[1]["session"] as? [String: Any])?["tools"] as? [[String: Any]])
         #expect(tools.map { $0["name"] as? String } == ["log_water", "get_app_state"])
+        let transcription = (messages[2]["session"] as? [String: Any])?["input_audio_transcription"] as? [String: Any]
+        #expect(transcription?["model"] as? String == "qwen3-asr-flash-realtime")
 
+        // Qwen takes images only after some audio.
+        #expect(wire.imageMessages(Data([1, 2, 3])).isEmpty)
+        _ = wire.audioMessage(Data([0, 1]))
         let image = try Self.json(try #require(wire.imageMessages(Data([1, 2, 3])).first))
         #expect(image["type"] as? String == "input_image_buffer.append")
         #expect(image["image"] as? String == Data([1, 2, 3]).base64EncodedString())
