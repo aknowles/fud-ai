@@ -111,7 +111,7 @@ struct GeminiService {
                 polyunsaturatedFat: polyunsaturatedFatPer100g.map { round($0 * scale * 10) / 10 },
                 cholesterol: cholesterolPer100g.map { round($0 * scale * 10) / 10 },
                 caffeine: caffeinePer100g.map { round($0 * scale * 10) / 10 },
-                supplementalNutrients: supplementalNutrientsPer100g.mapValues { round($0 * scale * 10) / 10 },
+                supplementalNutrients: AminoAcidEstimates.roundedSupplementalNutrients(supplementalNutrientsPer100g, scaledBy: scale),
                 sodium: sodiumPer100g.map { round($0 * scale * 10) / 10 },
                 potassium: potassiumPer100g.map { round($0 * scale * 10) / 10 },
                 transFat: transFatPer100g.map { round($0 * scale * 10) / 10 },
@@ -213,7 +213,19 @@ struct GeminiService {
     {"name":"Product Name","calories_per_100g":0.0,"protein_per_100g":0.0,"carbs_per_100g":0.0,"fat_per_100g":0.0,"serving_size_grams":0.0,"sugar_per_100g":0.0,"added_sugar_per_100g":0.0,"fiber_per_100g":0.0,"saturated_fat_per_100g":0.0,"monounsaturated_fat_per_100g":0.0,"polyunsaturated_fat_per_100g":0.0,"trans_fat_per_100g":0.0,"cholesterol_per_100g":0.0,"caffeine_per_100g":0.0,"creatine_per_100g":0.0,"beta_alanine_per_100g":0.0,"l_citrulline_per_100g":0.0,"l_carnitine_per_100g":0.0,"l_arginine_per_100g":0.0,"taurine_per_100g":0.0,"betaine_per_100g":0.0,"hmb_per_100g":0.0,"sodium_per_100g":0.0,"potassium_per_100g":0.0,"calcium_per_100g":0.0,"iron_per_100g":0.0,"magnesium_per_100g":0.0,"zinc_per_100g":0.0,"vitamin_a_per_100g":0.0,"vitamin_c_per_100g":0.0,"vitamin_d_per_100g":0.0,"vitamin_b12_per_100g":0.0,"vitamin_e_per_100g":0.0,"vitamin_k_per_100g":0.0,"folate_per_100g":0.0,"omega_3_per_100g":0.0,"unit_options":[]}
     """
 
-    private static let nutrientUnitsInstruction = "Calories are integers. Protein/carbs/fat are decimal gram values when needed. serving_size_grams is the estimated weight in grams. Nutrients are numbers: sugar/fiber/fats/omega_3/creatine/beta_alanine/l_citrulline/l_carnitine/l_arginine/taurine/betaine/hmb in grams; cholesterol/caffeine/sodium/potassium/calcium/iron/magnesium/zinc/vitamin_c/vitamin_e in milligrams; vitamin_a/vitamin_d/vitamin_b12/vitamin_k/folate in micrograms. Only report sports-nutrition compounds when explicitly present in a label or description; otherwise use 0."
+    private static var nutrientUnitsInstruction: String {
+        foodNutrientInstruction(includingAminoAcids: AminoAcidSettings.isEnabled)
+    }
+
+    /// Amino acid keys join the shared nutrient instruction only while the opt-in setting is on (#491),
+    /// so everyone else keeps exactly the same food-analysis prompts.
+    static func foodNutrientInstruction(includingAminoAcids: Bool) -> String {
+        includingAminoAcids
+            ? baseNutrientUnitsInstruction + "\n" + AminoAcidEstimates.foodPromptInstruction
+            : baseNutrientUnitsInstruction
+    }
+
+    private static let baseNutrientUnitsInstruction = "Calories are integers. Protein/carbs/fat are decimal gram values when needed. serving_size_grams is the estimated weight in grams. Nutrients are numbers: sugar/fiber/fats/omega_3/creatine/beta_alanine/l_citrulline/l_carnitine/l_arginine/taurine/betaine/hmb in grams; cholesterol/caffeine/sodium/potassium/calcium/iron/magnesium/zinc/vitamin_c/vitamin_e in milligrams; vitamin_a/vitamin_d/vitamin_b12/vitamin_k/folate in micrograms. Only report sports-nutrition compounds when explicitly present in a label or description; otherwise use 0."
 
     private static let servingUnitOptionsInstruction = """
     unit_options is required and must always be a JSON array. Each item must be a complete object with this exact schema (the values are schema examples only; never copy them):
@@ -224,7 +236,7 @@ struct GeminiService {
     """
 
     private static let ingredientBreakdownInstruction = """
-    ingredients is required. For a meal with multiple meaningful foods, return each food once using this exact object shape: {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a nutrition label, a single simple food, or when a reliable breakdown is not possible.
+    ingredients is required. For a meal with multiple meaningful foods, return each food once using this exact object shape: {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a nutrition label, a single simple food, or when a reliable breakdown is not possible. Every ingredient must have a positive grams estimate even when no weight is shown. For screenshots or photos of menus, recipes, meal plans, or food-logging apps that list several dishes, return each listed dish as its own ingredient using its listed calories/macros. Return at most 20 ingredients; when there are more foods or dishes, combine similar or minor ones so the list still covers the whole meal. Never add a total or subtotal row as an ingredient.
     """
 
     // MARK: - Public API (unchanged interface)
@@ -261,13 +273,15 @@ struct GeminiService {
             ? String(format: "%.1f kg", profile.weightKg)
             : String(format: "%.1f lb", profile.weightKg * 2.20462)
         let bodyFat = profile.bodyFatPercentage.map { "\(Int(($0 * 100).rounded()))%" } ?? "not set"
+        // Empty for kcal users, so their prompt is unchanged.
+        let energyHint = EnergyUnit.current.aiReplyInstruction().map { "\n\($0)" } ?? ""
 
         let prompt = """
         You are a concise nutrition coach inside Fud AI. The user is reviewing a meal before logging it.
         Analyze this what-if scenario only. Do not say the meal has already been logged. Do not change the user's goals.
 
         Return 2-4 short plain-English sentences, no markdown and no bullets.
-        Say whether logging this meal as-is fits the remaining daily targets. If it does not fit well, suggest one practical action: reduce quantity, replace an item, add a protein/fiber source, or balance the next meal. Be specific with calories/macros from the data below.
+        Say whether logging this meal as-is fits the remaining daily targets. If it does not fit well, suggest one practical action: reduce quantity, replace an item, add a protein/fiber source, or balance the next meal. Be specific with calories/macros from the data below.\(energyHint)
 
         User:
         - Goal: \(profile.goal.displayName)
@@ -434,16 +448,18 @@ struct GeminiService {
         let prompt = multiPhotoAnalysisPrompt(progressiveMeal: progressiveMeal, description: description)
 
         return try await runWithHostedQuota(.photoFood, skip: skipHostedMetering) {
+            let labelText = OnDeviceLabelText(images: images)
             if let onDevice = try await analyzeFoodWithAppleIntelligenceIfSelected(
                 images: images,
                 description: description,
-                progressiveMeal: progressiveMeal
+                progressiveMeal: progressiveMeal,
+                labelText: labelText
             ) {
                 var result = await addingFallbackServingUnits(to: onDevice, image: images[0], description: description)
                 result.progressiveMeal = progressiveMeal
                 return result
             }
-            let text = try await callAI(prompt: prompt, images: images)
+            let text = try await callAI(prompt: prompt, images: images, labelText: labelText)
             let analysis = try parseFoodAnalysis(from: text)
             var result = await addingFallbackServingUnits(to: analysis, image: images[0], description: description)
             result.progressiveMeal = progressiveMeal
@@ -452,7 +468,7 @@ struct GeminiService {
     }
 
     static func analyzeNutritionLabel(image: UIImage) async throws -> NutritionLabelAnalysis {
-        let prompt = """
+        let basePrompt = """
         Read this nutrition label image. Extract the nutritional values per 100g (or per 100ml).
         If the label shows per-serving values, convert them to per-100g using the serving size.
 
@@ -465,6 +481,9 @@ struct GeminiService {
         \(Self.servingUnitOptionsInstruction)
         All nutrient and serving-size values should be numbers. If serving size or any nutrient is not available, use null. Only include a label serving unit such as slice, piece, tbsp, cup, ml, fl oz, can, or packet when its quantity is actually printed or otherwise visible on the label.
         """
+        let prompt = AminoAcidSettings.isEnabled
+            ? basePrompt + "\n" + AminoAcidEstimates.labelPromptInstruction
+            : basePrompt
         return try await runWithHostedQuota(.photoFood) {
             let text = try await callAI(prompt: prompt, image: image)
             let analysis = try parseNutritionLabel(from: text)
@@ -492,6 +511,18 @@ struct GeminiService {
         return try await runWithHostedQuota(.allergensLab) {
             let text = try await callAI(prompt: prompt, images: images)
             return try parseAllergensFromLabReport(from: text)
+        }
+    }
+
+    /// Identifies the exercise in a custom-exercise photo. Metadata is limited to
+    /// `options`; the result only prefills the editor and is never saved here.
+    static func suggestUserExercise(
+        image: UIImage,
+        options: UserExerciseAIFill.Options
+    ) async throws -> UserExerciseAIFill.Suggestion {
+        try await runWithHostedQuota(.workoutAI) {
+            let text = try await callAI(prompt: UserExerciseAIFill.prompt(options: options), image: image)
+            return try UserExerciseAIFill.parse(text, options: options)
         }
     }
 
@@ -733,12 +764,14 @@ struct GeminiService {
             lines.append("- NOTE: predicted and observed trends differ by >0.3 kg/week (possibly under-logging food).")
         }
 
+        // Empty for kcal users, so their prompt is unchanged.
+        let energyHint = EnergyUnit.current.aiReplyInstruction().map { "\n\($0)" } ?? ""
         let prompt = """
         You are a nutrition coach analyzing a user's weight trend. Write 3–4 short sentences (plain English, no bullets, no markdown, no bold) that:
         1. State the predicted weight in \(unit) 30 days out and whether they're on track for their goal.
         2. Give one or two specific, actionable suggestions (e.g. calorie target, protein amount, activity change) grounded in the numbers below.
         3. If predicted and observed trends disagree, mention possible under-logging briefly.
-        Be direct, factual, and encouraging. Do not exceed 100 words.
+        Be direct, factual, and encouraging. Do not exceed 100 words.\(energyHint)
 
         \(lines.joined(separator: "\n"))
         """
@@ -836,7 +869,8 @@ struct GeminiService {
     private static func analyzeFoodWithAppleIntelligenceIfSelected(
         images: [UIImage],
         description: String?,
-        progressiveMeal: Bool = false
+        progressiveMeal: Bool = false,
+        labelText: OnDeviceLabelText? = nil
     ) async throws -> FoodAnalysis? {
         guard !AIModeSettings.isHosted else { return nil }
         let primary = AIProviderSettings.currentConfig(requiresVision: true)
@@ -847,7 +881,8 @@ struct GeminiService {
                 var analysis = try await OnDeviceFoodService.analyzeImages(
                     images: images,
                     description: description,
-                    progressiveMeal: progressiveMeal
+                    progressiveMeal: progressiveMeal,
+                    labelText: try await labelText?.section()
                 )
                 analysis.progressiveMeal = progressiveMeal
                 return analysis
@@ -901,7 +936,16 @@ struct GeminiService {
         return try await AIGate.runWithHostedQuota(action, work)
     }
 
-    private static func callAI(prompt: String, images: [UIImage], jsonResponse: Bool = true) async throws -> String {
+    /// - Parameter labelText: adds the nutrition label text to `prompt` only
+    ///   for a provider that runs on this iPhone, whether it is the selected
+    ///   provider or the image fallback, so cloud requests keep the original
+    ///   prompt (#486).
+    private static func callAI(
+        prompt: String,
+        images: [UIImage],
+        jsonResponse: Bool = true,
+        labelText: OnDeviceLabelText? = nil
+    ) async throws -> String {
         if AIModeSettings.isHosted {
             let capped = Array(images.prefix(HostedAIConstants.maxHostedImages))
             let imageDataList = try capped.map { try encodedJPEGData(for: $0) }
@@ -926,7 +970,7 @@ struct GeminiService {
                 model: primary.model,
                 baseURL: primary.baseURL,
                 apiKey: primary.apiKey,
-                prompt: prompt,
+                prompt: try await labelText?.prompt(prompt, for: primary.provider) ?? prompt,
                 imageDataList: imageDataList,
                 jsonResponse: jsonResponse
             )
@@ -953,7 +997,7 @@ struct GeminiService {
                     model: fallback.model,
                     baseURL: fallback.baseURL,
                     apiKey: fallback.apiKey,
-                    prompt: prompt,
+                    prompt: try await labelText?.prompt(prompt, for: fallback.provider) ?? prompt,
                     imageDataList: imageDataList,
                     jsonResponse: jsonResponse
                 )
@@ -1370,7 +1414,7 @@ struct GeminiService {
 
     // MARK: - Parsing (unchanged)
 
-    private static func extractJSON(from text: String) -> String {
+    static func extractJSON(from text: String) -> String {
         var cleaned = text.trimmingCharacters(in: .whitespacesAndNewlines)
 
         if let openFence = cleaned.range(of: "```json", options: .caseInsensitive)
@@ -1430,29 +1474,15 @@ struct GeminiService {
         }
         let supplementalNutrients = Dictionary(uniqueKeysWithValues: SupplementalNutrient.allCases.compactMap { nutrient in
             double(nutrient.jsonKey).map { (nutrient.rawValue, $0) }
-        })
-        let ingredients = (json["ingredients"] as? [[String: Any]] ?? [])
-            .prefix(20)
-            .compactMap { item -> MealIngredient? in
-                guard let name = (item["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
-                      !name.isEmpty,
-                      let grams = (item["grams"] as? NSNumber)?.doubleValue,
-                      grams > 0,
-                      let calories = (item["calories"] as? NSNumber)?.doubleValue,
-                      let protein = (item["protein"] as? NSNumber)?.doubleValue,
-                      let carbs = (item["carbs"] as? NSNumber)?.doubleValue,
-                      let fat = (item["fat"] as? NSNumber)?.doubleValue,
-                      [calories, protein, carbs, fat].allSatisfy({ $0 >= 0 })
-                else { return nil }
-                return MealIngredient(
-                    name: name,
-                    grams: grams,
-                    calories: Int(round(calories)),
-                    protein: protein,
-                    carbs: carbs,
-                    fat: fat
-                )
-            }
+        }).merging(
+            AminoAcidEstimates.parse(json, limitGrams: responseServingSizeGrams),
+            uniquingKeysWith: { current, _ in current }
+        )
+        let ingredients = parseIngredientBreakdown(
+            json["ingredients"],
+            mealCalories: calories,
+            mealGrams: responseServingSizeGrams
+        )
         return FoodAnalysis(
             name: name, calories: calories, protein: protein, carbs: carbs, fat: fat,
             servingSizeGrams: servingSizeGrams,
@@ -1488,6 +1518,99 @@ struct GeminiService {
             requiresServingUnitFallback: parsedUnitOptions.requiresFallback,
             ingredients: ingredients
         ).withIngredientMacroTotals()
+    }
+
+    /// The prompts ask for at most this many entries; a longer list is dropped, never truncated.
+    private static let maxIngredientCount = 20
+    /// Pure fat; a repaired weight that implies more energy per gram is not a real food.
+    private static let maxIngredientCaloriesPerGram = 9.0
+    /// A list covering less than this share of the meal calories is missing dishes.
+    private static let minIngredientCalorieCoverage = 0.5
+    /// A list adding up to more than this share also counts something twice, such as a total row.
+    private static let maxIngredientCalorieCoverage = 1.5
+    /// No single ingredient comes near this; a larger number is malformed and would overflow Int.
+    private static let maxIngredientValue = 100_000.0
+
+    /// The breakdown replaces the meal macros, so it must be complete or absent (#343):
+    /// any entry that cannot be kept or repaired drops the whole list and the model's
+    /// meal totals stay. Missing ingredient weights (common for screenshots of meal lists
+    /// that only show calories) are estimated from the meal weight left after the listed
+    /// weights instead of dropping the dish. Mirrors Android FoodJsonParser.parseIngredients.
+    private static func parseIngredientBreakdown(
+        _ raw: Any?,
+        mealCalories: Int,
+        mealGrams: Double?
+    ) -> [MealIngredient] {
+        guard let items = raw as? [Any], !items.isEmpty, items.count <= maxIngredientCount else { return [] }
+        struct Draft {
+            var name: String
+            var grams: Double?
+            var calories: Double
+            var protein: Double
+            var carbs: Double
+            var fat: Double
+        }
+        var drafts: [Draft] = []
+        for item in items {
+            guard let item = item as? [String: Any],
+                  let name = (item["name"] as? String)?.trimmingCharacters(in: .whitespacesAndNewlines),
+                  !name.isEmpty,
+                  let calories = ingredientNumber(item["calories"]),
+                  let protein = ingredientNumber(item["protein"]),
+                  let carbs = ingredientNumber(item["carbs"]),
+                  let fat = ingredientNumber(item["fat"]),
+                  [calories, protein, carbs, fat].allSatisfy({ $0 >= 0 && $0 <= maxIngredientValue })
+            else { return [] }
+            let listedGrams = ingredientNumber(item["grams"])
+            // 0 is the prompt's placeholder for an unknown weight; a negative weight is malformed.
+            if let listedGrams, listedGrams < 0 || listedGrams > maxIngredientValue { return [] }
+            let grams = listedGrams.flatMap { $0 > 0 ? $0 : nil }
+            // Without a weight or calories there is nothing to estimate the weight from.
+            if grams == nil && calories <= 0 { return [] }
+            drafts.append(Draft(name: name, grams: grams, calories: calories, protein: protein, carbs: carbs, fat: fat))
+        }
+
+        var gramsPerMissingCalorie = 0.0
+        let missingCalories = drafts.filter { $0.grams == nil }.reduce(0) { $0 + $1.calories }
+        if missingCalories > 0 {
+            guard let mealGrams, mealGrams > 0 else { return [] }
+            let remainingGrams = mealGrams - drafts.compactMap(\.grams).reduce(0, +)
+            // The repaired weights must fit in the meal: when the listed weights leave no room
+            // for the missing dishes, the numbers disagree and no repair is reliable.
+            guard remainingGrams > 0, missingCalories / remainingGrams <= maxIngredientCaloriesPerGram else { return [] }
+            gramsPerMissingCalorie = remainingGrams / missingCalories
+        }
+
+        let ingredients = drafts.map { draft in
+            MealIngredient(
+                name: draft.name,
+                grams: draft.grams ?? (draft.calories * gramsPerMissingCalorie * 10).rounded() / 10,
+                calories: Int(round(draft.calories)),
+                protein: draft.protein,
+                carbs: draft.carbs,
+                fat: draft.fat
+            )
+        }
+        if mealCalories > 0 {
+            let coverage = Double(ingredients.ingredientTotals.calories) / Double(mealCalories)
+            guard coverage >= minIngredientCalorieCoverage, coverage <= maxIngredientCalorieCoverage else { return [] }
+        }
+        return ingredients
+    }
+
+    /// Ingredient numbers as JSON numbers or numeric strings ("156"), like Android's jsonNumber,
+    /// so one quoted value does not drop the whole breakdown. Booleans and non-finite values are not numbers.
+    static func ingredientNumber(_ value: Any?) -> Double? {
+        let number: Double?
+        if let string = value as? String {
+            number = Double(string.trimmingCharacters(in: .whitespacesAndNewlines))
+        } else if let value = value as? NSNumber, CFGetTypeID(value) != CFBooleanGetTypeID() {
+            number = value.doubleValue
+        } else {
+            number = nil
+        }
+        guard let number, number.isFinite else { return nil }
+        return number
     }
 
     static func parseAllergensFromLabReport(from text: String) throws -> [String] {
@@ -1533,7 +1656,10 @@ struct GeminiService {
         }
         let supplementalNutrientsPer100g = Dictionary(uniqueKeysWithValues: SupplementalNutrient.allCases.compactMap { nutrient in
             double("\(nutrient.jsonKey)_per_100g").map { (nutrient.rawValue, $0) }
-        })
+        }).merging(
+            AminoAcidEstimates.parse(json, keySuffix: "_per_100g", limitGrams: 100),
+            uniquingKeysWith: { current, _ in current }
+        )
         return NutritionLabelAnalysis(
             name: name, caloriesPer100g: caloriesPer100g, proteinPer100g: proteinPer100g,
             carbsPer100g: carbsPer100g, fatPer100g: fatPer100g,

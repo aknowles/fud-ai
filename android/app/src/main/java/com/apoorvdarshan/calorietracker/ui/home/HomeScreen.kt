@@ -180,6 +180,9 @@ import com.apoorvdarshan.calorietracker.models.WaterEntry
 import com.apoorvdarshan.calorietracker.models.WaterUnit
 import com.apoorvdarshan.calorietracker.services.ai.FoodAnalysis
 import com.apoorvdarshan.calorietracker.ui.components.InAppCameraCaptureDialog
+import com.apoorvdarshan.calorietracker.ui.components.LocalEnergyUnit
+import com.apoorvdarshan.calorietracker.ui.components.energyText
+import com.apoorvdarshan.calorietracker.models.EnergyUnit
 import com.apoorvdarshan.calorietracker.ui.components.FullScreenImageViewer
 import com.apoorvdarshan.calorietracker.ui.components.rememberFoodThumbnailCandidate
 import com.apoorvdarshan.calorietracker.ui.components.foodPhotoViewerInitialIndex
@@ -298,6 +301,8 @@ DisposableEffect(lifecycleOwner, vm) {
         if (granted) {
             clearCaptureDraft()
             showCameraCapture = true
+        } else {
+            vm.clearLabelScanBarcode()
         }
     }
 
@@ -332,6 +337,7 @@ DisposableEffect(lifecycleOwner, vm) {
     fun performFoodLogMethod(method: FoodLogMethod) {
         showAddMenu = false
         addMenuDestination = null
+        vm.clearLabelScanBarcode()
         when (method) {
             FoodLogMethod.CAMERA -> openCamera()
             FoodLogMethod.PHOTOS -> {
@@ -374,6 +380,7 @@ DisposableEffect(lifecycleOwner, vm) {
         editingFast = null
         showCameraCapture = false
         showMultiPhotoCapture = false
+        vm.clearLabelScanBarcode()
         vm.setSelectedDate(LocalDate.now())
 
         // Fasting shortcuts manage the fast itself; food shortcuts stay blocked while one is active.
@@ -770,27 +777,25 @@ CalorieHero(
                         }
                         if (ui.activeFast == null) {
                             val addMenuConfig = ui.addMenuConfig
-                            if (addMenuConfig.usesFlatLayout) {
-                                val methods = addMenuConfig.resolvedFlatMethods()
-                                methods.forEach { method ->
-                                    SheetGlassDropdownMenuItem(
-                                        label = stringResource(method.titleRes),
-                                        leadingIcon = method.icon
-                                    ) { performFoodLogMethod(method) }
-                                }
-                                insertedFoodBlock = methods.isNotEmpty()
-                            } else {
-                                val groups = addMenuConfig.resolvedGroups()
-                                groups.forEachIndexed { index, group ->
-                                    if (index > 0) SheetHairline()
-                                    SheetGlassDropdownMenuItem(
-                                        label = group.displayName(),
-                                        leadingIcon = group.methods.firstOrNull()?.icon ?: FoodLogMethodDefaultGroupIcon,
-                                        trailingIcon = Icons.Filled.ChevronRight
-                                    ) { addMenuDestination = AddMenuDestination.FoodGroup(index) }
-                                }
-                                insertedFoodBlock = groups.isNotEmpty()
+                            val groups = addMenuConfig.resolvedGroups()
+                            groups.forEachIndexed { index, group ->
+                                if (index > 0) SheetHairline()
+                                SheetGlassDropdownMenuItem(
+                                    label = group.displayName(),
+                                    leadingIcon = group.methods.firstOrNull()?.icon ?: FoodLogMethodDefaultGroupIcon,
+                                    trailingIcon = Icons.Filled.ChevronRight
+                                ) { addMenuDestination = AddMenuDestination.FoodGroup(index) }
                             }
+                            // Standalone methods follow the groups directly under +.
+                            val standalone = addMenuConfig.resolvedFlatMethods()
+                            if (groups.isNotEmpty() && standalone.isNotEmpty()) SheetHairline()
+                            standalone.forEach { method ->
+                                SheetGlassDropdownMenuItem(
+                                    label = stringResource(method.titleRes),
+                                    leadingIcon = method.icon
+                                ) { performFoodLogMethod(method) }
+                            }
+                            insertedFoodBlock = groups.isNotEmpty() || standalone.isNotEmpty()
                         }
                         if (ui.waterTrackingEnabled) {
                             maybeFoodBoundaryHairline()
@@ -832,9 +837,9 @@ CalorieHero(
                     }
 
                     AddMenuDestination.Water -> {
-                        SheetGlassDropdownMenuItem(label = stringResource(R.string.water_one_glass_dynamic, ui.waterUnit.format(250)), leadingIcon = Icons.Filled.WaterDrop) { showAddMenu = false; addMenuDestination = null; vm.addWater(250) }
-                        SheetGlassDropdownMenuItem(label = stringResource(R.string.water_two_glasses_dynamic, ui.waterUnit.format(500)), leadingIcon = Icons.Filled.WaterDrop) { showAddMenu = false; addMenuDestination = null; vm.addWater(500) }
-                        SheetGlassDropdownMenuItem(label = stringResource(R.string.water_three_glasses_dynamic, ui.waterUnit.format(750)), leadingIcon = Icons.Filled.WaterDrop) { showAddMenu = false; addMenuDestination = null; vm.addWater(750) }
+                        ui.waterQuickAddPresetsMl.forEach { milliliters ->
+                            SheetGlassDropdownMenuItem(label = ui.waterUnit.format(milliliters), leadingIcon = Icons.Filled.WaterDrop) { showAddMenu = false; addMenuDestination = null; vm.addWater(milliliters) }
+                        }
                         SheetGlassDropdownMenuItem(label = stringResource(R.string.water_custom_amount), leadingIcon = Icons.Filled.DriveFileRenameOutline) { showAddMenu = false; addMenuDestination = null; showCustomWaterLog = true }
                         SheetGlassDropdownMenuItem(label = stringResource(R.string.back), leadingIcon = Icons.Filled.ChevronLeft) { addMenuDestination = null }
                     }
@@ -1005,6 +1010,8 @@ CalorieHero(
                 showCameraCapture = false
                 if (pendingCaptureImageBytes.isNotEmpty()) {
                     showMultiPhotoCapture = true
+                } else {
+                    vm.clearLabelScanBarcode()
                 }
             }
         )
@@ -1012,7 +1019,7 @@ CalorieHero(
 
     if (showMultiPhotoCapture && captureDraftBusy && pendingCaptureImageBytes.isEmpty()) {
         AlertDialog(
-            onDismissRequest = { showMultiPhotoCapture = false; clearCaptureDraft() },
+            onDismissRequest = { showMultiPhotoCapture = false; clearCaptureDraft(); vm.clearLabelScanBarcode() },
             text = { CircularProgressIndicator() },
             confirmButton = {}
         )
@@ -1045,7 +1052,10 @@ CalorieHero(
             },
             onRemove = { index ->
                 captureDraft.remove(index)
-                if (pendingCaptureImageBytes.size == 1) showMultiPhotoCapture = false
+                if (pendingCaptureImageBytes.size == 1) {
+                    showMultiPhotoCapture = false
+                    vm.clearLabelScanBarcode()
+                }
             },
             onAnalyze = { note, progressiveMeal ->
                 if (!captureDraft.busy.value) {
@@ -1058,6 +1068,7 @@ CalorieHero(
             onDismiss = {
                 showMultiPhotoCapture = false
                 clearCaptureDraft()
+                vm.clearLabelScanBarcode()
             }
         )
     }
@@ -1066,6 +1077,7 @@ CalorieHero(
         EditFoodEntrySheet(
             entry = entry,
             preferGramsByDefault = ui.preferGramsByDefault,
+            aminoAcidsEnabled = ui.aminoAcidEstimatesEnabled,
             profile = ui.profile,
             isFavorite = ui.isFavorite(entry),
             container = container,
@@ -1098,6 +1110,7 @@ CalorieHero(
             waterCurrentMl = ui.waterTodayMl,
             waterGoalMl = ui.waterDailyGoalMl,
             waterUnit = ui.waterUnit,
+            aminoAcidsEnabled = ui.aminoAcidEstimatesEnabled,
             onHomeTopNutrientsChange = vm::setHomeTopNutrients,
             onDismiss = { showNutritionDetail = false }
         )
@@ -1110,6 +1123,7 @@ CalorieHero(
             analysis = analysis,
             imageBytesList = ui.pendingImageBytesList,
             preferGramsByDefault = ui.preferGramsByDefault,
+            aminoAcidsEnabled = ui.aminoAcidEstimatesEnabled,
             profile = ui.profile,
             dayEntries = ui.todayEntries,
             allEntries = allEntries,
@@ -1122,6 +1136,8 @@ CalorieHero(
                 ?: ui.pendingFoodSource
                 ?: if (ui.pendingImageBytes != null) FoodSource.SNAP_FOOD else FoodSource.TEXT_INPUT,
             initialTimestamp = initialTimestamp,
+            usesSavedBarcodeLabel = ui.pendingUsesSavedBarcodeLabel,
+            allowsRecipeServings = !ui.pendingReviewIsLoggedPortion,
             onWhatIfSuggestion = vm::suggestMealWhatIf,
             onSave = { name, grams, servingSizeIsKnown, scale, mealType, selectedServingUnit, selectedServingQuantity, editedAnalysis, timestamp ->
                 vm.saveAnalysis(
@@ -1156,7 +1172,7 @@ CalorieHero(
                 ),
                 onPrimary = {
                     if (ui.errorOffersScanLabel) {
-                        vm.dismissPending()
+                        vm.startLabelScanForFailedBarcode()
                         openCamera()
                     } else {
                         vm.retryPendingAnalysis()
@@ -1653,7 +1669,10 @@ private fun CalorieHero(
     burnSummary: HomeBurnSummary? = null
 ) {
     val ratio = if (goal > 0) (current.toFloat() / goal).coerceIn(0f, 1f) else 0f
-    val formattedCurrent = current.formattedWholeNumber()
+    val energyUnit = LocalEnergyUnit.current
+    val shownCurrent = energyUnit.displayValue(current)
+    val shownGoal = energyUnit.displayValue(goal)
+    val formattedCurrent = shownCurrent.formattedWholeNumber()
     // Fill-from-zero on app open. lastEpoch is saveable so it survives tab switches
     // (where Home leaves/re-enters composition) — only a real app-open (new epoch)
     // replays the sweep; tab returns snap to the current value.
@@ -1672,8 +1691,11 @@ private fun CalorieHero(
     }
     val statusText = when {
         goal <= 0 -> stringResource(R.string.home_macro_no_goal)
-        current < goal -> stringResource(R.string.home_kcal_left_format, (goal - current).formattedWholeNumber())
-        current > goal -> stringResource(R.string.home_macro_over_format, (current - goal).formattedWholeNumber())
+        current < goal -> stringResource(
+            energyUnit.pick(R.string.home_kcal_left_format, R.string.home_kj_left_format),
+            (shownGoal - shownCurrent).formattedWholeNumber()
+        )
+        current > goal -> stringResource(R.string.home_macro_over_format, (shownCurrent - shownGoal).formattedWholeNumber())
         else -> stringResource(R.string.home_macro_goal_reached)
     }
     val gradientColors = listOf(AppColors.CalorieStart, AppColors.CalorieEnd)
@@ -1724,8 +1746,11 @@ private fun CalorieHero(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(2.dp)
         ) {
+            // The dome's numbers carry no unit, so its heading names the unit in use.
             Text(
-                stringResource(R.string.widget_calories).uppercase(LocalConfiguration.current.locales[0]),
+                stringResource(
+                    if (energyUnit == EnergyUnit.KJ) R.string.home_kilojoules else R.string.widget_calories
+                ).uppercase(LocalConfiguration.current.locales[0]),
                 fontSize = 12.sp,
                 fontWeight = FontWeight.SemiBold,
                 letterSpacing = 0.5.sp,
@@ -1774,19 +1799,21 @@ private fun CalorieHero(
 
 @Composable
 private fun homeBurnLineText(summary: HomeBurnSummary): String {
-    val burned = summary.burnedCalories.formattedWholeNumber()
+    val energyUnit = LocalEnergyUnit.current
+    val burned = energyUnit.displayValue(summary.burnedCalories).formattedWholeNumber()
+    val difference = energyUnit.displayValue(summary.differenceCalories).formattedWholeNumber()
     return when (summary.direction) {
         com.apoorvdarshan.calorietracker.services.CalorieBalanceDirection.DEFICIT ->
             stringResource(
                 R.string.home_burn_deficit,
                 burned,
-                summary.differenceCalories.formattedWholeNumber()
+                difference
             )
         com.apoorvdarshan.calorietracker.services.CalorieBalanceDirection.SURPLUS ->
             stringResource(
                 R.string.home_burn_surplus,
                 burned,
-                summary.differenceCalories.formattedWholeNumber()
+                difference
             )
         com.apoorvdarshan.calorietracker.services.CalorieBalanceDirection.BALANCED ->
             stringResource(R.string.home_burn_balanced, burned)
@@ -1934,7 +1961,7 @@ private fun MealSectionHeader(
                 horizontalAlignment = Alignment.Start
             ) {
                 Text(
-                    "${totalCalories.formattedWholeNumber()} kcal",
+                    energyText(totalCalories),
                     fontSize = 15.sp,
                     lineHeight = 18.sp,
                     fontWeight = FontWeight.SemiBold,
@@ -2599,7 +2626,7 @@ private fun FoodRow(
                 horizontalArrangement = Arrangement.spacedBy(6.dp)
             ) {
                 Text(
-                    "${entry.calories.formattedWholeNumber()} kcal",
+                    energyText(entry.calories),
                     fontSize = 14.sp,
                     fontWeight = FontWeight.SemiBold,
                     color = AppColors.Calorie
@@ -2990,7 +3017,7 @@ private fun AnalysisResultDialog(
         FudGlassSurface(modifier = Modifier.fillMaxWidth(), cornerRadius = 20.dp, padding = 16.dp) {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
-                    "${analysis.calories.formattedWholeNumber()} kcal",
+                    energyText(analysis.calories),
                     fontSize = 30.sp,
                     fontWeight = FontWeight.Bold,
                     color = AppColors.Calorie
@@ -3076,6 +3103,8 @@ internal fun ManualEntryDialog(
     var mealMenuExpanded by remember { mutableStateOf(false) }
     var isSubmitting by remember { mutableStateOf(false) }
     val submissionGate = remember { FoodSubmissionGate() }
+    // Calories are typed in the energy unit in use and stored as kcal.
+    val energyUnit = LocalEnergyUnit.current
 
     val canSave = name.isNotBlank() && calories.toIntOrNull() != null && !isSubmitting
 
@@ -3091,7 +3120,7 @@ internal fun ManualEntryDialog(
                 )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    NumberField(stringResource(R.string.manual_calories), calories, { calories = it.filter(Char::isDigit) }, Modifier.weight(1f).testTag("manual.calories"))
+                    NumberField(stringResource(if (energyUnit == EnergyUnit.KJ) R.string.home_kilojoules else R.string.manual_calories), calories, { calories = it.filter(Char::isDigit) }, Modifier.weight(1f).testTag("manual.calories"))
                     NumberField(stringResource(R.string.manual_protein), protein, { protein = filterDecimalInput(it) }, Modifier.weight(1f), decimal = true)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -3162,7 +3191,7 @@ internal fun ManualEntryDialog(
                         isSubmitting = true
                         onSave(
                             name.trim(),
-                            calories.toIntOrNull() ?: 0,
+                            energyUnit.parseToKcal(calories) ?: 0,
                             ServingUnitOption.parseQuantity(protein) ?: 0.0,
                             ServingUnitOption.parseQuantity(carbs) ?: 0.0,
                             ServingUnitOption.parseQuantity(fat) ?: 0.0,

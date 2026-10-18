@@ -2,6 +2,7 @@ package com.apoorvdarshan.calorietracker
 
 import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.os.Bundle
 import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
@@ -9,7 +10,11 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.closeSoftKeyboard
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.apoorvdarshan.calorietracker.models.EnergyUnit
+import com.apoorvdarshan.calorietracker.models.FoodEntry
+import com.apoorvdarshan.calorietracker.models.FoodSource
 import com.apoorvdarshan.calorietracker.models.WaterUnit
+import com.apoorvdarshan.calorietracker.services.MealShare
 import com.apoorvdarshan.calorietracker.services.voice.VoiceEntryPoints
 import com.apoorvdarshan.calorietracker.services.voice.VoiceCameraHandle
 import com.apoorvdarshan.calorietracker.services.voice.VoiceCameraMode
@@ -332,10 +337,13 @@ class AppFlowsTest {
         val waterMenuItem = hasText(string(R.string.water)) and hasClickAction()
         waitFor(waterMenuItem)
         compose.onNode(waterMenuItem).performClick()
-        val oneGlass = string(R.string.water_one_glass_dynamic, WaterUnit.MILLILITERS.format(250))
+        // The smallest default quick-add amount; the logged row shows the same text,
+        // so wait for the menu itself to close.
+        val oneGlass = WaterUnit.MILLILITERS.format(250)
+        val customAmount = string(R.string.water_custom_amount)
         waitFor(hasText(oneGlass))
         compose.onNodeWithText(oneGlass).performClick()
-        waitForAbsent(hasText(oneGlass))
+        waitForAbsent(hasText(customAmount))
         val entry = awaitPreference(prefs.waterEntries) { it.size == 1 }.single()
         assertEquals(250, entry.milliliters)
         val row = "diary.water.${entry.id}"
@@ -381,6 +389,49 @@ class AppFlowsTest {
         waitFor(hasText(string(R.string.home_menu_describe_meal)) and hasClickAction())
         compose.onNodeWithText(string(R.string.home_menu_describe_meal)).assertIsDisplayed()
         compose.onNodeWithText(string(R.string.water)).assertDoesNotExist()
+    }
+
+    @Test
+    fun sharedMealLinkSheetShowsTheChosenEnergyUnit() {
+        FudAITestState.reset()
+        runBlocking { prefs.setEnergyUnit(EnergyUnit.KJ) }
+        val meals = listOf(
+            FoodEntry(name = "Shared Oats", calories = 300, protein = 10.0, carbs = 50.0,
+                fat = 5.0, source = FoodSource.MANUAL),
+            FoodEntry(name = "Shared Eggs", calories = 124, protein = 10.0, carbs = 1.0,
+                fat = 8.0, source = FoodSource.MANUAL)
+        )
+        activity = ActivityScenario.launch(
+            Intent(Intent.ACTION_VIEW, Uri.parse(MealShare.link(meals)), context, MainActivity::class.java)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        )
+
+        // The import sheet is composed beside the NavHost, so it needs the root-level unit too.
+        waitFor(hasText(string(R.string.kj_value_format, EnergyUnit.KJ.displayValue(300))))
+        compose.onNodeWithText(string(R.string.kj_value_format, EnergyUnit.KJ.displayValue(124))).assertExists()
+        compose.onNodeWithText(
+            string(R.string.import_add_to_log_many_format_kj, 2, EnergyUnit.KJ.displayValue(424))
+        ).assertExists()
+        compose.onNodeWithText(string(R.string.kcal_value_format, 300)).assertDoesNotExist()
+    }
+
+    @Test
+    fun trackingAndNotificationsShareOneSettingsPage() {
+        launchFresh()
+        openTab("settings")
+        compose.onNodeWithTag("nav.settings").performClick()
+        waitFor(hasTestTag("settings.category.TRACKING_NOTIFICATIONS"))
+        // The former separate rows are gone (#432).
+        compose.onNodeWithTag("settings.category.TRACKING_REMINDERS").assertDoesNotExist()
+        compose.onNodeWithTag("settings.category.NOTIFICATIONS").assertDoesNotExist()
+        compose.onNodeWithTag("settings.category.TRACKING_NOTIFICATIONS").performScrollTo().performClick()
+
+        waitFor(hasTestTag("settings.water.enabled"))
+        compose.onNodeWithText(string(R.string.settings_section_tracking_notifications)).assertIsDisplayed()
+        // Tracking comes first, then the notification master switch.
+        val water = compose.onNodeWithTag("settings.water.enabled").fetchSemanticsNode().boundsInRoot
+        val notifications = compose.onNodeWithTag("settings.notifications.enabled").fetchSemanticsNode().boundsInRoot
+        assertTrue(water.top < notifications.top)
     }
 
     @Test
@@ -445,8 +496,8 @@ class AppFlowsTest {
         // A restored Settings tab can still be inside its last category.
         // Re-tapping the real tab returns to the hub, just as a user would.
         compose.onNodeWithTag("nav.settings").performClick()
-        waitFor(hasTestTag("settings.category.TRACKING_REMINDERS"))
-        compose.onNodeWithTag("settings.category.TRACKING_REMINDERS").performScrollTo().performClick()
+        waitFor(hasTestTag("settings.category.TRACKING_NOTIFICATIONS"))
+        compose.onNodeWithTag("settings.category.TRACKING_NOTIFICATIONS").performScrollTo().performClick()
         waitFor(hasTestTag("settings.water.enabled"))
         compose.onNodeWithTag("settings.water.enabled").performScrollTo()
     }

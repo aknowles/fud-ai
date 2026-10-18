@@ -18,6 +18,7 @@
     <string name="widget_fat">Fat</string>
     <string name="widget_water">Water</string>
     <string name="widget_kcal_left_format">%1$d kcal left</string>
+    <string name="widget_kj_left_format">%1$d kJ left</string>
     <string name="widget_g_left_format">%1$dg left</string>
     <string name="widget_kcal">kcal</string>
     <string name="widget_protein_g">protein g</string>
@@ -51,6 +52,7 @@
 
     <!-- Generic units / labels -->
     <string name="unit_kcal">kcal</string>
+    <string name="unit_kj">kJ</string>
     <string name="unit_g">g</string>
     <string name="unit_mg">mg</string>
     <string name="unit_percent">%</string>
@@ -61,6 +63,7 @@
     <string name="unit_in">in</string>
     <string name="unit_ft_in">ft / in</string>
     <string name="kcal_value_format">%1$,d kcal</string>
+    <string name="kj_value_format">%1$,d kJ</string>
     <string name="grams_value_format">%1$dg</string>
     <string name="grams_value_decimal_format">%1$.1fg</string>
     <string name="kg_value_format">%1$.1f kg</string>
@@ -77,6 +80,7 @@
     <!-- Open Food Facts product metadata -->
     <string name="product_information">Product information</string>
     <string name="product_barcode">Barcode</string>
+    <string name="product_source">Source</string>
     <string name="product_package">Package</string>
     <string name="product_nutri_score">Nutri-Score</string>
     <string name="product_nova_group">NOVA group</string>
@@ -87,6 +91,14 @@
     <string name="product_labels">Labels</string>
     <string name="product_categories">Categories</string>
     <string name="product_ingredient_label">Ingredient label</string>
+    <string name="product_possible_allergen">Possible allergen: %1$s</string>
+    <string name="product_info_settings_show">Show product information</string>
+    <string name="product_info_settings_fields">Details to show</string>
+    <string name="product_info_settings_footer">Shown at the end of the review and edit screens for barcode-scanned foods. Allergen check is not affected and always appears when you have allergen sensitivities set.</string>
+    <string name="usda_fooddata_central">USDA FoodData Central</string>
+    <string name="usda_fdc_api_key_placeholder">API key (optional)</string>
+    <string name="usda_fdc_get_key">Get a free API key</string>
+    <string name="usda_fdc_settings_footer">When Open Food Facts and your saved labels have no nutrition for a scanned barcode, Fud AI looks it up in USDA FoodData Central (mostly US products) with your own free key. Only the barcode is sent, and nothing is sent without a key.</string>
 
     <!-- Macros / Goal labels -->
     <string name="macro_protein">Protein</string>
@@ -265,6 +277,7 @@
     <string name="progress_metric_weight">Weight</string>
     <string name="progress_metric_body_fat">Body Fat</string>
     <string name="progress_metric_workouts">Workouts</string>
+    <string name="progress_metric_steps">Steps</string>
     <string name="progress_log_body_fat">Log Body Fat</string>
     <string name="progress_log_first_body_fat">Log your first body fat % to see trends</string>
     <string name="progress_log_body_fat_title">Log Body Fat</string>
@@ -374,6 +387,8 @@
     <string name="home_menu_saved_meals">Saved Meals</string>
     <string name="home_kcal_of_format">of %1$s kcal</string>
     <string name="home_kcal_left_format">%1$s left</string>
+    <string name="home_kj_left_format">%1$s left</string>
+    <string name="home_kilojoules">Kilojoules</string>
     <string name="home_macro_left_format">%1$s left</string>
     <string name="home_macro_over_format">%1$s over</string>
     <string name="home_macro_no_goal">No goal</string>
@@ -503,6 +518,21 @@
     <string name="nutrition_label_taurine">Taurine</string>
     <string name="nutrition_label_betaine">Betaine</string>
     <string name="nutrition_label_hmb">HMB</string>
+    <string name="nutrition_section_amino_acids">Amino acids</string>
+    <string name="nutrition_label_histidine">Histidine</string>
+    <string name="nutrition_label_isoleucine">Isoleucine</string>
+    <string name="nutrition_label_leucine">Leucine</string>
+    <string name="nutrition_label_lysine">Lysine</string>
+    <string name="nutrition_label_methionine">Methionine</string>
+    <string name="nutrition_label_phenylalanine">Phenylalanine</string>
+    <string name="nutrition_label_threonine">Threonine</string>
+    <string name="nutrition_label_tryptophan">Tryptophan</string>
+    <string name="nutrition_label_valine">Valine</string>
+    <string name="nutrition_amino_acids_ai_estimate">Amino acids (AI estimate)</string>
+    <string name="nutrition_amino_acids_reference">Reference %1$s</string>
+    <string name="nutrition_amino_acids_reference_methionine_cysteine">Reference (methionine + cysteine) %1$s</string>
+    <string name="nutrition_amino_acids_reference_phenylalanine_tyrosine">Reference (phenylalanine + tyrosine) %1$s</string>
+    <string name="nutrition_amino_acids_note">AI estimates from foods analyzed while Amino acids is on. Reference values use the WHO/FAO/UNU 2007 adult requirement for your body weight. They are a reference, not a target.</string>
     <string name="nutrition_label_sodium">Sodium</string>
     <string name="nutrition_label_potassium">Potassium</string>
     <string name="nutrition_em_dash">—</string>
@@ -520,6 +550,26 @@
     <string name="coach_reset_confirm">Reset</string>
     <string name="coach_no_profile_error">No profile yet. Finish onboarding first.</string>
     <string name="coach_chat_failed">Chat failed</string>
+    <string name="coach_proposal_custom_title">New custom exercise</string>
+    <string name="coach_proposal_add_title">Add to workout</string>
+    <string name="coach_proposal_add">Add</string>
+    <string name="coach_proposal_dismiss">Dismiss</string>
+    <string name="coach_proposal_added">Added</string>
+    <string name="coach_proposal_dismissed">Dismissed</string>
+    <string name="coach_proposal_category">Category: %1$s</string>
+    <string name="coach_proposal_equipment">Equipment: %1$s</string>
+    <string name="coach_proposal_primary_muscles">Primary muscles: %1$s</string>
+    <string name="coach_proposal_secondary_muscles">Secondary muscles: %1$s</string>
+    <string name="coach_proposal_date">Date: %1$s</string>
+    <string name="coach_proposal_sets">Sets: %1$d</string>
+    <string name="coach_proposal_reps">Reps: %1$d</string>
+    <string name="coach_proposal_duration">Duration: %1$d min</string>
+    <string name="coach_proposal_exercise_missing">This exercise is no longer in your library.</string>
+    <string name="coach_proposal_save_failed">Couldn\'t save this change. Try again.</string>
+    <string name="coach_proposal_add_custom_description">Add %1$s to your exercise library</string>
+    <string name="coach_proposal_add_to_day_description">Add %1$s to your workout diary</string>
+    <string name="coach_proposal_dismiss_description">Dismiss the suggestion for %1$s</string>
+    <string name="coach_proposal_name_taken">An exercise with this name is already in your library.</string>
 
     <string name="coach_chip_predict_30_days">What\'s my expected weight in 30 days?</string>
     <string name="coach_chip_lose_faster">How do I lose weight faster safely?</string>
@@ -543,6 +593,44 @@
     <string name="progress_range_6m">6M</string>
     <string name="progress_range_year">1Y</string>
     <string name="progress_range_all">All</string>
+    <string name="progress_previous_period">Previous period</string>
+    <string name="progress_next_period">Next period</string>
+
+    <string name="weekly_recap_title">Weekly Recap</string>
+    <string name="weekly_recap_previous_week">Previous week</string>
+    <string name="weekly_recap_next_week">Next week</string>
+    <string name="weekly_recap_days_logged">Days logged</string>
+    <string name="weekly_recap_calorie_target_days">Calories on target</string>
+    <string name="weekly_recap_protein_goal_days">Protein goal reached</string>
+    <string name="weekly_recap_avg_calories">Avg calories</string>
+    <string name="weekly_recap_workouts">Workouts</string>
+    <string name="weekly_recap_active_burn">Active burn</string>
+    <string name="weekly_recap_weight_change">Weight change</string>
+    <string name="weekly_recap_target_format">Target %1$s</string>
+    <string name="weekly_recap_comparison_note">Changes are compared with the previous week.</string>
+    <string name="weekly_recap_empty">Nothing logged this week</string>
+    <string name="weekly_recap_highlight_every_day">Logged every day</string>
+    <string name="weekly_recap_highlight_average_on_target">Average calories on target</string>
+    <plurals name="weekly_recap_highlight_streak">
+        <item quantity="one">Best streak: %1$d day in a row</item>
+        <item quantity="other">Best streak: %1$d days in a row</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_workouts">
+        <item quantity="one">+%1$d workout vs previous week</item>
+        <item quantity="other">+%1$d workouts vs previous week</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_calorie_days">
+        <item quantity="one">+%1$d day on calorie target vs previous week</item>
+        <item quantity="other">+%1$d days on calorie target vs previous week</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_protein_days">
+        <item quantity="one">+%1$d protein goal day vs previous week</item>
+        <item quantity="other">+%1$d protein goal days vs previous week</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_logged_days">
+        <item quantity="one">+%1$d day logged vs previous week</item>
+        <item quantity="other">+%1$d days logged vs previous week</item>
+    </plurals>
 
     <string name="progress_weight_section">Weight</string>
     <string name="progress_log_weight">Log Weight</string>
@@ -574,9 +662,21 @@
     <string name="progress_workout_stat_days">Days</string>
     <string name="progress_workout_no_range">No calculated workout burns in this range</string>
     <string name="progress_workout_chart_description">Workout burn chart from %1$s to %2$s. Total %3$d kilocalories; latest %4$d kilocalories.</string>
+    <string name="progress_workout_chart_description_kj">Workout burn chart from %1$s to %2$s. Total %3$d kilojoules; latest %4$d kilojoules.</string>
+    <string name="progress_steps_stat_total">Total</string>
+    <string name="progress_steps_stat_average">Average</string>
+    <string name="progress_steps_stat_best_day">Best day</string>
+    <string name="progress_steps_no_range">No step data in this range</string>
+    <string name="progress_steps_footnote">Daily step totals from Health Connect.</string>
+    <string name="progress_steps_weekly_note">Bars show the average daily steps for each week.</string>
+    <string name="progress_steps_history_note">Health Connect only shares steps from about 30 days before you connected Fud AI, so older days may be missing.</string>
+    <string name="progress_steps_chart_description">Step chart from %1$s to %2$s. Total %3$s steps; best day %4$s steps.</string>
 
     <string name="progress_calories_section">Calories</string>
+    <string name="progress_include_today">Include today</string>
+    <string name="progress_include_today_caption">Calorie chart and nutrition averages</string>
     <string name="progress_avg_format">Avg: %1$,d kcal</string>
+    <string name="progress_avg_format_kj">Avg: %1$,d kJ</string>
     <string name="progress_no_food">No food logged yet</string>
 
     <string name="progress_macro_averages">Macro Averages</string>
@@ -618,7 +718,7 @@
     <string name="settings_section_goals">Goals &amp; Nutrition</string>
     <string name="settings_section_daily_targets">Daily Targets</string>
     <string name="settings_section_app">App Settings</string>
-    <string name="settings_section_tracking_reminders">Tracking &amp; Reminders</string>
+    <string name="settings_section_tracking_notifications">Tracking &amp; Notifications</string>
     <string name="settings_category_ai_providers">AI Providers &amp; Fallbacks</string>
     <string name="settings_section_ai_voice">AI &amp; Voice</string>
     <string name="settings_section_ai">Primary AI</string>
@@ -676,6 +776,13 @@
     <string name="settings_goal_weight">Goal Weight</string>
     <string name="settings_calories">Calories</string>
     <string name="settings_recalculate_goals">Recalculate Goals</string>
+    <string name="settings_estimated_maintenance">Estimated Maintenance</string>
+    <string name="settings_maintenance_deficit_format">Deficit: %1$,d kcal/day</string>
+    <string name="settings_maintenance_deficit_format_kj">Deficit: %1$,d kJ/day</string>
+    <string name="settings_maintenance_surplus_format">Surplus: %1$,d kcal/day</string>
+    <string name="settings_maintenance_surplus_format_kj">Surplus: %1$,d kJ/day</string>
+    <string name="settings_maintenance_close">Target is close to maintenance</string>
+    <string name="settings_estimated_maintenance_info">Estimated maintenance is the calories you would burn on a typical day: your BMR from your profile multiplied by your activity level. Eating below it is a deficit for losing weight; eating above it is a surplus for gaining. The deficit or surplus shown is your calorie target minus this estimate. It is a formula estimate, so your real burn can differ, and goal recalculation may set your target from your logged food, weight trend or measured energy burn instead. This is not medical advice.</string>
     <string name="settings_macro_pinned_format">%1$dg</string>
     <string name="settings_macro_auto_format">%1$dg · auto</string>
     <string name="settings_macro_pinned_a11y">Pinned</string>
@@ -717,6 +824,9 @@
     <string name="settings_save_photos_to_gallery">Save to Photos</string>
     <string name="settings_save_photos_to_gallery_subtitle">Also save meal photos to your gallery when logging</string>
     <string name="settings_week_starts">Week Starts On</string>
+    <string name="settings_energy_unit">Energy Unit</string>
+    <string name="settings_energy_unit_kcal">Kilocalories (kcal)</string>
+    <string name="settings_energy_unit_kj">Kilojoules (kJ)</string>
     <string name="settings_meal_times">Meal Times</string>
     <string name="settings_meal_times_customize">Customize</string>
     <string name="settings_meal_times_description">Set when automatic meal selection switches to the next meal.</string>
@@ -738,6 +848,10 @@
     <string name="settings_water_unit">Water Unit</string>
     <string name="settings_water_unit_ml">Milliliters (ml)</string>
     <string name="settings_water_unit_fl_oz">Fluid Ounces (fl oz)</string>
+    <string name="settings_water_quick_add">Quick Add Amounts</string>
+    <string name="settings_water_quick_add_amount">Amount %1$d</string>
+    <string name="settings_water_quick_add_invalid">Enter an amount up to %1$s.</string>
+    <string name="settings_water_quick_add_footer">Shown in the + menu for one-tap water logging.</string>
     <string name="settings_fasting_tracking">Fasting Tracking</string>
     <string name="settings_walk_run_quick_log">Walk &amp; Run</string>
     <string name="settings_walk_run_quick_log_footer">Off by default. When enabled, Walking and Running appear in the Workouts + menu for quick outdoor logging.</string>
@@ -806,6 +920,8 @@
     <string name="settings_fallback_footer">Used only when an AI request includes a photo. Same provider as primary is allowed — just pick a different model.</string>
 
     <string name="settings_health_connect">Health Connect</string>
+    <string name="settings_health_history_access">Older Weigh-ins</string>
+    <string name="settings_health_exercise_access">Workouts from Other Apps</string>
     <string name="settings_manage_health_access">Manage Health Connect Access</string>
     <string name="settings_permissions">Permissions</string>
     <string name="settings_energy_goals">Energy Burn Goals</string>
@@ -816,6 +932,22 @@
     <string name="settings_refresh_energy_goals">Refresh Energy Burn Goals</string>
     <string name="settings_clear_food_log">Clear Food Log</string>
     <string name="settings_delete_all_data">Delete All Data</string>
+    <string name="storage_title">Storage</string>
+    <string name="storage_saved_photos">Saved Photos</string>
+    <string name="storage_on_device_models">On-Device Models</string>
+    <string name="storage_cache">Cache</string>
+    <string name="storage_compress_photos">Compress Photos</string>
+    <string name="storage_clear_cache">Clear Cache</string>
+    <string name="storage_footer">Compress Photos permanently resizes photos larger than 2048 px. Clear Cache removes thumbnails and downloaded workout images, which are recreated when needed. Delete on-device models from their AI or speech settings.</string>
+    <string name="storage_compress_confirm_title">Compress Photos?</string>
+    <string name="storage_compress_confirm_message">Photos larger than 2048 pixels on their longest side will be permanently resized to 2048 pixels and saved as JPEG. Smaller photos stay unchanged. This can’t be undone.</string>
+    <string name="storage_compress_action">Compress</string>
+    <string name="storage_compressing_progress">Compressing photos… %1$d/%2$d</string>
+    <string name="storage_compress_done_title">Photos Compressed</string>
+    <string name="storage_compress_freed">Freed %1$s.</string>
+    <string name="storage_compress_nothing">No photos needed compressing.</string>
+    <string name="storage_compress_unreadable">Some photos couldn’t be read and were left unchanged.</string>
+    <string name="storage_compress_failed">Some photos couldn’t be compressed and were left unchanged. Make sure your device has free space, then try again.</string>
 
     <!-- Settings dialogs -->
     <string name="settings_clear_food_title">Clear food log?</string>
@@ -966,6 +1098,9 @@
     <string name="notif_summary_deficit">%1$d kcal eaten · %2$d burned · %3$d kcal estimated deficit</string>
     <string name="notif_summary_surplus">%1$d kcal eaten · %2$d burned · %3$d kcal estimated surplus</string>
     <string name="notif_summary_balanced">%1$d kcal eaten · %2$d burned · estimated balance</string>
+    <string name="notif_summary_deficit_kj">%1$d kJ eaten · %2$d kJ burned · %3$d kJ estimated deficit</string>
+    <string name="notif_summary_surplus_kj">%1$d kJ eaten · %2$d kJ burned · %3$d kJ estimated surplus</string>
+    <string name="notif_summary_balanced_kj">%1$d kJ eaten · %2$d kJ burned · estimated balance</string>
 
     <string name="widget_all_metrics_label">Fud AI Today</string>
     <string name="widget_all_metrics_description">See today\'s calories, protein, carbs, and fat in one widget.</string>
@@ -978,6 +1113,17 @@
     <string name="empty_title">No exercises match</string>
     <string name="workout_empty_subtitle">Try different filters — or create your own exercise.</string>
     <string name="workout_create_exercise">Create exercise</string>
+    <string name="workout_filter_source">Source</string>
+    <string name="workout_source_dataset">Dataset</string>
+    <string name="workout_source_saved">Saved</string>
+    <string name="workout_source_mine">Mine</string>
+    <string name="workout_mine_empty_title">No custom exercises yet</string>
+    <string name="workout_mine_empty_subtitle">Exercises you create show up here.</string>
+    <string name="workout_exercise_take_photo">Take photo</string>
+    <string name="workout_exercise_camera_denied_title">Camera access needed</string>
+    <string name="workout_exercise_camera_denied_message">Allow Fud AI to use the camera in system settings to take exercise photos.</string>
+    <string name="workout_exercise_ai_fill">Fill with AI</string>
+    <string name="workout_exercise_ai_fill_hint">Fill with AI sends this photo to your AI provider. Review the suggested details before saving.</string>
     <string name="filter_all">All</string>
     <string name="filter_all_count">All %d</string>
     <string name="hide_details">Hide details</string>
@@ -1036,6 +1182,7 @@
     <string name="cloud_backup_switch_account">Switch Google account</string>
     <string name="cloud_backup_turn_on">Turn On</string>
     <string name="cloud_backup_sign_in_failed">Couldn\'t open Google sign-in.</string>
+    <string name="cloud_backup_restore_no_space">Not enough free storage to restore this backup. Free up some space and try again.</string>
     <string name="export_diary_title">Export Food Diary</string>
     <string name="import_diary_title">Import Food Diary</string>
     <string name="import_entries">Food entries</string>
@@ -1051,6 +1198,7 @@
     <string name="settings_other_nutrients">Other Nutrients</string>
     <string name="settings_other_nutrient_goals">Other Nutrient Goals</string>
     <string name="settings_other_nutrients_note">Separate from calorie, protein, carb, and fat goals.</string>
+    <string name="settings_amino_acids_note">When on, AI food analyses also estimate the 9 essential amino acids. Values are AI estimates, not measurements.</string>
     <string name="settings_reset_defaults">Reset to Defaults</string>
     <string name="copy_from">Copy From</string>
     <string name="macro_protein_format">Protein: %1$s</string>
@@ -1182,6 +1330,7 @@
     <string name="import_note">Adds to your log with the exact nutrients from the sender. No photo is included.</string>
     <string name="import_add_to_log">Add to Log</string>
     <string name="import_add_to_log_many_format">Add %1$d to Log · %2$d kcal</string>
+    <string name="import_add_to_log_many_format_kj">Add %1$d to Log · %2$d kJ</string>
     <string name="voice_release_to_cancel">Release to cancel</string>
     <string name="voice_slide_to_cancel">‹ slide to cancel</string>
     <string name="camera_error_open">Could not open camera</string>
@@ -1224,9 +1373,6 @@
     <string name="water_one_glass_amount">1 glass (~250 ml)</string>
     <string name="water_two_glasses_amount">2 glasses (~500 ml)</string>
     <string name="water_three_glasses_amount">3 glasses (~750 ml)</string>
-    <string name="water_one_glass_dynamic">1 glass (~%1$s)</string>
-    <string name="water_two_glasses_dynamic">2 glasses (~%1$s)</string>
-    <string name="water_three_glasses_dynamic">3 glasses (~%1$s)</string>
     <string name="water_custom_amount">Custom amount</string>
     <string name="nutrient_custom_amount">Custom amount</string>
     <string name="nutrient_use_preset_wheel">Use preset wheel</string>
@@ -1276,7 +1422,7 @@
     <string name="settings_calc_split_citation">Morton RW, et al. (2018). “A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength.” Br J Sports Med 52(6):376–384.</string>
     <string name="settings_calc_micro_citation">Estimates rely on the underlying AI model\'s training data (USDA FoodData Central, manufacturer panels, scientific literature). Accuracy varies by food, portion-size visibility, and provider model. Always cross-check labels for foods you log frequently.</string>
     <string name="settings_not_medical_title">Not medical advice</string>
-    <string name="settings_not_medical_body">Fud AI is an estimation tool, not a clinical instrument. Predictive equations carry inherent error (typically ±10%% for BMR). Consult a registered dietitian, physician, or sports medicine professional before significant diet changes — especially if you have a medical condition, are pregnant or breastfeeding, are under 18, or are managing an eating disorder.</string>
+    <string name="settings_not_medical_body" formatted="false">Fud AI is an estimation tool, not a clinical instrument. Predictive equations carry inherent error (typically ±10% for BMR). Consult a registered dietitian, physician, or sports medicine professional before significant diet changes — especially if you have a medical condition, are pregnant or breastfeeding, are under 18, or are managing an eating disorder.</string>
     <string name="settings_waist_cm_format">Waist %1$.0f cm</string>
     <string name="settings_waist_in_format">Waist %1$.0f in</string>
     <string name="export_range_today">Today</string>
@@ -1304,6 +1450,10 @@
     <string name="ingredients_remove">Remove</string>
     <string name="ingredients_weight">Weight</string>
     <string name="ingredients_footer">Ingredient changes update the meal’s calorie and macro totals automatically.</string>
+    <string name="recipe_servings_title">Servings in recipe</string>
+    <string name="recipe_servings_footer">Set this after adding every ingredient. Fud AI splits the recipe so you log 1 serving, and Saved Meals keep that serving size.</string>
+    <string name="cd_recipe_servings_fewer">Fewer servings</string>
+    <string name="cd_recipe_servings_more">More servings</string>
     <string name="combine_action">Combine</string>
     <string name="combine_into_meal">Combine into Meal</string>
     <string name="combine_selected_count">%1$d selected</string>
@@ -1315,7 +1465,8 @@
     <string name="settings_add_menu_title">+ Menu</string>
     <string name="settings_add_menu_food_section">Food Add Menu</string>
     <string name="settings_add_menu_groups">Groups</string>
-    <string name="settings_add_menu_flat">Flat Menu</string>
+    <string name="settings_add_menu_standalone">Standalone Methods</string>
+    <string name="settings_add_menu_standalone_footer">These methods appear directly under +, outside any group.</string>
     <string name="settings_add_menu_hidden">Hidden Methods</string>
     <string name="settings_add_menu_reset">Reset to Default</string>
     <string name="settings_add_menu_footer">Customize the Home + button food menu. Water and fasting stay separate when enabled. This does not change app-icon Quick Actions.</string>
@@ -1323,6 +1474,9 @@
     <string name="settings_add_menu_restore_a11y">Restore %1$s</string>
     <string name="settings_add_menu_group_name">Group Name</string>
     <string name="settings_add_menu_new_group">New Group</string>
+    <string name="settings_tab_bar">Tab Bar</string>
+    <string name="settings_tab_bar_section">Show in Tab Bar</string>
+    <string name="settings_tab_bar_footer">Home and Settings are always shown.</string>
     <string name="settings_quick_actions">Quick Actions</string>
     <string name="settings_app_icon_shortcuts">App Icon Shortcuts</string>
     <string name="settings_quick_action_number">Quick Action %1$d</string>

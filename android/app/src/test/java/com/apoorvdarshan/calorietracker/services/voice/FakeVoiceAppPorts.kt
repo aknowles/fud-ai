@@ -33,7 +33,9 @@ class FakeVoiceAppPorts : VoiceAppPorts {
     val saved = mutableListOf<SavedFood>()
     val storedImages = mutableListOf<String>()
     val shownScreens = mutableListOf<Pair<VoiceScreen, VoiceSettingsSection?>>()
+    var hiddenScreens: Set<VoiceScreen> = emptySet()
     var shownEntry: FoodEntry? = null
+    var barcodeProduct: BarcodeProduct? = null
     var diary: LocalDate = LocalDate.parse("2026-10-16")
     var fastingEnabled = true
     var waterEnabled = true
@@ -78,6 +80,7 @@ class FakeVoiceAppPorts : VoiceAppPorts {
     override fun showScreen(screen: VoiceScreen, section: VoiceSettingsSection?) {
         shownScreens += screen to section
     }
+    override fun hiddenScreens(): Set<VoiceScreen> = hiddenScreens
     override fun showDiaryDate(date: LocalDate) {
         diary = date
     }
@@ -136,7 +139,8 @@ class FakeVoiceAppPorts : VoiceAppPorts {
         analysisError?.let { throw it }
         return analysis.copy(name = description)
     }
-    override suspend fun lookupBarcode(barcode: String): BarcodeProduct = BarcodeProduct(analysis.copy(name = "Granola bar"), null)
+    override suspend fun lookupBarcode(barcode: String): BarcodeProduct =
+        barcodeProduct ?: BarcodeProduct(analysis.copy(name = "Granola bar"), null)
 
     override suspend fun trackingPrefs() = TrackingPrefs(waterEnabled, 2_000, WaterUnit.MILLILITERS, fastingEnabled, metric)
     override suspend fun waterEntries(): List<WaterEntry> = water.toList()

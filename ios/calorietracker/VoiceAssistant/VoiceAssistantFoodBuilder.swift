@@ -34,6 +34,12 @@ enum VoiceAssistantFoodBuilder {
             if let selected = base.selectedServingQuantity, selected > 0, !option.isGramUnit { return selected }
             return option.gramsPerUnit > 0 ? grams / option.gramsPerUnit : grams
         }()
+        // Without a known mass the analysis amount is a count of logged servings (a saved
+        // label can hold two), so `servings` multiplies that count instead of replacing it.
+        let loggedServings: Double = {
+            if let selected = base.selectedServingQuantity, selected.isFinite, selected > 0 { return selected }
+            return 1
+        }()
 
         return FoodEntry(
             name: base.name,
@@ -55,7 +61,7 @@ enum VoiceAssistantFoodBuilder {
             polyunsaturatedFat: scaled(base.polyunsaturatedFat),
             cholesterol: scaled(base.cholesterol),
             caffeine: scaled(base.caffeine),
-            supplementalNutrients: base.supplementalNutrients.mapValues { round($0 * factor * 10) / 10 },
+            supplementalNutrients: AminoAcidEstimates.roundedSupplementalNutrients(base.supplementalNutrients, scaledBy: factor),
             sodium: scaled(base.sodium),
             potassium: scaled(base.potassium),
             transFat: scaled(base.transFat),
@@ -74,7 +80,7 @@ enum VoiceAssistantFoodBuilder {
             servingSizeGrams: known ? grams * factor : nil,
             servingUnitOptions: known ? options : [],
             selectedServingUnit: known ? (options.isEmpty ? nil : option.unit) : "serving",
-            selectedServingQuantity: known ? (options.isEmpty ? nil : quantity * factor) : factor,
+            selectedServingQuantity: known ? (options.isEmpty ? nil : quantity * factor) : loggedServings * factor,
             progressiveMeal: base.progressiveMeal,
             ingredients: base.ingredients.map { $0.scaled(by: factor) },
             productMetadata: base.productMetadata
@@ -186,7 +192,9 @@ extension FoodEntry {
             polyunsaturatedFat: scaled(polyunsaturatedFat),
             cholesterol: scaled(cholesterol),
             caffeine: scaled(caffeine),
-            supplementalNutrients: factor == 1 ? supplementalNutrients : supplementalNutrients.mapValues { round($0 * factor * 10) / 10 },
+            supplementalNutrients: factor == 1
+                ? supplementalNutrients
+                : AminoAcidEstimates.roundedSupplementalNutrients(supplementalNutrients, scaledBy: factor),
             sodium: scaled(sodium),
             potassium: scaled(potassium),
             transFat: scaled(transFat),

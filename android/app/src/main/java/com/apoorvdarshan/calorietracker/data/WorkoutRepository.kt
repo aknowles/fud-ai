@@ -15,6 +15,8 @@ import com.apoorvdarshan.calorietracker.models.WorkoutDate
 import com.apoorvdarshan.calorietracker.models.WorkoutDayPlan
 import com.apoorvdarshan.calorietracker.models.WorkoutPersistedState
 import com.apoorvdarshan.calorietracker.models.WorkoutPreferences
+import com.apoorvdarshan.calorietracker.models.WorkoutRoutine
+import com.apoorvdarshan.calorietracker.models.WorkoutRoutinePlanner
 import com.apoorvdarshan.calorietracker.models.WorkoutSession
 import com.apoorvdarshan.calorietracker.models.WorkoutTabMode
 import com.apoorvdarshan.calorietracker.models.WorkoutWeightUnit
@@ -69,6 +71,7 @@ class WorkoutRepository(
         .map { sessions -> sessions.filter { it.caloriesBurned != null } }
         .distinctUntilChanged()
     val savedExerciseIds: Flow<Set<String>> = state.map { it.savedExerciseIds }.distinctUntilChanged()
+    val routines: Flow<List<WorkoutRoutine>> = state.map { it.routines }.distinctUntilChanged()
 
     fun plan(date: LocalDate): Flow<WorkoutDayPlan> = plan(WorkoutDate.key(date))
 
@@ -143,6 +146,13 @@ class WorkoutRepository(
         )
         updatePlan(WorkoutDate.key(date)) { plan ->
             plan.copy(exercises = plan.exercises + exercise)
+        }
+    }
+
+    /** Appends a prepared diary entry (a confirmed Coach proposal); its id makes a repeat a no-op. */
+    suspend fun addPlannedExercise(exercise: PlannedExercise, dateKey: String) {
+        updatePlan(WorkoutDate.requireKey(dateKey)) { plan ->
+            if (plan.exercises.any { it.id == exercise.id }) plan else plan.copy(exercises = plan.exercises + exercise)
         }
     }
 
@@ -231,6 +241,21 @@ class WorkoutRepository(
             removedPaths
                 .filterNot { after.referencesUserExerciseImage(it) }
                 .forEach { store.delete(it) }
+        }
+    }
+
+    suspend fun moveExercise(exerciseId: UUID, date: LocalDate, offset: Int) =
+        moveExercise(exerciseId, WorkoutDate.key(date), offset)
+
+    /** Moves one exercise within its day; the stored list order is the diary order. Clamped at both ends. */
+    suspend fun moveExercise(exerciseId: UUID, dateKey: String, offset: Int) {
+        if (offset == 0) return
+        updatePlan(WorkoutDate.requireKey(dateKey)) { plan ->
+            val from = plan.exercises.indexOfFirst { it.id == exerciseId }
+            if (from < 0) return@updatePlan plan
+            val to = (from + offset).coerceIn(0, plan.exercises.lastIndex)
+            if (to == from) return@updatePlan plan
+            plan.copy(exercises = plan.exercises.toMutableList().apply { add(to, removeAt(from)) })
         }
     }
 
@@ -332,9 +357,17 @@ class WorkoutRepository(
         }
     }
 
+    /**
+     * Stores the timer's effort. Cardio cards show no set fields, so RPE left on a cardio
+     * exercise's sets (e.g. from a text log) is cleared here; otherwise it would keep
+     * overriding the effort the user just chose. Strength RPE stays authoritative.
+     */
     suspend fun setTimerIntensity(exerciseId: UUID, date: LocalDate, intensity: WorkoutIntensity) {
         updateExercise(WorkoutDate.key(date), exerciseId) { exercise ->
-            exercise.copy(timer = (exercise.timer ?: ExerciseTimer()).copy(intensity = intensity))
+            exercise.copy(
+                sets = if (exercise.isCardio) exercise.sets.map { it.copy(rpe = "", rpeScale = null) } else exercise.sets,
+                timer = (exercise.timer ?: ExerciseTimer()).copy(intensity = intensity)
+            )
         }
     }
 
@@ -356,6 +389,76 @@ class WorkoutRepository(
                 current.copy(dayPlans = current.dayPlans + (targetKey to target.copy(exercises = target.exercises + copied)))
             )
         }
+    }
+
+    suspend fun saveRoutine(name: String, date: LocalDate, createdAt: Instant = Instant.now()): WorkoutRoutine? =
+        saveRoutine(name, WorkoutDate.key(date), createdAt)
+
+    /**
+     * Saves the day's exercise list, with its planned sets, reps and loads, as a named routine.
+     * Returns null for an empty day or name.
+     */
+    suspend fun saveRoutine(name: String, dateKey: String, createdAt: Instant = Instant.now()): WorkoutRoutine? {
+        val trimmedName = WorkoutRoutinePlanner.sanitizedName(name)
+        if (trimmedName.isEmpty()) return null
+        val key = WorkoutDate.requireKey(dateKey)
+        var saved: WorkoutRoutine? = null
+        updateState { current ->
+            val templates = WorkoutRoutinePlanner.template(current.dayPlans[key]?.exercises.orEmpty())
+            if (templates.isEmpty()) return@updateState current
+            val routine = WorkoutRoutine(name = trimmedName, exercises = templates, createdAt = createdAt)
+            saved = routine
+            current.copy(routines = current.routines + routine)
+        }
+        return saved
+    }
+
+    suspend fun renameRoutine(routineId: UUID, name: String): Boolean {
+        val trimmedName = WorkoutRoutinePlanner.sanitizedName(name)
+        if (trimmedName.isEmpty()) return false
+        var renamed = false
+        updateState { current ->
+            if (current.routines.none { it.id == routineId }) return@updateState current
+            renamed = true
+            current.copy(routines = current.routines.map { if (it.id == routineId) it.copy(name = trimmedName) else it })
+        }
+        return renamed
+    }
+
+    suspend fun deleteRoutine(
+        routineId: UUID,
+        imageStore: com.apoorvdarshan.calorietracker.services.FoodImageStore? = null
+    ) {
+        val removedPaths = snapshot().routines
+            .firstOrNull { it.id == routineId }
+            ?.exercises
+            ?.flatMap { it.imagePaths }
+            .orEmpty()
+        updateState { current -> current.copy(routines = current.routines.filterNot { it.id == routineId }) }
+        imageStore?.let { store ->
+            val after = snapshot()
+            removedPaths
+                .distinct()
+                .filterNot { after.referencesUserExerciseImage(it) }
+                .forEach { store.delete(it) }
+        }
+    }
+
+    suspend fun applyRoutine(routineId: UUID, date: LocalDate): Boolean =
+        applyRoutine(routineId, WorkoutDate.key(date))
+
+    /**
+     * Starts a day from a routine: its exercises are appended, and entries already on the day
+     * keep every logged set (see [WorkoutRoutinePlanner.merged]).
+     */
+    suspend fun applyRoutine(routineId: UUID, dateKey: String): Boolean {
+        val key = WorkoutDate.requireKey(dateKey)
+        val routine = snapshot().routines.firstOrNull { it.id == routineId } ?: return false
+        if (routine.exercises.isEmpty()) return false
+        updatePlan(key) { plan ->
+            plan.copy(exercises = WorkoutRoutinePlanner.merged(plan.exercises, routine.exercises))
+        }
+        return true
     }
 
     suspend fun previousPlanDates(before: LocalDate): List<LocalDate> =
@@ -916,6 +1019,7 @@ class WorkoutRepository(
     private fun WorkoutPersistedState.referencesUserExerciseImage(filename: String): Boolean {
         if (userExercises.any { filename in it.imagePaths }) return true
         if (customActivities.any { filename in it.imagePaths }) return true
+        if (routines.any { routine -> routine.exercises.any { filename in it.imagePaths } }) return true
         return dayPlans.values.any { plan ->
             plan.exercises.any { filename in it.imagePaths }
         }

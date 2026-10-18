@@ -20,11 +20,15 @@ import com.apoorvdarshan.calorietracker.models.PlannedExercise
 import com.apoorvdarshan.calorietracker.models.WorkoutDate
 import com.apoorvdarshan.calorietracker.models.WorkoutPersistedState
 import com.apoorvdarshan.calorietracker.models.WorkoutPreferences
+import com.apoorvdarshan.calorietracker.models.WorkoutRestTimer
+import com.apoorvdarshan.calorietracker.models.WorkoutRoutine
+import com.apoorvdarshan.calorietracker.models.WorkoutSetInput
 import com.apoorvdarshan.calorietracker.models.WorkoutSplitGroup
 import com.apoorvdarshan.calorietracker.models.WorkoutTabMode
 import com.apoorvdarshan.calorietracker.models.OutdoorActivitySettings
 import com.apoorvdarshan.calorietracker.models.WorkoutWeightUnit
 import com.apoorvdarshan.calorietracker.services.FoodImageStore
+import com.apoorvdarshan.calorietracker.services.WorkoutRestTimerController
 import com.apoorvdarshan.calorietracker.ui.home.OutdoorActivityKind
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -62,6 +66,8 @@ data class WorkoutDiaryUiState(
     val preferences: WorkoutPreferences = WorkoutPreferences(),
     val splitGroups: List<WorkoutSplitGroup> = emptyList(),
     val copyDays: List<WorkoutCopyDayUi> = emptyList(),
+    /** Saved routines in name order. */
+    val routines: List<WorkoutRoutine> = emptyList(),
     val weightUnit: WorkoutWeightUnit = WorkoutWeightUnit.LBS,
     val visualGender: Gender = Gender.MALE,
     val isCalculatingBurn: Boolean = false,
@@ -72,6 +78,10 @@ data class WorkoutDiaryUiState(
 
     val repCount: Int
         get() = exercises.sumOf { exercise -> exercise.sets.sumOf { it.reps.toIntOrNull() ?: 0 } }
+
+    /** Rest runs only on today's log, and only while the rest timer is on. */
+    fun isRestAvailable(today: LocalDate = LocalDate.now()): Boolean =
+        preferences.restTimerSeconds > 0 && selectedDate == today
 }
 
 /**
@@ -85,6 +95,7 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
     private var exerciseRepository: ExerciseRepository? = ExerciseRepository.peek()
     private var workoutRepository: WorkoutRepository? = null
     private var exerciseImageStore: FoodImageStore? = null
+    private var restTimer: WorkoutRestTimerController? = null
     private var repositoryJob: Job? = null
     private var latestPersistedState = WorkoutPersistedState()
     private var exerciseLiftSummaries: Map<String, String?> = emptyMap()
@@ -185,6 +196,13 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         get() = _categories.value
         set(v) { _categories.value = v; saveSet(K_CATEGORIES, v) }
 
+    private val _onlyUserExercises = mutableStateOf(prefs.getBoolean(K_ONLY_USER_EXERCISES, false))
+
+    /** Library "Source" filter: true shows only exercises the user created. */
+    var onlyUserExercises: Boolean
+        get() = _onlyUserExercises.value
+        set(v) { _onlyUserExercises.value = v; prefs.edit().putBoolean(K_ONLY_USER_EXERCISES, v).apply() }
+
     private val _sort = mutableStateOf(
         runCatching { ExerciseSort.valueOf(prefs.getString(K_SORT, "") ?: "") }.getOrDefault(ExerciseSort.NAME)
     )
@@ -208,12 +226,14 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         currentBodyWeightKg: Double,
         weightUnit: WorkoutWeightUnit,
         profileGender: Gender,
-        imageStore: FoodImageStore? = null
+        imageStore: FoodImageStore? = null,
+        restTimer: WorkoutRestTimerController? = null
     ) {
         bodyWeightKg = currentBodyWeightKg.takeIf { it.isFinite() && it > 0.0 } ?: 70.0
         workoutWeightUnit = weightUnit
         this.profileGender = profileGender
         exerciseImageStore = imageStore
+        this.restTimer = restTimer
         if (workoutRepository === repository && repositoryJob != null) {
             rebuildDiaryState()
             return
@@ -262,9 +282,32 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { workoutRepository?.removeExercise(exerciseId, date, imageStore) }
     }
 
+    /** Negative offsets move the exercise up the day's list; positive offsets move it down. */
+    fun moveExercise(exerciseId: UUID, offset: Int) {
+        val date = diaryUiState.selectedDate
+        viewModelScope.launch { workoutRepository?.moveExercise(exerciseId, date, offset) }
+    }
+
+    /** On today's log, adding a set with the stepper finishes the previous set and starts its rest. */
     fun setSetCount(exerciseId: UUID, count: Int) {
         val date = diaryUiState.selectedDate
-        viewModelScope.launch { workoutRepository?.setSetCount(count, exerciseId, date) }
+        viewModelScope.launch {
+            val repository = workoutRepository ?: return@launch
+            suspend fun exercise() = repository.planNow(date).exercises.firstOrNull { it.id == exerciseId }
+            val before = exercise()
+            repository.setSetCount(count, exerciseId, date)
+            val after = exercise() ?: return@launch
+            if (before == null || after.isCardio) return@launch
+            val restSeconds = diaryUiState.preferences.restTimerSeconds
+            val finishedSetId = WorkoutRestTimer.setFinishedByAddingSets(
+                setsBefore = before.sets,
+                setsAfter = after.sets,
+                restSeconds = restSeconds,
+                isToday = date == LocalDate.now(),
+                running = restTimer?.timer?.value
+            ) ?: return@launch
+            restTimer?.start(exerciseId, finishedSetId, after.name, restSeconds)
+        }
     }
 
     fun updateTimer(exerciseId: UUID, action: ExerciseTimerAction) {
@@ -281,8 +324,42 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         updateSet(exerciseId, setId, weight = value)
     }
 
+    /**
+     * Logging a set (its reps first filled in) on today's log starts the rest countdown. The
+     * shown reps lag behind the save, so whether the set already rested is what tells a quick
+     * second keystroke or a later correction apart from the first entry.
+     */
     fun updateReps(exerciseId: UUID, setId: UUID, value: String) {
+        val exercise = diaryUiState.exercises.firstOrNull { it.id == exerciseId }
+        val previousReps = exercise?.sets?.firstOrNull { it.id == setId }?.reps.orEmpty()
         updateSet(exerciseId, setId, reps = value)
+        val restSeconds = diaryUiState.preferences.restTimerSeconds
+        val timer = restTimer ?: return
+        if (exercise != null && !exercise.isCardio && WorkoutRestTimer.shouldStart(
+                previousReps = previousReps,
+                newReps = WorkoutSetInput.reps(value),
+                restSeconds = restSeconds,
+                isToday = diaryUiState.selectedDate == LocalDate.now(),
+                alreadyRested = timer.hasRested(setId)
+            )
+        ) {
+            timer.start(exerciseId, setId, exercise.name, restSeconds)
+        }
+    }
+
+    /** Starts (or restarts) rest after one set, e.g. one whose reps a routine already planned. */
+    fun startRest(exerciseId: UUID, setId: UUID) {
+        if (!diaryUiState.isRestAvailable()) return
+        val exercise = diaryUiState.exercises.firstOrNull { it.id == exerciseId } ?: return
+        restTimer?.start(exerciseId, setId, exercise.name, diaryUiState.preferences.restTimerSeconds)
+    }
+
+    fun extendRest() {
+        restTimer?.extend()
+    }
+
+    fun skipRest() {
+        restTimer?.skip()
     }
 
     fun updateRpe(exerciseId: UUID, setId: UUID, value: String) {
@@ -314,9 +391,8 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         viewModelScope.launch { workoutRepository?.toggleSaved(itemId) }
     }
 
-    internal fun pickerSource(): WorkoutPickerSource = runCatching {
-        WorkoutPickerSource.valueOf(prefs.getString(K_PICKER_SOURCE, "") ?: "")
-    }.getOrDefault(WorkoutPickerSource.DATASET)
+    internal fun pickerSource(): WorkoutPickerSource =
+        WorkoutPickerSource.fromStorage(prefs.getString(K_PICKER_SOURCE, null))
 
     internal fun setPickerSource(source: WorkoutPickerSource) {
         prefs.edit().putString(K_PICKER_SOURCE, source.name).apply()
@@ -354,12 +430,36 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         }.apply()
     }
 
+    fun saveRoutine(name: String) {
+        val date = diaryUiState.selectedDate
+        viewModelScope.launch { workoutRepository?.saveRoutine(name, date) }
+    }
+
+    fun renameRoutine(routineId: UUID, name: String) {
+        viewModelScope.launch { workoutRepository?.renameRoutine(routineId, name) }
+    }
+
+    fun deleteRoutine(routineId: UUID) {
+        val imageStore = exerciseImageStore
+        viewModelScope.launch { workoutRepository?.deleteRoutine(routineId, imageStore) }
+    }
+
+    /** Starts the selected day from a routine; logged sets already there are kept. */
+    fun applyRoutine(routineId: UUID) {
+        val date = diaryUiState.selectedDate
+        viewModelScope.launch { workoutRepository?.applyRoutine(routineId, date) }
+    }
+
     fun copyPlan(sourceDate: LocalDate, includeSetDetails: Boolean = false) {
         val targetDate = diaryUiState.selectedDate
         viewModelScope.launch { workoutRepository?.copyPlan(sourceDate, targetDate, includeSetDetails) }
     }
 
-    fun logQuickOutdoorActivity(kind: OutdoorActivityKind, minutes: Int) {
+    fun logQuickOutdoorActivity(
+        kind: OutdoorActivityKind,
+        minutes: Int,
+        intensity: WorkoutIntensity = WorkoutIntensity.MODERATE
+    ) {
         if (minutes <= 0) return
         val repository = workoutRepository ?: return
         val date = diaryUiState.selectedDate
@@ -370,7 +470,7 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
             }
             val catalog = ensureExerciseRepository()
             val item = catalog.exercises.firstOrNull { it.id == exerciseId } ?: return@launch
-            repository.logQuickCardio(item, minutes, date)
+            repository.logQuickCardio(item, minutes, date, intensity)
             repository.calculateBurn(
                 date = date,
                 bodyWeightKg = bodyWeightKg,
@@ -481,10 +581,18 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
             preferences = preferences,
             splitGroups = splitGroups,
             copyDays = copyDays,
+            routines = sortedRoutines(latestPersistedState.routines),
             weightUnit = workoutWeightUnit,
             visualGender = profileGender
         )
         rebuildExerciseLiftSummariesIfNeeded()
+    }
+
+    private fun sortedRoutines(routines: List<WorkoutRoutine>): List<WorkoutRoutine> {
+        val collator = java.text.Collator.getInstance()
+        return routines.sortedWith { left, right ->
+            collator.compare(left.name, right.name).takeIf { it != 0 } ?: left.createdAt.compareTo(right.createdAt)
+        }
     }
 
     private fun liftSummaryKey(itemId: String, name: String): String =
@@ -541,7 +649,7 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
     val hasActiveFilters: Boolean
         get() = searchInput.isNotEmpty() || splitGroupTitles.isNotEmpty() || levels.isNotEmpty() || equipment.isNotEmpty() ||
             primaryMuscles.isNotEmpty() || secondaryMuscles.isNotEmpty() || forces.isNotEmpty() ||
-            mechanics.isNotEmpty() || categories.isNotEmpty() || sort != ExerciseSort.NAME
+            mechanics.isNotEmpty() || categories.isNotEmpty() || onlyUserExercises || sort != ExerciseSort.NAME
 
     private fun scheduleDebouncedSearch(value: String) {
         searchDebounceJob?.cancel()
@@ -570,6 +678,7 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         forces = emptySet()
         mechanics = emptySet()
         categories = emptySet()
+        onlyUserExercises = false
         sort = ExerciseSort.NAME
     }
 
@@ -589,6 +698,7 @@ class WorkoutsViewModel(app: Application) : AndroidViewModel(app) {
         const val K_FORCES = "forces"
         const val K_MECHANICS = "mechanics"
         const val K_CATEGORIES = "categories"
+        const val K_ONLY_USER_EXERCISES = "only_user_exercises"
         const val K_SORT = "sort"
         const val K_PICKER_SOURCE = "picker.source"
         const val K_PICKER_FILTER_PREFIX = "picker.filter."

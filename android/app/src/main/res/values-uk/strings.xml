@@ -18,6 +18,7 @@
     <string name="widget_fat">Жири</string>
     <string name="widget_water">Вода</string>
     <string name="widget_kcal_left_format">Залишилося %1$d ккал</string>
+    <string name="widget_kj_left_format">Залишилося %1$d кДж</string>
     <string name="widget_g_left_format">Залишилося %1$d г</string>
     <string name="widget_kcal">ккал</string>
     <string name="widget_protein_g">білок, г</string>
@@ -51,6 +52,7 @@
 
     <!-- Generic units / labels -->
     <string name="unit_kcal">ккал</string>
+    <string name="unit_kj">кДж</string>
     <string name="unit_g">г</string>
     <string name="unit_mg">мг</string>
     <string name="unit_percent">%</string>
@@ -60,7 +62,10 @@
     <string name="unit_ft">фути</string>
     <string name="unit_in">дюйми</string>
     <string name="unit_ft_in">фути / дюйми</string>
-    <string name="kcal_value_format">%1$d ккал</string>
+    <string name="kcal_value_format">%1$,d ккал</string>
+    <string name="kj_value_format">%1$,d кДж</string>
+    <string name="health_import_count_kj">Нових записів: %1$d · %2$d кДж</string>
+    <string name="workout_text_estimate_kj">Орієнтовні витрати: %1$d кДж</string>
     <string name="grams_value_format">%1$d г</string>
     <string name="grams_value_decimal_format">%1$.1f г</string>
     <string name="kg_value_format">%1$.1f кг</string>
@@ -77,6 +82,7 @@
     <!-- Open Food Facts product metadata -->
     <string name="product_information">Інформація про продукт</string>
     <string name="product_barcode">Штрихкод</string>
+    <string name="product_source">Джерело</string>
     <string name="product_package">Упаковка</string>
     <string name="product_nutri_score">Nutri-Score</string>
     <string name="product_nova_group">Група NOVA</string>
@@ -87,6 +93,14 @@
     <string name="product_labels">Мітки</string>
     <string name="product_categories">Категорії</string>
     <string name="product_ingredient_label">Етикетка інгредієнтів</string>
+    <string name="product_possible_allergen">Можливий алерген: %1$s</string>
+    <string name="product_info_settings_show">Показувати інформацію про продукт</string>
+    <string name="product_info_settings_fields">Відображувані відомості</string>
+    <string name="product_info_settings_footer">Показується в кінці екранів перегляду та редагування продуктів, відсканованих за штрихкодом. Перевірка алергенів від цього не залежить і завжди з\'являється, якщо у вас задано чутливість до алергенів.</string>
+    <string name="usda_fooddata_central">USDA FoodData Central</string>
+    <string name="usda_fdc_api_key_placeholder">Ключ API (необов’язково)</string>
+    <string name="usda_fdc_get_key">Отримати безкоштовний ключ API</string>
+    <string name="usda_fdc_settings_footer">Якщо ні в Open Food Facts, ні у ваших збережених етикетках немає харчової цінності для відсканованого штрихкоду, Fud AI шукає його в USDA FoodData Central (переважно товари зі США) з вашим власним безкоштовним ключем. Надсилається лише штрихкод, а без ключа нічого не надсилається.</string>
 
     <!-- Macros / Goal labels -->
     <string name="macro_protein">Білки</string>
@@ -149,19 +163,19 @@
     <string name="ai_provider_custom">Власний (сумісний з OpenAI)</string>
 
     <!-- AI Provider API key placeholders -->
-    <string name="ai_key_placeholder_gemini">Paste Gemini API key</string>
-    <string name="ai_key_placeholder_openai">Paste OpenAI API key</string>
-    <string name="ai_key_placeholder_anthropic">Paste Claude API key</string>
-    <string name="ai_key_placeholder_xai">Paste Grok API key</string>
-    <string name="ai_key_placeholder_openrouter">Paste OpenRouter API key</string>
-    <string name="ai_key_placeholder_together">Paste Together AI API key</string>
-    <string name="ai_key_placeholder_groq">Paste Groq API key</string>
-    <string name="ai_key_placeholder_huggingface">Paste Hugging Face API key</string>
-    <string name="ai_key_placeholder_fireworks">Paste Fireworks API key</string>
-    <string name="ai_key_placeholder_deepinfra">Paste DeepInfra API key</string>
-    <string name="ai_key_placeholder_mistral">Paste Mistral API key</string>
-    <string name="ai_key_placeholder_deepseek">Paste DeepSeek API key</string>
-    <string name="ai_key_placeholder_cerebras">Paste Cerebras API key</string>
+    <string name="ai_key_placeholder_gemini">Вставте ключ API Gemini</string>
+    <string name="ai_key_placeholder_openai">Вставте ключ API OpenAI</string>
+    <string name="ai_key_placeholder_anthropic">Вставте ключ API Claude</string>
+    <string name="ai_key_placeholder_xai">Вставте ключ API Grok</string>
+    <string name="ai_key_placeholder_openrouter">Вставте ключ API OpenRouter</string>
+    <string name="ai_key_placeholder_together">Вставте ключ API Together AI</string>
+    <string name="ai_key_placeholder_groq">Вставте ключ API Groq</string>
+    <string name="ai_key_placeholder_huggingface">Вставте ключ API Hugging Face</string>
+    <string name="ai_key_placeholder_fireworks">Вставте ключ API Fireworks</string>
+    <string name="ai_key_placeholder_deepinfra">Вставте ключ API DeepInfra</string>
+    <string name="ai_key_placeholder_mistral">Вставте ключ API Mistral</string>
+    <string name="ai_key_placeholder_deepseek">Вставте ключ API DeepSeek</string>
+    <string name="ai_key_placeholder_cerebras">Вставте ключ API Cerebras</string>
     <string name="ai_key_placeholder_local">Ключ API не потрібен</string>
     <string name="ai_key_placeholder_ollama">Ключ не потрібен</string>
     <string name="ai_key_placeholder_custom">Ключ API (або будь-що, якщо кінцевій точці він не потрібен)</string>
@@ -178,9 +192,9 @@
 
     <string name="speech_key_placeholder_native">Не потрібен</string>
     <string name="speech_key_placeholder_local">Не потрібен</string>
-    <string name="speech_key_placeholder_gemini">Paste Gemini API key</string>
-    <string name="speech_key_placeholder_openai">Paste API key</string>
-    <string name="speech_key_placeholder_groq">Paste API key</string>
+    <string name="speech_key_placeholder_gemini">Вставте ключ API Gemini</string>
+    <string name="speech_key_placeholder_openai">Вставте ключ API</string>
+    <string name="speech_key_placeholder_groq">Вставте ключ API</string>
     <string name="speech_key_placeholder_mistral">Ваш ключ API Mistral</string>
     <string name="speech_key_placeholder_deepgram">Токен your-deepgram-key</string>
     <string name="speech_key_placeholder_assemblyai">Ваш ключ AssemblyAI</string>
@@ -265,6 +279,7 @@
     <string name="progress_metric_weight">Вага</string>
     <string name="progress_metric_body_fat">Відсоток жиру</string>
     <string name="progress_metric_workouts">Тренування</string>
+    <string name="progress_metric_steps">Кроки</string>
     <string name="progress_log_body_fat">Записати відсоток жиру</string>
     <string name="progress_log_first_body_fat">Зареєструйте свій перший показник жиру в організмі, щоб переглянути тенденції</string>
     <string name="progress_log_body_fat_title">Записати відсоток жиру</string>
@@ -326,6 +341,15 @@
     <string name="onboarding_provider_step_2">Обери провайдера та встав ключ нижче</string>
     <string name="onboarding_provider_step_3">Вставте свій ключ — готово</string>
     <string name="onboarding_provider_footer">Підтримується 13 провайдерів. Ваш ключ залишається на \nцьому пристрої в зашифрованому вигляді.</string>
+    <string name="onboarding_paste_api_key_helper">Вставте свій ключ API %1$s у поле вище. Текст підказки — не ключ.</string>
+    <string name="onboarding_missing_api_key_title">Вставте свій ключ API %1$s</string>
+    <string name="onboarding_missing_api_key_message">Щоб продовжити, потрібен справжній ключ у полі «Ключ API». Текст підказки — не ключ: вставте свій ключ %1$s.</string>
+    <string name="onboarding_ai_notice_analysis_title">ШІ-аналіз</string>
+    <string name="onboarding_ai_notice_analysis_body">Фото їжі, голосові розшифровки та введені страви надсилаються безпосередньо вибраному провайдеру ШІ.</string>
+    <string name="onboarding_ai_notice_local_title">Локальні дані</string>
+    <string name="onboarding_ai_notice_local_body">Ваш журнал харчування, історія ваги, історія відсотка жиру та ключі API (BYOK) залишаються на цьому пристрої.</string>
+    <string name="onboarding_ai_terms_checkbox">Я приймаю Умови використання та Політику конфіденційності, зокрема описану вище передачу даних провайдеру ШІ.</string>
+    <string name="onboarding_ai_terms_and">і</string>
 
     <string name="onboarding_building_calories">Калорії</string>
     <string name="onboarding_building_carbs">Вуглеводи</string>
@@ -369,6 +393,12 @@
     <string name="home_menu_saved_meals">Збережені страви</string>
     <string name="home_kcal_of_format">з %1$s ккал</string>
     <string name="home_kcal_left_format">Залишилося %1$s</string>
+    <string name="home_kj_left_format">Залишилося %1$s</string>
+    <string name="home_kilojoules">Кілоджоулі</string>
+    <string name="home_macro_left_format">Залишилося %1$s</string>
+    <string name="home_macro_over_format">Перевищення: %1$s</string>
+    <string name="home_macro_no_goal">Без цілі</string>
+    <string name="home_macro_goal_reached">Ціль досягнуто</string>
     <string name="home_view_more">Переглянути більше</string>
     <string name="home_burn_deficit">%1$s спалено · дефіцит %2$s</string>
     <string name="home_burn_surplus">%1$s спалено · профіцит %2$s</string>
@@ -494,6 +524,21 @@
     <string name="nutrition_label_taurine">Таурин</string>
     <string name="nutrition_label_betaine">Бетаїн</string>
     <string name="nutrition_label_hmb">HMB</string>
+    <string name="nutrition_section_amino_acids">Амінокислоти</string>
+    <string name="nutrition_label_histidine">Гістидин</string>
+    <string name="nutrition_label_isoleucine">Ізолейцин</string>
+    <string name="nutrition_label_leucine">Лейцин</string>
+    <string name="nutrition_label_lysine">Лізин</string>
+    <string name="nutrition_label_methionine">Метіонін</string>
+    <string name="nutrition_label_phenylalanine">Фенілаланін</string>
+    <string name="nutrition_label_threonine">Треонін</string>
+    <string name="nutrition_label_tryptophan">Триптофан</string>
+    <string name="nutrition_label_valine">Валін</string>
+    <string name="nutrition_amino_acids_ai_estimate">Амінокислоти (оцінка ШІ)</string>
+    <string name="nutrition_amino_acids_reference">Орієнтир %1$s</string>
+    <string name="nutrition_amino_acids_reference_methionine_cysteine">Орієнтир (метіонін + цистеїн) %1$s</string>
+    <string name="nutrition_amino_acids_reference_phenylalanine_tyrosine">Орієнтир (фенілаланін + тирозин) %1$s</string>
+    <string name="nutrition_amino_acids_note">Оцінки ШІ для страв, проаналізованих з увімкненими амінокислотами. Довідкові значення ґрунтуються на потребі дорослих за ВООЗ/ФАО/УООН 2007 для вашої ваги. Це орієнтир, а не ціль.</string>
     <string name="nutrition_label_sodium">Натрій</string>
     <string name="nutrition_label_potassium">Калій</string>
     <string name="nutrition_em_dash">—</string>
@@ -511,6 +556,26 @@
     <string name="coach_reset_confirm">Скинути</string>
     <string name="coach_no_profile_error">Профіль ще не створено. Спочатку завершіть налаштування.</string>
     <string name="coach_chat_failed">Помилка чату</string>
+    <string name="coach_proposal_custom_title">Нова власна вправа</string>
+    <string name="coach_proposal_add_title">Додати до тренування</string>
+    <string name="coach_proposal_add">Додати</string>
+    <string name="coach_proposal_dismiss">Відхилити</string>
+    <string name="coach_proposal_added">Додано</string>
+    <string name="coach_proposal_dismissed">Відхилено</string>
+    <string name="coach_proposal_category">Категорія: %1$s</string>
+    <string name="coach_proposal_equipment">Обладнання: %1$s</string>
+    <string name="coach_proposal_primary_muscles">Основні м’язи: %1$s</string>
+    <string name="coach_proposal_secondary_muscles">Додаткові м’язи: %1$s</string>
+    <string name="coach_proposal_date">Дата: %1$s</string>
+    <string name="coach_proposal_sets">Підходи: %1$d</string>
+    <string name="coach_proposal_reps">Повторення: %1$d</string>
+    <string name="coach_proposal_duration">Тривалість: %1$d хв</string>
+    <string name="coach_proposal_exercise_missing">Цієї вправи більше немає у вашій бібліотеці.</string>
+    <string name="coach_proposal_save_failed">Не вдалося зберегти зміну. Спробуйте ще раз.</string>
+    <string name="coach_proposal_add_custom_description">Додати %1$s до бібліотеки вправ</string>
+    <string name="coach_proposal_add_to_day_description">Додати %1$s до щоденника тренувань</string>
+    <string name="coach_proposal_dismiss_description">Відхилити пропозицію: %1$s</string>
+    <string name="coach_proposal_name_taken">Вправа з такою назвою вже є у вашій бібліотеці.</string>
 
     <string name="coach_chip_predict_30_days">Якою буде моя очікувана вага через 30 днів?</string>
     <string name="coach_chip_lose_faster">Як безпечно схуднути швидше?</string>
@@ -534,6 +599,54 @@
     <string name="progress_range_6m">6 міс.</string>
     <string name="progress_range_year">1 рік</string>
     <string name="progress_range_all">Весь час</string>
+    <string name="progress_previous_period">Попередній період</string>
+    <string name="progress_next_period">Наступний період</string>
+
+    <string name="weekly_recap_title">Підсумок тижня</string>
+    <string name="weekly_recap_previous_week">Попередній тиждень</string>
+    <string name="weekly_recap_next_week">Наступний тиждень</string>
+    <string name="weekly_recap_days_logged">Дні із записами</string>
+    <string name="weekly_recap_calorie_target_days">Калорії в цілі</string>
+    <string name="weekly_recap_protein_goal_days">Ціль із білка</string>
+    <string name="weekly_recap_avg_calories">Сер. калорії</string>
+    <string name="weekly_recap_workouts">Тренування</string>
+    <string name="weekly_recap_active_burn">Активні витрати</string>
+    <string name="weekly_recap_weight_change">Зміна ваги</string>
+    <string name="weekly_recap_target_format">Ціль %1$s</string>
+    <string name="weekly_recap_comparison_note">Зміни наведено порівняно з попереднім тижнем.</string>
+    <string name="weekly_recap_empty">Цього тижня немає записів</string>
+    <string name="weekly_recap_highlight_every_day">Записи щодня</string>
+    <string name="weekly_recap_highlight_average_on_target">Середні калорії в цілі</string>
+    <plurals name="weekly_recap_highlight_streak">
+        <item quantity="one">Найкраща серія: %1$d день поспіль</item>
+        <item quantity="few">Найкраща серія: %1$d дні поспіль</item>
+        <item quantity="many">Найкраща серія: %1$d днів поспіль</item>
+        <item quantity="other">Найкраща серія: %1$d дня поспіль</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_workouts">
+        <item quantity="one">+%1$d тренування до попереднього тижня</item>
+        <item quantity="few">+%1$d тренування до попереднього тижня</item>
+        <item quantity="many">+%1$d тренувань до попереднього тижня</item>
+        <item quantity="other">+%1$d тренування до попереднього тижня</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_calorie_days">
+        <item quantity="one">+%1$d день у цілі з калорій до попереднього тижня</item>
+        <item quantity="few">+%1$d дні у цілі з калорій до попереднього тижня</item>
+        <item quantity="many">+%1$d днів у цілі з калорій до попереднього тижня</item>
+        <item quantity="other">+%1$d дня у цілі з калорій до попереднього тижня</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_protein_days">
+        <item quantity="one">+%1$d день із ціллю з білка до попереднього тижня</item>
+        <item quantity="few">+%1$d дні із ціллю з білка до попереднього тижня</item>
+        <item quantity="many">+%1$d днів із ціллю з білка до попереднього тижня</item>
+        <item quantity="other">+%1$d дня із ціллю з білка до попереднього тижня</item>
+    </plurals>
+    <plurals name="weekly_recap_highlight_more_logged_days">
+        <item quantity="one">+%1$d день із записами до попереднього тижня</item>
+        <item quantity="few">+%1$d дні із записами до попереднього тижня</item>
+        <item quantity="many">+%1$d днів із записами до попереднього тижня</item>
+        <item quantity="other">+%1$d дня із записами до попереднього тижня</item>
+    </plurals>
 
     <string name="progress_weight_section">Вага</string>
     <string name="progress_log_weight">Записати вагу</string>
@@ -569,9 +682,21 @@
     <string name="progress_workout_stat_days">Дні</string>
     <string name="progress_workout_no_range">За цей період немає розрахованого спалювання від тренувань</string>
     <string name="progress_workout_chart_description">Графік спалювання від тренувань з %1$s по %2$s. Усього %3$d кілокалорій; останнє значення %4$d кілокалорій.</string>
+    <string name="progress_workout_chart_description_kj">Графік спалювання від тренувань з %1$s по %2$s. Усього %3$d кілоджоулів; останнє значення %4$d кілоджоулів.</string>
+    <string name="progress_steps_stat_total">Разом</string>
+    <string name="progress_steps_stat_average">Середнє</string>
+    <string name="progress_steps_stat_best_day">Найкращий день</string>
+    <string name="progress_steps_no_range">Немає даних про кроки за цей період</string>
+    <string name="progress_steps_footnote">Денні суми кроків з Health Connect.</string>
+    <string name="progress_steps_weekly_note">Стовпці показують середню кількість кроків на день за кожен тиждень.</string>
+    <string name="progress_steps_history_note">Health Connect передає кроки лише приблизно з 30 днів до підключення Fud AI, тому давніші дні можуть бути відсутні.</string>
+    <string name="progress_steps_chart_description">Графік кроків з %1$s по %2$s. Усього %3$s кроків; найкращий день — %4$s кроків.</string>
 
     <string name="progress_calories_section">Калорії</string>
-    <string name="progress_avg_format">Середнє: %1$d ккал</string>
+    <string name="progress_include_today">Враховувати сьогодні</string>
+    <string name="progress_include_today_caption">Графік калорій і середні показники харчування</string>
+    <string name="progress_avg_format">Середнє: %1$,d ккал</string>
+    <string name="progress_avg_format_kj">Середнє: %1$,d кДж</string>
     <string name="progress_no_food">Їжу ще не зареєстровано</string>
 
     <string name="progress_macro_averages">Середні макроси</string>
@@ -613,7 +738,7 @@
     <string name="settings_section_goals">Цілі та харчування</string>
     <string name="settings_section_daily_targets">Щоденні цілі</string>
     <string name="settings_section_app">Налаштування застосунку</string>
-    <string name="settings_section_tracking_reminders">Відстеження та нагадування</string>
+    <string name="settings_section_tracking_notifications">Відстеження та сповіщення</string>
     <string name="settings_category_ai_providers">Провайдери ШІ та резервні варіанти</string>
     <string name="settings_section_ai_voice">ШІ та голос</string>
     <string name="settings_section_ai">Постачальник ШІ</string>
@@ -671,6 +796,13 @@
     <string name="settings_goal_weight">Цільова вага</string>
     <string name="settings_calories">Калорії</string>
     <string name="settings_recalculate_goals">Перерахувати цілі</string>
+    <string name="settings_estimated_maintenance">Орієнтовна норма підтримки</string>
+    <string name="settings_maintenance_deficit_format">Дефіцит: %1$,d ккал/день</string>
+    <string name="settings_maintenance_deficit_format_kj">Дефіцит: %1$,d кДж/день</string>
+    <string name="settings_maintenance_surplus_format">Профіцит: %1$,d ккал/день</string>
+    <string name="settings_maintenance_surplus_format_kj">Профіцит: %1$,d кДж/день</string>
+    <string name="settings_maintenance_close">Ціль близька до норми підтримки</string>
+    <string name="settings_estimated_maintenance_info">Орієнтовна норма підтримки — це калорії, які ви спалюєте у звичайний день: ваш BMR із профілю, помножений на рівень активності. Якщо їсти менше, виникає дефіцит для схуднення; якщо більше — профіцит для набору ваги. Показаний дефіцит або профіцит — це ваша ціль калорій мінус ця оцінка. Це розрахунок за формулою, тож реальні витрати можуть відрізнятися, а перерахунок цілей може встановити ціль на основі записаної їжі, динаміки ваги або виміряних витрат енергії. Це не медична порада.</string>
     <string name="settings_macro_pinned_format">%1$d г</string>
     <string name="settings_macro_auto_format">%1$d г · авто</string>
     <string name="settings_macro_pinned_a11y">Закріплено</string>
@@ -680,6 +812,9 @@
     <string name="settings_appearance_system">Системний</string>
     <string name="settings_appearance_light">Світлий</string>
     <string name="settings_appearance_dark">Темний</string>
+    <string name="settings_app_language">Мова</string>
+    <string name="settings_app_language_system">Як у системі</string>
+    <string name="sheet_app_language">Мова</string>
     <string name="settings_theme_color">Колір теми</string>
     <string name="sheet_theme_color">Колір теми</string>
     <string name="sheet_theme_color_footer">Змінює основний колір застосунку, що використовується для вкладок, кнопок, піктограм, діаграм та кілець прогресу.</string>
@@ -709,6 +844,9 @@
     <string name="settings_save_photos_to_gallery">Зберігати в Фото</string>
     <string name="settings_save_photos_to_gallery_subtitle">Також зберігати фото їжі в галерею під час запису</string>
     <string name="settings_week_starts">Тиждень починається з</string>
+    <string name="settings_energy_unit">Одиниця енергії</string>
+    <string name="settings_energy_unit_kcal">Кілокалорії (ккал)</string>
+    <string name="settings_energy_unit_kj">Кілоджоулі (кДж)</string>
     <string name="settings_meal_times">Час прийомів їжі</string>
     <string name="settings_meal_times_customize">Налаштувати</string>
     <string name="settings_meal_times_description">Встановіть, коли автоматичний вибір прийому їжі перемикатиметься на наступний.</string>
@@ -730,6 +868,10 @@
     <string name="settings_water_unit">Одиниці води</string>
     <string name="settings_water_unit_ml">Мілілітри (мл)</string>
     <string name="settings_water_unit_fl_oz">Рідкі унції (fl oz)</string>
+    <string name="settings_water_quick_add">Об’єми швидкого додавання</string>
+    <string name="settings_water_quick_add_amount">Об’єм %1$d</string>
+    <string name="settings_water_quick_add_invalid">Введіть об’єм до %1$s.</string>
+    <string name="settings_water_quick_add_footer">Показуються в меню «+», щоб записувати воду одним дотиком.</string>
     <string name="settings_fasting_tracking">Відстеження голодування</string>
     <string name="settings_walk_run_quick_log">Ходьба та біг</string>
     <string name="settings_walk_run_quick_log_footer">За замовчуванням вимкнено. Коли увімкнено, ходьба та біг з\'являються в меню «+» тренувань для швидкого запису на відкритому повітрі.</string>
@@ -798,6 +940,8 @@
     <string name="settings_fallback_footer">Якщо основний постачальник не відповідає (перевантаження, ліміт запитів, помилка мережі), застосунок автоматично повторить спробу з цим резервним постачальником. Можна вибрати того ж постачальника, що й основний — просто вкажіть іншу модель.</string>
 
     <string name="settings_health_connect">Health Connect</string>
+    <string name="settings_health_history_access">Старіші записи ваги</string>
+    <string name="settings_health_exercise_access">Тренування з інших застосунків</string>
     <string name="settings_manage_health_access">Керувати доступом до Health Connect</string>
     <string name="settings_permissions">Дозволи</string>
     <string name="settings_energy_goals">Цілі спалювання енергії</string>
@@ -808,6 +952,22 @@
     <string name="settings_refresh_energy_goals">Оновити цілі спалювання енергії</string>
     <string name="settings_clear_food_log">Очистити журнал їжі</string>
     <string name="settings_delete_all_data">Видалити всі дані</string>
+    <string name="storage_title">Сховище</string>
+    <string name="storage_saved_photos">Збережені фото</string>
+    <string name="storage_on_device_models">Моделі на пристрої</string>
+    <string name="storage_cache">Кеш</string>
+    <string name="storage_compress_photos">Стиснути фото</string>
+    <string name="storage_clear_cache">Очистити кеш</string>
+    <string name="storage_footer">«Стиснути фото» назавжди зменшує фото, більші за 2048 пікселів. «Очистити кеш» видаляє мініатюри та завантажені зображення вправ — за потреби вони створюються знову. Моделі на пристрої видаляються в їхніх налаштуваннях ШІ або мовлення.</string>
+    <string name="storage_compress_confirm_title">Стиснути фото?</string>
+    <string name="storage_compress_confirm_message">Фото, у яких довша сторона перевищує 2048 пікселів, буде назавжди зменшено до 2048 пікселів і збережено у форматі JPEG. Менші фото не зміняться. Цю дію не можна скасувати.</string>
+    <string name="storage_compress_action">Стиснути</string>
+    <string name="storage_compressing_progress">Стиснення фото… %1$d/%2$d</string>
+    <string name="storage_compress_done_title">Фото стиснуто</string>
+    <string name="storage_compress_freed">Звільнено %1$s.</string>
+    <string name="storage_compress_nothing">Немає фото, які потрібно стиснути.</string>
+    <string name="storage_compress_unreadable">Деякі фото не вдалося прочитати, тому їх не змінено.</string>
+    <string name="storage_compress_failed">Деякі фото не вдалося стиснути, тому їх не змінено. Переконайтеся, що на пристрої є вільне місце, і спробуйте ще раз.</string>
 
     <!-- Settings dialogs -->
     <string name="settings_clear_food_title">Очистити журнал їжі?</string>
@@ -895,6 +1055,7 @@
     <string name="speech_language_japanese">Японська</string>
     <string name="speech_language_chinese">Китайська</string>
     <string name="speech_language_korean">Корейська</string>
+    <string name="speech_language_czech">Чеська</string>
 
     <!-- About -->
     <string name="about_update_checking">Перевірка оновлень</string>
@@ -910,6 +1071,14 @@
     <string name="about_rate">Оцінити застосунок</string>
     <string name="about_share">Поділитися застосунком</string>
     <string name="about_open_source">Відкритий вихідний код (MIT)</string>
+    <string name="about_openssf_best_practices">OpenSSF Best Practices</string>
+    <string name="about_openssf_best_practices_desc">Passing · проєкт 14553</string>
+    <string name="about_openssf_scorecard">OpenSSF Scorecard</string>
+    <string name="about_openssf_scorecard_desc">Оцінка безпеки</string>
+    <string name="about_udyam">Зареєстровано в Udyam</string>
+    <string name="about_udyam_desc">UDYAM-DL-06-0225072 · Мікропідприємство</string>
+    <string name="about_ace">Сертифікат ACE</string>
+    <string name="about_ace_desc">Персональний тренер · акредитація NCCA</string>
     <string name="about_star_github">Поставити зірку на GitHub</string>
     <string name="about_vote_ph">Проголосувати на Product Hunt</string>
     <string name="about_report_issue">Повідомити про проблему на GitHub</string>
@@ -949,6 +1118,9 @@
     <string name="notif_summary_deficit">Спожито %1$d ккал · Спалено %2$d · Розрахунковий дефіцит %3$d ккал</string>
     <string name="notif_summary_surplus">Спожито %1$d ккал · Спалено %2$d · Розрахунковий профіцит %3$d ккал</string>
     <string name="notif_summary_balanced">Спожито %1$d ккал · Спалено %2$d · Розрахунковий баланс</string>
+    <string name="notif_summary_deficit_kj">Спожито %1$d кДж · Спалено %2$d кДж · Розрахунковий дефіцит %3$d кДж</string>
+    <string name="notif_summary_surplus_kj">Спожито %1$d кДж · Спалено %2$d кДж · Розрахунковий профіцит %3$d кДж</string>
+    <string name="notif_summary_balanced_kj">Спожито %1$d кДж · Спалено %2$d кДж · Розрахунковий баланс</string>
 
     <string name="widget_all_metrics_label">Fud AI Сьогодні</string>
     <string name="widget_all_metrics_description">Переглядайте сьогоднішні калорії, білки, вуглеводи та жири в одному віджеті.</string>
@@ -961,6 +1133,17 @@
     <string name="empty_title">Немає відповідних вправ</string>
     <string name="workout_empty_subtitle">Спробуйте інші фільтри — або створіть власну вправу.</string>
     <string name="workout_create_exercise">Створити вправу</string>
+    <string name="workout_filter_source">Джерело</string>
+    <string name="workout_source_dataset">База даних</string>
+    <string name="workout_source_saved">Збережені</string>
+    <string name="workout_source_mine">Мої</string>
+    <string name="workout_mine_empty_title">Ще немає власних вправ</string>
+    <string name="workout_mine_empty_subtitle">Тут з’являться створені вами вправи.</string>
+    <string name="workout_exercise_take_photo">Зробити знімок</string>
+    <string name="workout_exercise_camera_denied_title">Потрібен доступ до камери</string>
+    <string name="workout_exercise_camera_denied_message">Щоб фотографувати вправи, дозвольте Fud AI використовувати камеру в системних налаштуваннях.</string>
+    <string name="workout_exercise_ai_fill">Заповнити за допомогою ШІ</string>
+    <string name="workout_exercise_ai_fill_hint">Функція «Заповнити за допомогою ШІ» надсилає це фото вашому провайдеру ШІ. Перевірте запропоновані дані перед збереженням.</string>
     <string name="filter_all">Усі</string>
     <string name="filter_all_count">Усі %d</string>
     <string name="hide_details">Сховати деталі</string>
@@ -1017,8 +1200,11 @@
     <string name="cloud_backup_delete_message">Видаляє файл Fud AI з Google Drive. Цей телефон залишається без змін.</string>
     <string name="cloud_backup_last">Остання резервна копія: %1$s</string>
     <string name="cloud_backup_signed_in">Увійшли як %1$s</string>
+    <string name="cloud_backup_sign_out">Вийти</string>
+    <string name="cloud_backup_switch_account">Змінити обліковий запис Google</string>
     <string name="cloud_backup_turn_on">Увімкнути</string>
     <string name="cloud_backup_sign_in_failed">Не вдалося відкрити вхід через Google.</string>
+    <string name="cloud_backup_restore_no_space">Недостатньо вільного місця, щоб відновити цю резервну копію. Звільніть місце й спробуйте ще раз.</string>
     <string name="export_diary_title">Експортувати щоденник харчування</string>
     <string name="import_diary_title">Імпортувати щоденник харчування</string>
     <string name="import_entries">Записи про їжу</string>
@@ -1033,6 +1219,8 @@
     <string name="export_action">Експортувати</string>
     <string name="settings_other_nutrients">Інші нутрієнти</string>
     <string name="settings_other_nutrient_goals">Цілі для інших нутрієнтів</string>
+    <string name="settings_other_nutrients_note">Окремо від цілей щодо калорій, білків, вуглеводів і жирів.</string>
+    <string name="settings_amino_acids_note">Якщо увімкнено, аналіз їжі за допомогою ШІ також оцінює 9 незамінних амінокислот. Значення — це оцінки ШІ, а не вимірювання.</string>
     <string name="settings_reset_defaults">Скинути до стандартних</string>
     <string name="copy_from">Копіювати з</string>
     <string name="macro_protein_format">Білок: %1$s</string>
@@ -1168,6 +1356,7 @@
     <string name="import_note">Додає до вашого журналу з точними нутрієнтами від відправника. Фотографія не включається.</string>
     <string name="import_add_to_log">Додати до журналу</string>
     <string name="import_add_to_log_many_format">Додати %1$d до журналу · %2$d ккал</string>
+    <string name="import_add_to_log_many_format_kj">Додати %1$d до журналу · %2$d кДж</string>
     <string name="voice_release_to_cancel">Відпустіть, щоб скасувати</string>
     <string name="voice_slide_to_cancel">‹ проведіть для скасування</string>
     <string name="camera_error_open">Не вдалося відкрити камеру</string>
@@ -1210,9 +1399,6 @@
     <string name="water_one_glass_amount">1 склянка (~250 мл)</string>
     <string name="water_two_glasses_amount">2 склянки (~500 мл)</string>
     <string name="water_three_glasses_amount">3 склянки (~750 мл)</string>
-    <string name="water_one_glass_dynamic">1 склянка (~%1$s)</string>
-    <string name="water_two_glasses_dynamic">2 склянки (~%1$s)</string>
-    <string name="water_three_glasses_dynamic">3 склянки (~%1$s)</string>
     <string name="water_custom_amount">Власна кількість</string>
     <string name="nutrient_custom_amount">Власна кількість</string>
     <string name="nutrient_use_preset_wheel">Використати колесо прокрутки</string>
@@ -1223,6 +1409,16 @@
     <string name="unit_ml">мл</string>
     <string name="notif_update_title">Доступне оновлення</string>
     <string name="notif_update_text">Нова версія Fud AI готова. Торкніться, щоб оновити.</string>
+    <string name="notif_channel_announcements">Оголошення</string>
+    <string name="notif_channel_announcements_desc">Рідкісні разові новини від Fud AI, наприклад про запуск на Product Hunt.</string>
+    <string name="notif_product_hunt_title">Fud AI вже на Product Hunt 🚀</string>
+    <string name="notif_product_hunt_text">Ми щойно запустилися! Торкніться, щоб проголосувати й допомогти більшій кількості людей дізнатися про Fud AI.</string>
+    <string name="post_update_product_hunt_title">Fud AI вже на Product Hunt</string>
+    <string name="post_update_product_hunt_body">Ми щойно запустилися. Ваш голос допоможе більшій кількості людей знайти Fud AI.</string>
+    <string name="post_update_product_hunt_not_now">Не зараз</string>
+    <string name="post_update_meet_dev_title">Знайомтеся з розробником</string>
+    <string name="post_update_meet_dev_greeting">Привіт, я Апурв 👋</string>
+    <string name="post_update_meet_dev_body">Я розробляю Fud AI самостійно й відкрито. Заходьте привітатися, поділитися відгуком або просто стежте за проєктом — це справді допомагає.</string>
     <string name="settings_calc_intro">Ваші щоденні цілі щодо калорій та макросів встановлюються ШІ. Коли ви натискаєте «Перерахувати цілі» (або автоматично приблизно раз на тиждень, якщо ввімкнено «Адаптивні цілі»), Fud AI надсилає ваш профіль, наведені нижче еталонні рівняння, вашу нещодавно записану їжу та динаміку ваги вашому постачальнику ШІ. Він бере за основу ці перевірені наукою формули, а потім коригує їх відповідно до ваших реальних даних, щоб оцінити ваші справжні потреби для підтримки ваги та цілі.</string>
     <string name="settings_calc_sec_bmr">Базовий метаболізм (BMR)</string>
     <string name="settings_calc_sec_tdee">Щоденні витрати енергії (TDEE)</string>
@@ -1250,7 +1446,7 @@
     <string name="settings_calc_split_citation">Morton RW, et al. (2018). “A systematic review, meta-analysis and meta-regression of the effect of protein supplementation on resistance training-induced gains in muscle mass and strength.” Br J Sports Med 52(6):376–384.</string>
     <string name="settings_calc_micro_citation">Оцінки базуються на навчальних даних базової моделі ШІ (USDA FoodData Central, етикетки виробників, наукова література). Точність залежить від продукту, видимості розміру порції та моделі провайдера. Завжди звіряйтеся з етикетками продуктів, які часто записуєте.</string>
     <string name="settings_not_medical_title">Не є медичною порадою</string>
-    <string name="settings_not_medical_body">Fud AI — це інструмент для оцінювання, а не клінічний прилад. Прогностичні рівняння мають властиву їм похибку (зазвичай ±10%% для BMR). Проконсультуйтеся з лікарем або дієтологом перед значними змінами в дієті, особливо якщо ви маєте медичні протипоказання, вагітні, годуєте грудьми, вам не виповнилося 18 років або ви маєте розлади харчової поведінки.</string>
+    <string name="settings_not_medical_body" formatted="false">Fud AI — це інструмент для оцінювання, а не клінічний прилад. Прогностичні рівняння мають властиву їм похибку (зазвичай ±10% для BMR). Проконсультуйтеся з лікарем або дієтологом перед значними змінами в дієті, особливо якщо ви маєте медичні протипоказання, вагітні, годуєте грудьми, вам не виповнилося 18 років або ви маєте розлади харчової поведінки.</string>
     <string name="settings_waist_cm_format">Талія %1$.0f см</string>
     <string name="settings_waist_in_format">Талія %1$.0f дюйм.</string>
     <string name="export_range_today">Сьогодні</string>
@@ -1278,6 +1474,10 @@
     <string name="ingredients_remove">Видалити</string>
     <string name="ingredients_weight">Вага</string>
     <string name="ingredients_footer">Зміни в інгредієнтах автоматично оновлюють загальну кількість калорій та макросів у страві.</string>
+    <string name="recipe_servings_title">Порцій у рецепті</string>
+    <string name="recipe_servings_footer">Укажіть це після додавання всіх інгредієнтів. Fud AI розділить рецепт, щоб ви записали 1 порцію, а збережені страви збережуть цей розмір порції.</string>
+    <string name="cd_recipe_servings_fewer">Менше порцій</string>
+    <string name="cd_recipe_servings_more">Більше порцій</string>
     <string name="combine_action">Об\'єднати</string>
     <string name="combine_into_meal">Об\'єднати в прийом їжі</string>
     <string name="combine_selected_count">Вибрано: %1$d</string>
@@ -1289,13 +1489,18 @@
     <string name="settings_add_menu_title">Меню «+»</string>
     <string name="settings_add_menu_food_section">Меню додавання їжі</string>
     <string name="settings_add_menu_groups">Групи</string>
-    <string name="settings_add_menu_flat">Плоске меню</string>
+    <string name="settings_add_menu_standalone">Окремі способи</string>
+    <string name="settings_add_menu_standalone_footer">Ці способи з’являються безпосередньо в меню «+», поза групами.</string>
     <string name="settings_add_menu_hidden">Приховані способи</string>
     <string name="settings_add_menu_reset">Скинути до стандартних</string>
     <string name="settings_add_menu_footer">Налаштуйте меню їжі кнопки «+» на головному екрані. Вода та голодування залишаються окремими, якщо увімкнено. Це не змінює швидкі дії значка додатка.</string>
     <string name="settings_add_menu_add_method">Додати спосіб</string>
+    <string name="settings_add_menu_restore_a11y">Відновити %1$s</string>
     <string name="settings_add_menu_group_name">Назва групи</string>
     <string name="settings_add_menu_new_group">Нова група</string>
+    <string name="settings_tab_bar">Панель вкладок</string>
+    <string name="settings_tab_bar_section">Показувати на панелі вкладок</string>
+    <string name="settings_tab_bar_footer">«Головна» і «Налаштування» показуються завжди.</string>
     <string name="settings_quick_actions">Швидкі дії</string>
     <string name="settings_app_icon_shortcuts">Ярлики значка застосунку</string>
     <string name="settings_quick_action_number">Швидка дія %1$d</string>

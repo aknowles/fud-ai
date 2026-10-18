@@ -204,6 +204,8 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
             "gemini-3.7-flash",              // vision, prior Flash model
             "gemini-3.6-flash",              // vision, prior stable Flash model
             "gemini-3.5-flash",              // vision, stable Flash model
+            "gemini-flash-latest",           // vision, Google's alias for the newest Flash (#358)
+            "gemini-flash-lite-latest",      // vision, Google's alias for the newest Flash-Lite (#358)
             "gemini-3.1-pro-preview",        // vision, current flagship (preview)
         ]
         case .openai: [
@@ -377,6 +379,15 @@ enum AIProvider: String, CaseIterable, Codable, Identifiable {
         case .gemini: .gemini
         case .anthropic: .anthropic
         case .openai, .xai, .openrouter, .togetherai, .groq, .huggingface, .fireworks, .deepinfra, .mistral, .deepseek, .cerebras, .ollama, .customOpenAI: .openaiCompatible
+        }
+    }
+
+    /// True for the models that run on this iPhone (Apple Intelligence and the
+    /// downloaded Gemma). Ollama is a server the user runs elsewhere.
+    var runsOnDevice: Bool {
+        switch apiFormat {
+        case .onDevice, .liteRTLocal: true
+        case .gemini, .openaiCompatible, .anthropic: false
         }
     }
 

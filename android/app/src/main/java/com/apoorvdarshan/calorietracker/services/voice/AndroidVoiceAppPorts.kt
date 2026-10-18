@@ -20,7 +20,7 @@ import com.apoorvdarshan.calorietracker.models.WorkoutTextDraft
 import com.apoorvdarshan.calorietracker.models.WorkoutTextExercise
 import com.apoorvdarshan.calorietracker.models.WorkoutWeightUnit
 import com.apoorvdarshan.calorietracker.services.AndroidAppIconManager
-import com.apoorvdarshan.calorietracker.services.OpenFoodFactsService
+import com.apoorvdarshan.calorietracker.services.BarcodeProductLookup
 import com.apoorvdarshan.calorietracker.services.ai.CoachTools
 import com.apoorvdarshan.calorietracker.services.ai.FoodAnalysis
 import com.apoorvdarshan.calorietracker.services.hosted.AiAccessMode
@@ -88,6 +88,11 @@ class AndroidVoiceAppPorts(
 
     override fun diaryDate(): LocalDate = navigator.homeDiaryDate.value
     override fun workoutDiaryDate(): LocalDate? = navigator.workoutDiaryDate.value
+
+    override fun hiddenScreens(): Set<VoiceScreen> {
+        val hidden = navigator.hiddenTabs.value
+        return VoiceScreen.entries.filter { FudAIRoutes.isHiddenTab(it.wireValue, hidden) }.toSet()
+    }
 
     override fun showScreen(screen: VoiceScreen, section: VoiceSettingsSection?) {
         ui.collapseForNavigation()
@@ -188,10 +193,14 @@ class AndroidVoiceAppPorts(
     override suspend fun analyzeFoodText(description: String): FoodAnalysis =
         container.foodAnalysis.analyzeText(description)
 
-    override suspend fun lookupBarcode(barcode: String): BarcodeProduct {
-        val lookup = OpenFoodFactsService.lookupWithImage(barcode)
-        return BarcodeProduct(lookup.analysis, lookup.productImageBytes)
-    }
+    /** Same order as the Home scan: Open Food Facts, the saved label (#485), then USDA (#533). */
+    override suspend fun lookupBarcode(barcode: String): BarcodeProduct = BarcodeProduct.from(
+        BarcodeProductLookup.lookup(
+            barcode = barcode,
+            usdaApiKey = container.keyStore.usdaFoodDataCentralApiKey(),
+            savedLabelEntries = { container.foodRepository.entries.first() }
+        )
+    )
 
     // MARK: - Water, fasting and body
 
@@ -460,7 +469,12 @@ class AndroidVoiceAppPorts(
             workoutSessions = workouts.completedSessions,
             workoutPlans = workouts.dayPlans.values.toList(),
             workoutPreferences = workouts.preferences,
-            workoutPlanWeightUnit = workoutUnit()
+            workoutPlanWeightUnit = workoutUnit(),
+            exerciseLibrary = withContext(Dispatchers.IO) {
+                ExerciseRepository.get(container.appContext)
+                    .includingActivities(workouts.customActivities + workouts.userExercises)
+                    .exercises
+            }
         )
     }
 

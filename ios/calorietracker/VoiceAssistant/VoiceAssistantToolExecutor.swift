@@ -56,13 +56,20 @@ protocol VoiceAssistantToolHost: AnyObject {
 protocol VoiceAssistantAnalyzing {
     func analyzeImages(_ images: [UIImage], note: String?) async throws -> GeminiService.FoodAnalysis
     func analyzeText(_ description: String) async throws -> GeminiService.FoodAnalysis
-    func lookUpBarcode(_ code: String) async throws -> (analysis: GeminiService.FoodAnalysis, image: UIImage?)
+    /// Open Food Facts, then the label saved for the code (#485), then USDA (#533).
+    func lookUpBarcode(
+        _ code: String,
+        savedLabelEntries: [FoodEntry]
+    ) async throws -> (analysis: GeminiService.FoodAnalysis, image: UIImage?, source: FoodSource)
     func parseWorkout(_ description: String, date: Date, unit: WeightUnit, library: [ExerciseLibraryItem]) async throws -> WorkoutTextDraft
 }
 
 /// The same calls the camera, text and barcode flows on Home make, so the user's
 /// AI settings apply and hosted analysis spends hosted actions as usual.
 struct VoiceAssistantAnalyzer: VoiceAssistantAnalyzing {
+    /// Tests stub the barcode hosts; the app uses the shared session.
+    var session: URLSession = .shared
+
     func analyzeImages(_ images: [UIImage], note: String?) async throws -> GeminiService.FoodAnalysis {
         try await GeminiService.analyzeFood(images: images, description: note)
     }
@@ -71,9 +78,23 @@ struct VoiceAssistantAnalyzer: VoiceAssistantAnalyzing {
         try await GeminiService.analyzeTextInput(description: description)
     }
 
-    func lookUpBarcode(_ code: String) async throws -> (analysis: GeminiService.FoodAnalysis, image: UIImage?) {
-        let lookup = try await OpenFoodFactsService.lookupWithImage(barcode: code)
-        return (lookup.analysis, lookup.productImageData.flatMap(UIImage.init(data:)))
+    func lookUpBarcode(
+        _ code: String,
+        savedLabelEntries: [FoodEntry]
+    ) async throws -> (analysis: GeminiService.FoodAnalysis, image: UIImage?, source: FoodSource) {
+        let outcome = try await BarcodeProductLookup.lookup(
+            barcode: code,
+            savedLabelEntries: savedLabelEntries,
+            usdaAPIKey: FoodDataCentralSettings.apiKey,
+            session: session
+        )
+        switch outcome {
+        case .product(let lookup):
+            return (lookup.analysis, lookup.productImageData.flatMap(UIImage.init(data:)), .barcode)
+        case .savedLabel:
+            // Logged as a label again, like Home, so the barcode keeps its saved label.
+            return (outcome.analysis, nil, .nutritionLabel)
+        }
     }
 
     func parseWorkout(_ description: String, date: Date, unit: WeightUnit, library: [ExerciseLibraryItem]) async throws -> WorkoutTextDraft {
@@ -163,6 +184,9 @@ final class VoiceAssistantToolExecutor {
     let settings: VoiceAssistantSettings
     /// Where the app's own settings live (theme, appearance, units, water goal).
     let appDefaults: UserDefaults
+    /// Cards show calories in the user's energy unit; tool arguments and
+    /// results (and the model-facing summaries) stay kcal.
+    private var energyUnit: EnergyUnit { EnergyUnit.current(in: appDefaults) }
     let cards: VoiceAssistantCardStore
     let analyzer: any VoiceAssistantAnalyzing
     let workoutDiaryEnabled: Bool
@@ -407,6 +431,11 @@ final class VoiceAssistantToolExecutor {
         if let section = host?.currentSettingsSection?.voiceAssistantSection, host?.currentScreen == .settings {
             payload["settings_section"] = section
         }
+        let hiddenTabs = TabBarSettings.hiddenTabs(in: appDefaults)
+        if !hiddenTabs.isEmpty {
+            // open_screen can't show these until the user turns them back on.
+            payload["hidden_screens"] = HideableTab.allCases.filter(hiddenTabs.contains).map(\.rawValue)
+        }
         if !calendar.isDate(diaryDay, inSameDayAs: today) {
             payload["diary_totals"] = totals(on: diaryDay)
         }
@@ -429,6 +458,12 @@ final class VoiceAssistantToolExecutor {
                 return Self.failure(.invalidArguments, "Unknown settings_section \(raw).")
             }
             section = parsed
+        }
+        if TabBarSettings.hiddenTab(for: screen, in: TabBarSettings.hiddenTabs(in: appDefaults)) != nil {
+            return Self.failure(
+                .unsupported,
+                "The user hid the \(screen.rawValue) tab. It can be shown again in Settings > App Settings > Tab Bar."
+            )
         }
         host?.open(screen, settingsSection: section)
         var payload: [String: Any] = ["ok": true, "screen": screen.rawValue]
@@ -539,8 +574,8 @@ final class VoiceAssistantToolExecutor {
         case .value(let code):
             guard !isCancelled else { return Self.failure(.cancelled, "Cancelled.") }
             do {
-                let lookup = try await analyzer.lookUpBarcode(code)
-                var result = foodDraft(lookup.analysis, images: lookup.image.map { [$0] } ?? [], source: .barcode)
+                let lookup = try await analyzer.lookUpBarcode(code, savedLabelEntries: stores.food.entries)
+                var result = foodDraft(lookup.analysis, images: lookup.image.map { [$0] } ?? [], source: lookup.source)
                 result["barcode"] = code
                 return result
             } catch let error as OpenFoodFactsService.LookupError {
@@ -552,6 +587,8 @@ final class VoiceAssistantToolExecutor {
                 default:
                     return Self.failure(.analysisFailed, "The barcode lookup failed.", extra: ["barcode": code, "detail": error.localizedDescription])
                 }
+            } catch FoodDataCentralService.LookupError.invalidAPIKey {
+                return Self.failure(.notFound, "That product isn't in Open Food Facts, and USDA FoodData Central rejected the API key saved in Settings > Product Information. Offer to photograph the nutrition label or describe the food.", extra: ["barcode": code])
             } catch {
                 return analysisFailure(error)
             }
@@ -592,7 +629,7 @@ final class VoiceAssistantToolExecutor {
             draftID: id,
             isWorkout: false,
             title: base.name,
-            lines: items.map(Self.itemLine),
+            lines: items.map { Self.itemLine($0, energyUnit: energyUnit) },
             calories: base.calories,
             macros: Self.macroLine(protein: base.protein, carbs: base.carbs, fat: base.fat),
             thumbnail: images.first
@@ -607,12 +644,12 @@ final class VoiceAssistantToolExecutor {
         ]
     }
 
-    private static func itemLine(_ item: [String: Any]) -> String {
+    private static func itemLine(_ item: [String: Any], energyUnit: EnergyUnit) -> String {
         let name = item["name"] as? String ?? ""
         let serving = (item["serving"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let calories = item["calories"] as? Int ?? 0
-        let kcal = String(localized: "\(calories) kcal")
-        return [name, serving, kcal].compactMap { $0 }.joined(separator: " · ")
+        let energy = energyUnit.format(kcal: calories)
+        return [name, serving, energy].compactMap { $0 }.joined(separator: " · ")
     }
 
     private static func macroLine(protein: Double, carbs: Double, fat: Double) -> String {
@@ -785,8 +822,8 @@ final class VoiceAssistantToolExecutor {
         let mealName = meal.displayName
         let change = Change(
             summary: "Log \(entry.name) (\(entry.calories) kcal) as \(meal.rawValue) on \(dayText) at \(VoiceAssistantParsing.clockTime(timestamp, calendar: calendar))",
-            pendingText: String(localized: "Log \(entry.name) · \(entry.calories) kcal · \(mealName)"),
-            doneText: String(localized: "Logged \(entry.name) · \(entry.calories) kcal"),
+            pendingText: String(localized: "Log \(entry.name) · \(energyUnit.format(kcal: entry.calories)) · \(mealName)"),
+            doneText: String(localized: "Logged \(entry.name) · \(energyUnit.format(kcal: entry.calories))"),
             apply: { [self, stores, cards] in
                 if host?.cameraMode == .food { host?.closeCamera() }
                 guard stores.food.addEntry(entry) else {
@@ -864,8 +901,8 @@ final class VoiceAssistantToolExecutor {
 
         let change = Change(
             summary: "Update \(original.name) (\(original.calories) kcal) to \(updated.name), \(updated.calories) kcal, \(updated.mealType.rawValue), \(iso(updated.timestamp)) \(VoiceAssistantParsing.clockTime(updated.timestamp, calendar: calendar))",
-            pendingText: String(localized: "Update \(original.name) · \(updated.calories) kcal"),
-            doneText: String(localized: "Updated \(updated.name) · \(updated.calories) kcal"),
+            pendingText: String(localized: "Update \(original.name) · \(energyUnit.format(kcal: updated.calories))"),
+            doneText: String(localized: "Updated \(updated.name) · \(energyUnit.format(kcal: updated.calories))"),
             apply: { [stores] in
                 guard stores.food.entries.contains(where: { $0.id == original.id }) else {
                     return .failed(Self.failure(.notFound, "That food is no longer in the diary."))
@@ -890,7 +927,7 @@ final class VoiceAssistantToolExecutor {
         }
         let change = Change(
             summary: "Delete \(entry.name) (\(entry.calories) kcal) logged on \(iso(entry.timestamp)) at \(VoiceAssistantParsing.clockTime(entry.timestamp, calendar: calendar))",
-            pendingText: String(localized: "Delete \(entry.name) · \(entry.calories) kcal"),
+            pendingText: String(localized: "Delete \(entry.name) · \(energyUnit.format(kcal: entry.calories))"),
             doneText: "",
             apply: { [stores] in
                 guard let current = stores.food.entries.first(where: { $0.id == entry.id }) else {
@@ -968,7 +1005,7 @@ final class VoiceAssistantToolExecutor {
             return Self.failure(.invalidArguments, "goal_hours must be between 1 and 168.")
         }
         guard appDefaults.bool(forKey: FastingSettings.enabledKey) else {
-            return Self.failure(.unsupported, "Fasting tracking is off. The user can turn it on in Settings → Tracking & Reminders.")
+            return Self.failure(.unsupported, "Fasting tracking is off. The user can turn it on in Settings → Tracking & Notifications.")
         }
         if let active = stores.fasting.activeSession {
             return Self.failure(.invalidArguments, "A fast is already running.", extra: ["started_at": isoTimestamp(active.startedAt)])
@@ -1477,7 +1514,7 @@ final class VoiceAssistantToolExecutor {
             guard !adaptiveGoalsEnabled else {
                 return Self.failure(.unsupported, "Adaptive Goals is on and sets the targets each week. The user can turn it off in Settings → Goals & Nutrition to set their own.")
             }
-            valueText = key == .calorieGoal ? String(localized: "\(value) kcal") : "\(value) g"
+            valueText = key == .calorieGoal ? energyUnit.format(kcal: value) : "\(value) g"
             summaryValue = "\(value)"
             apply = goalSetting(key, value: value)
         case .waterGoal:
@@ -1606,7 +1643,8 @@ final class VoiceAssistantToolExecutor {
             workoutPlans: Array(stores.workouts.dayPlans.values),
             workoutPreferences: stores.workouts.preferences,
             workoutPlanWeightUnit: currentWeightUnit,
-            workoutAccessEnabled: workoutDiaryEnabled
+            workoutAccessEnabled: workoutDiaryEnabled,
+            exerciseLibrary: workoutDiaryEnabled ? stores.workouts.exerciseLibrary.exercises : []
         )
         let output = LiveJSON.object(tools.execute(name: name, arguments: arguments)) ?? [:]
         if let error = output["error"] as? String {

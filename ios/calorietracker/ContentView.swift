@@ -128,6 +128,7 @@ struct ContentView: View {
     @State private var assistantNavigator = VoiceAssistantNavigator.shared
     @AppStorage(AppThemeColor.storageKey) private var appThemeColorRaw = AppThemeColor.defaultColor.rawValue
     @AppStorage(WorkoutTabMode.storageKey) private var workoutTabModeRaw = WorkoutTabMode.defaultMode.rawValue
+    @AppStorage(TabBarSettings.hiddenTabsKey) private var hiddenTabsRaw = ""
     @State private var appUpdateState: AppUpdateState = .idle
     @State private var selectedTab: AppTab = .home
     @State private var quickActionRequest: QuickActionRequest?
@@ -140,6 +141,10 @@ struct ContentView: View {
 
     private var workoutsTabIcon: String {
         WorkoutTabMode.mode(for: workoutTabModeRaw).tabIcon
+    }
+
+    private var hiddenTabs: Set<HideableTab> {
+        TabBarSettings.decode(hiddenTabsRaw)
     }
 
     var body: some View {
@@ -216,6 +221,12 @@ struct ContentView: View {
             .onChange(of: selectedTab, initial: true) { _, tab in
                 assistantNavigator.currentScreen = Self.screen(for: tab)
             }
+            .onChange(of: hiddenTabsRaw, initial: true) { _, _ in
+                // A tab hidden while it is selected falls back to Home.
+                if let tab = selectedTab.hideableTab, hiddenTabs.contains(tab) {
+                    selectedTab = .home
+                }
+            }
     }
 
     /// Hands the app's stores to the voice assistant.
@@ -239,7 +250,9 @@ struct ContentView: View {
 
     /// The voice assistant moves between tabs like the user would.
     private func applyAssistantScreenRequest() {
-        guard let screen = assistantNavigator.takeScreenRequest() else { return }
+        guard let screen = assistantNavigator.takeScreenRequest(),
+              TabBarSettings.hiddenTab(for: screen, in: hiddenTabs) == nil
+        else { return }
         selectedTab = switch screen {
         case .home: .home
         case .progress: .progress
@@ -277,19 +290,23 @@ struct ContentView: View {
                     Text("Home")
                 }
 
-            ProgressTabView()
-                .tag(AppTab.progress)
-                .tabItem {
-                    Image(systemName: "chart.bar.fill")
-                    Text("Progress")
-                }
+            if !hiddenTabs.contains(.progress) {
+                ProgressTabView()
+                    .tag(AppTab.progress)
+                    .tabItem {
+                        Image(systemName: "chart.bar.fill")
+                        Text("Progress")
+                    }
+            }
 
-            ChatView()
-                .tag(AppTab.coach)
-                .tabItem {
-                    Image(systemName: "bubble.left.and.bubble.right.fill")
-                    Text("Coach")
-                }
+            if !hiddenTabs.contains(.coach) {
+                ChatView()
+                    .tag(AppTab.coach)
+                    .tabItem {
+                        Image(systemName: "bubble.left.and.bubble.right.fill")
+                        Text("Coach")
+                    }
+            }
 
             ProfileView(
                 updateState: $appUpdateState,
@@ -304,12 +321,14 @@ struct ContentView: View {
                 }
                 .badge(appUpdateState.isUpdateAvailable ? "!" : nil)
 
-            WorkoutsView()
-                .tag(AppTab.workouts)
-                .tabItem {
-                    Image(systemName: workoutsTabIcon)
-                    Text("Workouts")
-                }
+            if !hiddenTabs.contains(.workouts) {
+                WorkoutsView()
+                    .tag(AppTab.workouts)
+                    .tabItem {
+                        Image(systemName: workoutsTabIcon)
+                        Text("Workouts")
+                    }
+            }
         }
     }
 
@@ -319,6 +338,9 @@ struct ContentView: View {
         case coach
         case settings
         case workouts
+
+        /// Nil for Home and Settings, which can't be hidden.
+        var hideableTab: HideableTab? { HideableTab(rawValue: rawValue) }
     }
 
     private func consumePendingLaunchRoutes() {
@@ -987,11 +1009,13 @@ struct HomeView: View {
     @State private var showHostedPaywall = false
     @State private var showHostedCredits = false
     private enum RetryRequest {
-        case analysis(images: [UIImage], mode: CameraMode, description: String?, progressiveMeal: Bool)
+        case analysis(images: [UIImage], mode: CameraMode, description: String?, progressiveMeal: Bool, labelBarcode: String?)
         case text(String)
         case barcode(String)
     }
     @State private var retryRequest: RetryRequest?
+    /// Barcode carried from the "Scan Label" prompt into the next label photo (#485).
+    @State private var labelScanBarcode = LabelScanBarcodeHandoff()
     /// The in-flight photo/text/barcode analysis behind the analyzing sheet, so Cancel can abort it.
     @State private var analysisTask: Task<Void, Never>?
     @State private var selectedDate: Date = .now
@@ -1130,6 +1154,11 @@ struct HomeView: View {
     @State private var currentImages: [UIImage] = []
     @State private var currentEmoji: String?
     @State private var currentFoodSource: FoodSource = .snapFood
+    /// The review shows a barcode's saved nutrition label (#485).
+    @State private var currentFoodResultUsesSavedLabel = false
+    /// The review re-logs an entry that already holds one portion of a split
+    /// recipe, so it hides "Servings in recipe" (#458).
+    @State private var currentFoodResultIsLoggedPortion = false
     @State private var showNutritionDetail = false
     @State private var showCustomWaterLog = false
     @State private var showFastingStart = false
@@ -1144,15 +1173,19 @@ struct HomeView: View {
     @State private var launchFillEpoch = 1
     @State private var wasBackgrounded = false
     @AppStorage("weightUnit") private var weightUnitRaw = "lbs"
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
     @AppStorage(FoodLogSortOrder.storageKey) private var foodLogSortOrderRaw = FoodLogSortOrder.defaultOrder.rawValue
     @AppStorage(HomeTopNutrient.storageKey) private var homeTopNutrientsRaw = HomeTopNutrient.storageValue(for: HomeTopNutrient.defaultSelection)
     @AppStorage(OptionalNutrientGoals.storageKey) private var optionalNutrientGoalsData = Data()
     @AppStorage(WaterSettings.enabledKey) private var waterTrackingEnabled = false
     @AppStorage(WaterSettings.dailyGoalKey) private var waterDailyGoal = WaterSettings.defaultDailyGoalMl
     @AppStorage(WaterSettings.unitKey) private var waterUnitRaw = WaterUnit.defaultUnit.rawValue
+    @AppStorage(WaterQuickAddPresets.key) private var waterQuickAddPresetsRaw = ""
     @AppStorage(FastingSettings.enabledKey) private var fastingTrackingEnabled = false
     @AppStorage(FastingSettings.defaultGoalMinutesKey) private var fastingDefaultGoalMinutes = FastingSettings.defaultGoalMinutes
     @AppStorage(FastingSettings.notificationEnabledKey) private var fastingGoalNotificationEnabled = true
+    /// Observed so + menu edits in Settings refresh Home right away.
+    @AppStorage(AddMenuConfig.storageKey) private var addMenuConfigData: Data?
     @AppStorage("notificationsEnabled") private var notificationsEnabled = false
     @Environment(ProfileStore.self) private var profileStore
     @State private var homeBurnLine: String?
@@ -1228,23 +1261,24 @@ private var dailyStepsTaskKey: String {
 
     private var homeBurnRefreshToken: String {
         let profileBmr = Int(userProfile.bmr.rounded())
-        return "\(healthKitEnabled)-\(selectedDate.timeIntervalSince1970)-\(selectedCalories)-\(profileBmr)-\(homeBurnRefreshGeneration)"
+        return "\(healthKitEnabled)-\(selectedDate.timeIntervalSince1970)-\(selectedCalories)-\(profileBmr)-\(homeBurnRefreshGeneration)-\(energyUnit.rawValue)"
     }
 
     private func formattedHomeBurnLine(from balance: DailyCalorieBalance) -> String {
-        let burned = balance.burnedCalories.formatted()
+        let burned = energyUnit.number(kcal: balance.burnedCalories)
+        let difference = energyUnit.number(kcal: balance.differenceCalories)
         switch balance.direction {
         case .deficit:
             return String(
                 format: String(localized: "%@ burned · %@ deficit"),
                 burned,
-                balance.differenceCalories.formatted()
+                difference
             )
         case .surplus:
             return String(
                 format: String(localized: "%@ burned · %@ surplus"),
                 burned,
-                balance.differenceCalories.formatted()
+                difference
             )
         case .balanced:
             return String(format: String(localized: "%@ burned · balanced"), burned)
@@ -1348,6 +1382,7 @@ private var dailyStepsTaskKey: String {
     /// later selections retain the short transition that already feels responsive.
     private func presentFoodDestination(_ updates: @escaping () -> Void) {
         cancelPendingLoggingHandoff()
+        labelScanBarcode.clear()
         let shouldAnimate = hasPresentedFoodDestination
         hasPresentedFoodDestination = true
 
@@ -1386,20 +1421,14 @@ private var dailyStepsTaskKey: String {
         } label: {
             Label("Custom", systemImage: "slider.horizontal.3")
         }
-        Button {
-            logWater(750)
-        } label: {
-            Label("3 Glasses (~\(waterUnit.formatted(milliliters: 750)))", systemImage: "drop.fill")
-        }
-        Button {
-            logWater(500)
-        } label: {
-            Label("2 Glasses (~\(waterUnit.formatted(milliliters: 500)))", systemImage: "drop.fill")
-        }
-        Button {
-            logWater(250)
-        } label: {
-            Label("1 Glass (~\(waterUnit.formatted(milliliters: 250)))", systemImage: "drop.fill")
+        // Largest first, as the fixed 3/2/1 glass presets were.
+        let presets = WaterQuickAddPresets.decode(waterQuickAddPresetsRaw).reversed()
+        ForEach(Array(presets.enumerated()), id: \.offset) { _, milliliters in
+            Button {
+                logWater(milliliters)
+            } label: {
+                Label(waterUnit.formatted(milliliters: milliliters), systemImage: "drop.fill")
+            }
         }
     }
 
@@ -1808,7 +1837,7 @@ private var dailyStepsTaskKey: String {
                                 if !group.foodEntries.isEmpty {
                                     // Keep food totals on the leading side, clear of the floating controls.
                                     VStack(alignment: .leading, spacing: 1) {
-                                        Text("\(group.totalCalories.formatted()) kcal")
+                                        Text(energyUnit.format(kcal: group.totalCalories))
                                             .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                             .foregroundStyle(AppColors.calorie)
                                             .accessibilityIdentifier("home.meal.calories")
@@ -1873,6 +1902,8 @@ private var dailyStepsTaskKey: String {
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                                 showMultiPhotoCaptureSheet = true
                             }
+                        } else {
+                            labelScanBarcode.clear()
                         }
                     }
                 )
@@ -1902,7 +1933,11 @@ private var dailyStepsTaskKey: String {
                     showMultiPhotoCaptureSheet = true
                 }
             }
-            .sheet(isPresented: $showMultiPhotoCaptureSheet) {
+            .sheet(isPresented: $showMultiPhotoCaptureSheet, onDismiss: {
+                // Removing the last photo or swiping the sheet down leaves the
+                // label scan, so its barcode must not reach a later photo log (#485).
+                labelScanBarcode.captureSheetDismissed()
+            }) {
                 MultiPhotoCaptureSheet(
                     images: $captureImages,
                     isImportingPhotos: isImportingPhotos,
@@ -1910,6 +1945,7 @@ private var dailyStepsTaskKey: String {
                     description: $contextDescription,
                     onAddPhoto: {
                         guard captureImages.count < 10 else { return }
+                        labelScanBarcode.keepForAnotherPhoto()
                         showMultiPhotoCaptureSheet = false
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                             showCamera = true
@@ -1925,6 +1961,7 @@ private var dailyStepsTaskKey: String {
                     onAnalyze: { progressiveMeal in
                         let images = captureImages
                         let description = cameraMode == .snapFoodWithContext ? contextDescription : nil
+                        let labelBarcode = labelScanBarcode.take()
                         showMultiPhotoCaptureSheet = false
                         captureImages = []
                         currentImages = images
@@ -1934,7 +1971,8 @@ private var dailyStepsTaskKey: String {
                                 images: images,
                                 mode: cameraMode,
                                 description: description,
-                                progressiveMeal: progressiveMeal
+                                progressiveMeal: progressiveMeal,
+                                labelBarcode: labelBarcode
                             )
                         }
                     },
@@ -1942,6 +1980,7 @@ private var dailyStepsTaskKey: String {
                         showMultiPhotoCaptureSheet = false
                         captureImages = []
                         contextDescription = ""
+                        labelScanBarcode.clear()
                     }
                 )
                 .presentationDetents([.large])
@@ -2003,6 +2042,8 @@ private var dailyStepsTaskKey: String {
                             ingredients: result.ingredients,
                             progressiveMeal: result.progressiveMeal,
                             productMetadata: result.productMetadata,
+                            usesSavedBarcodeLabel: currentFoodResultUsesSavedLabel,
+                            allowsRecipeServings: !currentFoodResultIsLoggedPortion,
                             servingSizeGrams: result.servingSizeGrams,
                             sugar: result.sugar,
                             addedSugar: result.addedSugar,
@@ -2066,50 +2107,14 @@ private var dailyStepsTaskKey: String {
             .sheet(item: $savedMealsMode, content: { mode in
                 RecentsView(mode: mode, logDate: logDateForSelectedDay, onReview: { entry in
                     afterLoggingPresentationDismisses {
+                        labelScanBarcode.clear()
                         currentImages = entry.parentImageData.compactMap(UIImage.init(data:))
                         currentImage = currentImages.first
                         currentEmoji = entry.emoji
                         currentFoodSource = entry.source
-                        currentFoodResult = GeminiService.FoodAnalysis(
-                            name: entry.name,
-                            calories: entry.calories,
-                            protein: entry.protein,
-                            carbs: entry.carbs,
-                            fat: entry.fat,
-                            servingSizeGrams: entry.reviewServingReference,
-                            emoji: entry.emoji,
-                            sugar: entry.sugar,
-                            addedSugar: entry.addedSugar,
-                            fiber: entry.fiber,
-                            saturatedFat: entry.saturatedFat,
-                            monounsaturatedFat: entry.monounsaturatedFat,
-                            polyunsaturatedFat: entry.polyunsaturatedFat,
-                            cholesterol: entry.cholesterol,
-                            caffeine: entry.caffeine,
-                            supplementalNutrients: entry.supplementalNutrients,
-                            sodium: entry.sodium,
-                            potassium: entry.potassium,
-                            transFat: entry.transFat,
-                            calcium: entry.calcium,
-                            iron: entry.iron,
-                            magnesium: entry.magnesium,
-                            zinc: entry.zinc,
-                            vitaminA: entry.vitaminA,
-                            vitaminC: entry.vitaminC,
-                            vitaminD: entry.vitaminD,
-                            vitaminB12: entry.vitaminB12,
-                            vitaminE: entry.vitaminE,
-                            vitaminK: entry.vitaminK,
-                            folate: entry.folate,
-                            omega3: entry.omega3,
-                            servingUnitOptions: entry.reviewServingUnitOptions,
-                            selectedServingUnit: entry.reviewSelectedServingUnit,
-                            selectedServingQuantity: entry.reviewSelectedServingQuantity,
-                            servingSizeIsKnown: entry.hasKnownServingSize,
-                            progressiveMeal: entry.progressiveMeal,
-                            ingredients: entry.ingredients,
-                            productMetadata: entry.productMetadata
-                        )
+                        currentFoodResult = entry.reviewAnalysis
+                        currentFoodResultUsesSavedLabel = false
+                        currentFoodResultIsLoggedPortion = RecipeServings.isLoggedPortion(options: entry.servingUnitOptions)
                         foodLogPhase = .result
                         activeSheet = .foodResult
                     }
@@ -2278,9 +2283,9 @@ private var dailyStepsTaskKey: String {
                     wasBackgrounded = true
                 }
             }
-            .onReceive(NotificationCenter.default.publisher(for: .fudBarcodeAlertScanLabel)) { _ in
+            .onReceive(NotificationCenter.default.publisher(for: .fudBarcodeAlertScanLabel)) { notification in
                 retryRequest = nil
-                openCameraForNutritionLabel()
+                openCameraForNutritionLabel(barcode: notification.object as? String)
             }
             .onReceive(NotificationCenter.default.publisher(for: .fudBarcodeAlertRetry)) { _ in
                 retryLastRequest()
@@ -2438,6 +2443,7 @@ private var dailyStepsTaskKey: String {
         guard let image = ShareImportManager.consumeSharedImage() else { return }
         
         cancelPendingLoggingHandoff()
+        labelScanBarcode.clear()
         // Force dismiss any currently open sheets to prevent SwiftUI from swallowing the new presentation
         activeSheet = nil
         
@@ -2462,13 +2468,15 @@ private var dailyStepsTaskKey: String {
         images: [UIImage],
         mode: CameraMode,
         description: String? = nil,
-        progressiveMeal: Bool = false
+        progressiveMeal: Bool = false,
+        labelBarcode: String? = nil
     ) {
         retryRequest = .analysis(
             images: images,
             mode: mode,
             description: description,
-            progressiveMeal: progressiveMeal
+            progressiveMeal: progressiveMeal,
+            labelBarcode: labelBarcode
         )
         presentFoodLogLoading(.analyzing)
 
@@ -2482,9 +2490,8 @@ private var dailyStepsTaskKey: String {
                         progressiveMeal: progressiveMeal
                     )
                     try Task.checkCancellation()
-                    currentFoodSource = .snapFood
                     retryRequest = nil
-                    presentFoodResult(result)
+                    presentPhotoAnalysisResult(result, labelBarcode: labelBarcode)
 
                 case .snapFoodWithContext:
                     let result = try await GeminiService.analyzeFood(
@@ -2493,9 +2500,8 @@ private var dailyStepsTaskKey: String {
                         progressiveMeal: progressiveMeal
                     )
                     try Task.checkCancellation()
-                    currentFoodSource = .snapFood
                     retryRequest = nil
-                    presentFoodResult(result)
+                    presentPhotoAnalysisResult(result, labelBarcode: labelBarcode)
 
                 }
             } catch is CancellationError {
@@ -2511,6 +2517,7 @@ private var dailyStepsTaskKey: String {
     /// URLSession request), dismisses the sheet, and drops the retry request so no error alert follows.
     private func cancelAnalysis() {
         cancelPendingLoggingHandoff()
+        labelScanBarcode.clear()
         analysisTask?.cancel()
         analysisTask = nil
         retryRequest = nil
@@ -2540,6 +2547,8 @@ private var dailyStepsTaskKey: String {
     @MainActor
     private func presentFoodLogLoading(_ phase: FoodLogPhase) {
         currentFoodResult = nil
+        currentFoodResultUsesSavedLabel = false
+        currentFoodResultIsLoggedPortion = false
         foodLogPhase = phase
         switch phase {
         case .analyzing:
@@ -2554,15 +2563,36 @@ private var dailyStepsTaskKey: String {
     }
 
     @MainActor
-    private func presentFoodResult(_ result: GeminiService.FoodAnalysis) {
+    private func presentFoodResult(
+        _ result: GeminiService.FoodAnalysis,
+        usesSavedBarcodeLabel: Bool = false,
+        isLoggedPortion: Bool = false
+    ) {
         currentFoodResult = result
+        currentFoodResultUsesSavedLabel = usesSavedBarcodeLabel
+        currentFoodResultIsLoggedPortion = isLoggedPortion
         foodLogPhase = .result
         activeSheet = .foodResult
+    }
+
+    /// A label photo taken from the barcode prompt keeps that barcode in the
+    /// logged entry, which is what lets the next scan reuse it (#485).
+    @MainActor
+    private func presentPhotoAnalysisResult(_ result: GeminiService.FoodAnalysis, labelBarcode: String?) {
+        var result = result
+        if let labelBarcode {
+            result.productMetadata = BarcodeLabelMemory.labelMetadata(result.productMetadata, barcode: labelBarcode)
+            currentFoodSource = .nutritionLabel
+        } else {
+            currentFoodSource = .snapFood
+        }
+        presentFoodResult(result)
     }
 
     private func startBarcodeLookup(_ barcode: String) {
         let trimmedBarcode = barcode.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedBarcode.isEmpty else { return }
+        labelScanBarcode.clear()
         retryRequest = .barcode(trimmedBarcode)
 
         currentImage = nil
@@ -2574,27 +2604,45 @@ private var dailyStepsTaskKey: String {
         analysisTask?.cancel()
         analysisTask = Task {
             do {
-                let lookup = try await OpenFoodFactsService.lookupWithImage(barcode: trimmedBarcode)
+                // Open Food Facts wins when it has nutrition; otherwise reuse the label
+                // the user scanned for this barcode before (#485), then USDA (#533).
+                let outcome = try await BarcodeProductLookup.lookup(
+                    barcode: trimmedBarcode,
+                    savedLabelEntries: foodStore.entries,
+                    usdaAPIKey: FoodDataCentralSettings.apiKey
+                )
                 try Task.checkCancellation()
-                let result = lookup.analysis
-                currentEmoji = result.emoji
-                if let imageData = lookup.productImageData,
-                   let image = UIImage(data: imageData) {
-                    currentImage = image
-                    currentImages = [image]
-                }
                 retryRequest = nil
-                presentFoodResult(result)
+                switch outcome {
+                case .product(let lookup):
+                    let result = lookup.analysis
+                    currentEmoji = result.emoji
+                    if let imageData = lookup.productImageData,
+                       let image = UIImage(data: imageData) {
+                        currentImage = image
+                        currentImages = [image]
+                    }
+                    presentFoodResult(result)
+                case .savedLabel(let savedLabel):
+                    currentEmoji = savedLabel.emoji
+                    currentFoodSource = .nutritionLabel
+                    presentFoodResult(
+                        savedLabel.reviewAnalysis,
+                        usesSavedBarcodeLabel: true,
+                        isLoggedPortion: RecipeServings.isLoggedPortion(options: savedLabel.servingUnitOptions)
+                    )
+                }
             } catch is CancellationError {
                 // User tapped Cancel on the analyzing sheet; cancelAnalysis already reset the UI.
             } catch {
                 if Task.isCancelled { return }
-                presentBarcodeLookupError(error)
+                presentBarcodeLookupError(error, barcode: trimmedBarcode)
             }
         }
     }
 
     private func startTextAnalysis(_ description: String) {
+        labelScanBarcode.clear()
         retryRequest = .text(description)
         presentFoodLogLoading(.analyzingText)
         analysisTask?.cancel()
@@ -2644,7 +2692,7 @@ private var dailyStepsTaskKey: String {
     }
 
     @MainActor
-    private func presentBarcodeLookupError(_ error: Error) {
+    private func presentBarcodeLookupError(_ error: Error, barcode: String) {
         let offersScanLabel: Bool
         if let lookupError = error as? OpenFoodFactsService.LookupError {
             switch lookupError {
@@ -2654,10 +2702,12 @@ private var dailyStepsTaskKey: String {
                 offersScanLabel = false
             }
         } else {
-            offersScanLabel = false
+            // A refused USDA key only follows an Open Food Facts miss (#533).
+            offersScanLabel = error is FoodDataCentralService.LookupError
         }
 
         let message = (error as? OpenFoodFactsService.LookupError)?.localizedDescription
+            ?? (error as? FoodDataCentralService.LookupError)?.localizedDescription
             ?? OpenFoodFactsService.LookupError.invalidResponse.localizedDescription
         errorMessage = message
         // End the loading sheet first, then show only the system popup.
@@ -2665,13 +2715,15 @@ private var dailyStepsTaskKey: String {
         activeSheet = nil
         BarcodeLookupAlertPresenter.present(
             message: message,
-            offersScanLabel: offersScanLabel
+            offersScanLabel: offersScanLabel,
+            barcode: barcode
         )
     }
 
     @MainActor
-    private func openCameraForNutritionLabel() {
+    private func openCameraForNutritionLabel(barcode: String?) {
         guard canBeginFoodLogging() else { return }
+        labelScanBarcode.arm(barcode)
         cameraMode = .snapFoodWithContext
         isImportingPhotos = false
         captureImages = []
@@ -2684,12 +2736,13 @@ private var dailyStepsTaskKey: String {
     private func retryLastRequest() {
         guard let retryRequest else { return }
         switch retryRequest {
-        case let .analysis(images, mode, description, progressiveMeal):
+        case let .analysis(images, mode, description, progressiveMeal, labelBarcode):
             startAnalysis(
                 images: images,
                 mode: mode,
                 description: description,
-                progressiveMeal: progressiveMeal
+                progressiveMeal: progressiveMeal,
+                labelBarcode: labelBarcode
             )
         case let .text(description):
             startTextAnalysis(description)
@@ -2704,23 +2757,22 @@ private var dailyStepsTaskKey: String {
 extension HomeView {
     @ViewBuilder
     var configuredFoodAddMenuContent: some View {
-        let config = AddMenuSettings.load()
-        if config.usesFlatLayout {
+        let config = AddMenuSettings.decode(addMenuConfigData)
+        ForEach(config.groups.filter { !$0.methods.isEmpty }) { group in
+            Section {
+                Menu {
+                    ForEach(group.methods) { method in
+                        addMenuButton(for: method)
+                    }
+                } label: {
+                    Label(group.name, systemImage: addMenuGroupIcon(for: group))
+                }
+            }
+        }
+        if !config.flatMethods.isEmpty {
             Section {
                 ForEach(config.flatMethods) { method in
                     addMenuButton(for: method)
-                }
-            }
-        } else {
-            ForEach(config.groups.filter { !$0.methods.isEmpty }) { group in
-                Section {
-                    Menu {
-                        ForEach(group.methods) { method in
-                            addMenuButton(for: method)
-                        }
-                    } label: {
-                        Label(group.name, systemImage: addMenuGroupIcon(for: group))
-                    }
                 }
             }
         }
@@ -2787,13 +2839,13 @@ private extension Notification.Name {
 /// UIKit alert so the barcode error popup survives SwiftUI sheet dismissal.
 @MainActor
 private enum BarcodeLookupAlertPresenter {
-    static func present(message: String, offersScanLabel: Bool, attempt: Int = 0) {
+    static func present(message: String, offersScanLabel: Bool, barcode: String, attempt: Int = 0) {
         guard let root = keyRootViewController() else { return }
 
         // Wait until the "Looking up barcode..." sheet has fully dismissed.
         if root.presentedViewController != nil, attempt < 30 {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                present(message: message, offersScanLabel: offersScanLabel, attempt: attempt + 1)
+                present(message: message, offersScanLabel: offersScanLabel, barcode: barcode, attempt: attempt + 1)
             }
             return
         }
@@ -2805,7 +2857,7 @@ private enum BarcodeLookupAlertPresenter {
         )
         if offersScanLabel {
             alert.addAction(UIAlertAction(title: "Scan Label", style: .default) { _ in
-                NotificationCenter.default.post(name: .fudBarcodeAlertScanLabel, object: nil)
+                NotificationCenter.default.post(name: .fudBarcodeAlertScanLabel, object: barcode)
             })
         } else {
             alert.addAction(UIAlertAction(title: "Retry", style: .default) { _ in
@@ -3057,6 +3109,8 @@ struct NutritionDetailView: View {
     @AppStorage(WaterSettings.enabledKey) private var waterTrackingEnabled = false
     @AppStorage(WaterSettings.dailyGoalKey) private var waterDailyGoal = WaterSettings.defaultDailyGoalMl
     @AppStorage(WaterSettings.unitKey) private var waterUnitRaw = WaterUnit.defaultUnit.rawValue
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
+    @AppStorage(AminoAcidSettings.enabledKey) private var aminoAcidsEnabled = false
     @State private var showHomeNutrientPicker = false
 
     private var userProfile: UserProfile { profileStore.profile }
@@ -3112,7 +3166,7 @@ struct NutritionDetailView: View {
                 }
 
                 Section("Macros") {
-                    NutritionDetailRow(icon: "flame.fill", label: "Calories", value: "\(foodStore.calories(for: date))", unit: "kcal", goal: "\(userProfile.effectiveCalories)")
+                    NutritionDetailRow(icon: "flame.fill", label: "Calories", value: "\(energyUnit.displayValue(kcal: foodStore.calories(for: date)))", unit: energyUnit.symbol, goal: "\(energyUnit.displayValue(kcal: userProfile.effectiveCalories))")
                     NutritionDetailRow(icon: "p.circle.fill", label: "Protein", value: MacroValueFormatter.string(foodStore.protein(for: date)), unit: "g", goal: "\(userProfile.effectiveProtein)")
                     NutritionDetailRow(icon: "c.circle.fill", label: "Carbs", value: MacroValueFormatter.string(foodStore.carbs(for: date)), unit: "g", goal: "\(userProfile.effectiveCarbs)")
                     NutritionDetailRow(icon: "f.circle.fill", label: "Fat", value: MacroValueFormatter.string(foodStore.fat(for: date)), unit: "g", goal: "\(userProfile.effectiveFat)")
@@ -3151,6 +3205,14 @@ struct NutritionDetailView: View {
                     }
                 }
                 .listRowBackground(AppColors.appCard)
+
+                if aminoAcidsEnabled {
+                    AminoAcidDailySection(
+                        totals: foodStore.aminoAcidTotals(for: date),
+                        bodyWeightKg: userProfile.weightKg
+                    )
+                    .listRowBackground(AppColors.appCard)
+                }
             }
             .scrollContentBackground(.hidden)
             .background(AppColors.appBackground)
@@ -3965,6 +4027,7 @@ final class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOut
 struct FoodRow: View {
     let entry: FoodEntry
     @Environment(FoodStore.self) private var foodStore
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
     @State private var imagePreview: FullScreenImagePreview?
     @State private var thumbnailPhotoID: FoodEntryPhoto.ID?
 
@@ -4041,7 +4104,7 @@ struct FoodRow: View {
                 }
 
                 HStack(spacing: 6) {
-                    Text("\(entry.calories.formatted()) kcal")
+                    Text(energyUnit.format(kcal: entry.calories))
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                         .foregroundStyle(AppColors.calorie)
 
@@ -4088,8 +4151,15 @@ struct ProgressTabView: View {
     @Environment(ProfileStore.self) private var profileStore
     @Environment(StrengthWorkoutStore.self) private var strengthWorkoutStore
     @Environment(ImportedHealthWorkoutStore.self) private var importedHealthWorkoutStore
+    @Environment(HealthKitManager.self) private var healthKitManager
     @AppStorage("weightUnit") private var weightUnitRaw = "lbs"
+    @AppStorage("healthKitEnabled") private var healthKitEnabled = false
+    /// Off ends the calorie chart and nutrition averages yesterday (#514).
+    @AppStorage("progressIncludeToday") private var includeToday = true
     @State private var timeRange: TimeRange = .week
+    /// Whole windows stepped back from the current one; session-only, reset
+    /// whenever the range changes.
+    @State private var periodOffset = 0
     @State private var showLogWeight = false
     @State private var showLogBodyFat = false
     @State private var showGoalReached = false
@@ -4101,22 +4171,53 @@ struct ProgressTabView: View {
     @State private var progressOverviewMode: ProgressOverviewMode = .myProgress
     @State private var foodRangeStats: ProgressFoodRangeStats?
     @State private var isLoadingFoodRangeStats = false
+    /// Daily steps for the selected window; nil while loading.
+    @State private var stepDays: [StepDay]?
+    /// The window `stepDays` belongs to, so a refresh of the same window keeps
+    /// its bars on screen instead of flashing the spinner.
+    @State private var stepDaysWindow: ClosedRange<Date>?
+    /// Bumped on each return from the background so the Steps card re-reads
+    /// totals that kept counting while the app was away.
+    @State private var stepsRefreshEpoch = 0
+    @State private var wasInBackground = false
+    @Environment(\.scenePhase) private var scenePhase
 
     private var userProfile: UserProfile { profileStore.profile }
 
     private var foodRangeStatsTaskKey: String {
         let latest = foodStore.entries.first?.id.uuidString ?? "none"
-        return "\(timeRange.rawValue)|\(foodStore.entries.count)|\(latest)"
+        return "\(timeRange.rawValue)|\(periodOffset)|\(includeToday)|\(foodStore.entries.count)|\(latest)"
     }
 
-    private var dateRange: ClosedRange<Date> { timeRange.dateRange() }
+    /// Switching ranges always lands on the current window, in the same
+    /// update so the nutrition task restarts once.
+    private var timeRangeSelection: Binding<TimeRange> {
+        Binding(
+            get: { timeRange },
+            set: { newRange in
+                timeRange = newRange
+                periodOffset = 0
+            }
+        )
+    }
+
+    /// Selected window as whole local days (for day-keyed data).
+    private var dateRange: ClosedRange<Date> { timeRange.dayRange(offset: periodOffset) }
+
+    /// Selected window through the last instant of its final day (for timestamped readings).
+    private var timestampRange: ClosedRange<Date> { timeRange.timestampRange(offset: periodOffset) }
+
+    /// Window for the calorie chart and nutrition averages.
+    private var nutritionDateRange: ClosedRange<Date> {
+        timeRange.nutritionDayRange(offset: periodOffset, includeToday: includeToday)
+    }
 
     private var filteredWeightEntries: [WeightEntry] {
-        weightStore.entries(in: dateRange)
+        weightStore.entries(in: timestampRange)
     }
 
     private var filteredBodyFatEntries: [BodyFatEntry] {
-        bodyFatStore.entries(in: dateRange)
+        bodyFatStore.entries(in: timestampRange)
     }
 
     private var workoutCalorieSessions: [StrengthWorkoutSession] {
@@ -4137,8 +4238,13 @@ struct ProgressTabView: View {
         ProgressMetric.available(
             bodyFatAvailable: showsBodyFatSection,
             workoutBurnAvailable: !workoutCalorieSessions.isEmpty,
-            importedWorkoutsAvailable: !importedHealthWorkouts.isEmpty
+            importedWorkoutsAvailable: !importedHealthWorkouts.isEmpty,
+            stepsAvailable: healthKitEnabled
         )
+    }
+
+    private var stepsTaskKey: String {
+        "\(progressMetric == .steps)|\(healthKitEnabled)|\(timeRange.rawValue)|\(periodOffset)|\(stepsRefreshEpoch)"
     }
 
     /// Show the Body Fat section to anyone who has either logged a reading,
@@ -4164,8 +4270,11 @@ struct ProgressTabView: View {
                 if progressOverviewMode == .myProgress {
                     ScrollView {
                         VStack(spacing: 18) {
+                    WeeklyRecapCard()
+                        .padding(.horizontal)
+
                     // Segmented Picker
-                    Picker("Time Range", selection: $timeRange) {
+                    Picker("Time Range", selection: timeRangeSelection) {
                         ForEach(TimeRange.allCases, id: \.self) { range in
                             Text(range.title).tag(range)
                         }
@@ -4173,6 +4282,16 @@ struct ProgressTabView: View {
                     .pickerStyle(.segmented)
                     .tint(AppColors.calorie)
                     .padding(.horizontal)
+
+                    if timeRange.supportsPeriodNavigation {
+                        ProgressPeriodNavigator(
+                            label: TimeRange.periodLabel(for: dateRange),
+                            canGoForward: periodOffset > 0,
+                            onPrevious: { periodOffset += 1 },
+                            onNext: { periodOffset = max(0, periodOffset - 1) }
+                        )
+                        .padding(.horizontal)
+                    }
 
                     ProgressMetricSelector(
                         metrics: availableProgressMetrics,
@@ -4210,6 +4329,8 @@ struct ProgressTabView: View {
                                     dateRange: dateRange
                                 )
                             }
+                        case .steps:
+                            StepsChartSection(days: stepDays, dateRange: dateRange)
                         }
                     }
                     .padding(.horizontal)
@@ -4243,8 +4364,18 @@ struct ProgressTabView: View {
                                     onTap: { showImportedHealthWorkoutHistory = true }
                                 )
                             }
+                        case .steps:
+                            EmptyView()
                         }
                     }
+                    .padding(.horizontal)
+
+                    ProgressIncludeTodayToggle(
+                        isOn: $includeToday,
+                        rangeLabel: includeToday || !timeRange.supportsPeriodNavigation
+                            ? nil
+                            : TimeRange.periodLabel(for: nutritionDateRange)
+                    )
                     .padding(.horizontal)
 
                     // Calorie / macro / nutrient stats load asynchronously so the
@@ -4309,12 +4440,42 @@ struct ProgressTabView: View {
                 let stats = ProgressFoodRangeStats.compute(
                     entries: foodStore.entries,
                     dayCount: timeRange.days,
+                    endDay: nutritionDateRange.upperBound,
                     profile: userProfile,
                     optionalGoals: .current
                 )
                 guard !Task.isCancelled else { return }
                 foodRangeStats = stats
                 isLoadingFoodRangeStats = false
+            }
+            .task(id: stepsTaskKey) {
+                // Steps come from Apple Health on demand, only while the Steps
+                // metric is showing; range / period changes cancel a stale read,
+                // and returning to the app re-reads the window on screen.
+                guard progressMetric == .steps, healthKitEnabled else {
+                    stepDays = nil
+                    stepDaysWindow = nil
+                    return
+                }
+                let window = dateRange
+                // A new window shows the spinner; a foreground refresh of the same
+                // window keeps its bars until the fresh totals arrive.
+                if stepDaysWindow != window { stepDays = nil }
+                let days = await healthKitManager.fetchDailySteps(from: window.lowerBound, through: window.upperBound)
+                guard !Task.isCancelled else { return }
+                stepDays = days
+                stepDaysWindow = window
+            }
+            .onChange(of: scenePhase) { _, phase in
+                switch phase {
+                case .background:
+                    wasInBackground = true
+                case .active where wasInBackground:
+                    wasInBackground = false
+                    stepsRefreshEpoch += 1
+                default:
+                    break
+                }
             }
             .onChange(of: availableProgressMetrics, initial: true) { _, metrics in
                 if !metrics.contains(progressMetric) {
@@ -4324,8 +4485,8 @@ struct ProgressTabView: View {
             .sheet(isPresented: $showLogWeight) {
                 LogWeightSheet(
                     currentWeightKg: weightStore.latestEntry?.weightKg ?? userProfile.weightKg
-                ) { weightKg in
-                    weightStore.addEntry(WeightEntry(weightKg: weightKg))
+                ) { weightKg, date in
+                    weightStore.addEntry(WeightEntry(date: date, weightKg: weightKg))
                 }
             }
             .sheet(isPresented: $showLogBodyFat) {
@@ -4476,8 +4637,7 @@ private struct AISettingsSubsectionHeader: View {
 enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     case personalInfo
     case goalsNutrition
-    case trackingReminders
-    case notifications
+    case trackingNotifications
     case aiAccess
     case aiProviders
     case speechToText
@@ -4495,8 +4655,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     static let preferenceCases: [Self] = [
         .personalInfo,
         .goalsNutrition,
-        .trackingReminders,
-        .notifications,
+        .trackingNotifications,
         .aiAccess,
         .aiProviders,
         .speechToText,
@@ -4521,8 +4680,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .personalInfo: "Personal Info"
         case .goalsNutrition: "Goals & Nutrition"
-        case .trackingReminders: "Tracking & Reminders"
-        case .notifications: "Notifications"
+        case .trackingNotifications: "Tracking & Notifications"
         case .aiAccess: "AI Access"
         case .aiProviders: "AI Providers & Fallbacks"
         case .speechToText: "Speech-to-Text"
@@ -4543,8 +4701,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .personalInfo: "person.crop.circle"
         case .goalsNutrition: "target"
-        case .trackingReminders: "timer"
-        case .notifications: "bell"
+        case .trackingNotifications: "bell"
         case .aiAccess: "key.horizontal"
         case .aiProviders: "sparkles"
         case .speechToText: "waveform"
@@ -4620,12 +4777,14 @@ struct ProfileView: View {
     @AppStorage(AdaptiveGoalSettings.enabledKey) private var adaptiveGoalsEnabled = true
     @AppStorage(EnergyBurnSettings.enabledKey) private var energyBurnEnabled = false
     @AppStorage("weekStartsOnMonday") private var weekStartsOnMonday = true
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
     @AppStorage(FoodMeasurementSettings.preferGramsByDefaultKey) private var preferGramsByDefault = false
     @AppStorage(MealPhotoSettings.saveToGalleryKey) private var saveMealPhotosToGallery = false
     @AppStorage(AppThemeColor.storageKey) private var appThemeColorRaw = AppThemeColor.defaultColor.rawValue
     @AppStorage(WaterSettings.enabledKey) private var waterTrackingEnabled = false
     @AppStorage(WaterSettings.dailyGoalKey) private var waterDailyGoal = WaterSettings.defaultDailyGoalMl
     @AppStorage(WaterSettings.unitKey) private var waterUnitRaw = WaterUnit.defaultUnit.rawValue
+    @AppStorage(WaterQuickAddPresets.key) private var waterQuickAddPresetsRaw = ""
     @AppStorage(FastingSettings.enabledKey) private var fastingTrackingEnabled = false
     @AppStorage(FastingSettings.defaultGoalMinutesKey) private var fastingDefaultGoalMinutes = FastingSettings.defaultGoalMinutes
 
@@ -4780,9 +4939,7 @@ struct ProfileView: View {
                 NavigationStack(path: $settingsPath) {
                     settingsHub
                         .navigationDestination(for: ProfileSettingsCategory.self) { category in
-                            if category == .notifications {
-                                NotificationSettingsView()
-                            } else if category == .aiAccess {
+                            if category == .aiAccess {
                                 HostedAISettingsView()
                             } else if category == .voiceAssistant {
                                 VoiceAssistantSettingsView()
@@ -5097,10 +5254,12 @@ struct ProfileView: View {
                     lockableGoalRow(
                         icon: "flame",
                         label: "Calories",
-                        valueText: "\(profile.effectiveCalories.formatted()) kcal",
+                        valueText: energyUnit.format(kcal: profile.effectiveCalories),
                         macro: nil,
                         sheet: .editCalories
                     )
+
+                    MaintenanceEstimateRow(profile: profile)
 
                     lockableGoalRow(icon: "p.circle", label: "Protein", valueText: "\(profile.effectiveProtein)g", macro: .protein, sheet: .editProtein)
                     lockableGoalRow(icon: "c.circle", label: "Carbs", valueText: "\(profile.effectiveCarbs)g", macro: .carbs, sheet: .editCarbs)
@@ -5257,6 +5416,32 @@ struct ProfileView: View {
                     .pickerStyle(.menu)
                     .tint(.secondary)
 
+                    Picker(selection: $energyUnit) {
+                        ForEach(EnergyUnit.allCases) { unit in
+                            Text(unit.title).tag(unit)
+                        }
+                    } label: {
+                        Label {
+                            Text("Energy Unit")
+                        } icon: {
+                            Image(systemName: "flame")
+                                .foregroundStyle(AppColors.calorie)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    .tint(.secondary)
+                    .accessibilityIdentifier("settings.energyUnit")
+                    .onChange(of: energyUnit) { _, _ in
+                        // Widgets, the Watch and the scheduled daily summary render
+                        // calorie text ahead of time, so refresh them in the new unit.
+                        WidgetSnapshotWriter.publish(foods: foodStore.entries, profile: profile)
+                        if UserDefaults.standard.bool(forKey: "notificationsEnabled") {
+                            notificationManager.rescheduleDataDependentNotifications(
+                                foodStore: foodStore, weightStore: weightStore, bodyFatStore: bodyFatStore, profile: profile
+                            )
+                        }
+                    }
+
                     NavigationLink {
                         QuickActionsSettingsView()
                     } label: {
@@ -5291,11 +5476,48 @@ struct ProfileView: View {
                         }
                     }
 
+                    NavigationLink {
+                        ProductInfoSettingsView()
+                    } label: {
+                        Label {
+                            HStack {
+                                Text("Product Information")
+                                Spacer()
+                                Text("Customize")
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        } icon: {
+                            Image(systemName: "barcode")
+                                .foregroundStyle(AppColors.calorie)
+                        }
+                    }
+
+                    NavigationLink {
+                        TabBarSettingsView()
+                    } label: {
+                        Label {
+                            HStack {
+                                Text("Tab Bar")
+                                Spacer()
+                                Text("Customize")
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                            }
+                        } icon: {
+                            Image(systemName: "dock.rectangle")
+                                .foregroundStyle(AppColors.calorie)
+                        }
+                    }
+                    .accessibilityIdentifier("settings.tabBar")
+
                 }
                 .listRowBackground(AppColors.appCard)
                 }
 
-                if settingsCategory == .trackingReminders {
+                // Tracking first, then the notification sections, so one page holds the
+                // features and the reminders that depend on them (#432).
+                if settingsCategory == .trackingNotifications {
                 Section {
                     NavigationLink {
                         MealTimeSettingsView()
@@ -5373,6 +5595,27 @@ struct ProfileView: View {
                         .onChange(of: waterUnitRaw) { _, _ in
                             WidgetSnapshotWriter.publish(foods: foodStore.entries, profile: profile)
                         }
+
+                        NavigationLink {
+                            WaterQuickAddSettingsView(unit: waterUnit)
+                        } label: {
+                            Label {
+                                HStack {
+                                    Text("Quick Add Amounts")
+                                    Spacer()
+                                    Text(WaterQuickAddPresets.summary(
+                                        WaterQuickAddPresets.decode(waterQuickAddPresetsRaw),
+                                        unit: waterUnit
+                                    ))
+                                    .foregroundStyle(.secondary)
+                                    .lineLimit(1)
+                                }
+                            } icon: {
+                                Image(systemName: "drop.circle")
+                                    .foregroundStyle(AppColors.calorie)
+                            }
+                        }
+                        .accessibilityIdentifier("settings.water.quickAdd")
                     }
 
                     HStack {
@@ -5422,6 +5665,8 @@ struct ProfileView: View {
 
                 }
                 .listRowBackground(AppColors.appCard)
+
+                NotificationSettingsSections()
                 }
 
                 if settingsCategory == .aiProviders {
@@ -6265,6 +6510,8 @@ struct ProfileView: View {
                     .buttonStyle(.plain)
                 }
                 .listRowBackground(AppColors.appCard)
+
+                StorageSettingsSection()
                 }
 
                 if let aboutCategory = settingsCategory?.aboutCategory {
@@ -6402,10 +6649,10 @@ struct ProfileView: View {
 
                 case .editCalories:
                     NutritionPickerSheet(
-                        label: "Calories", unit: "kcal",
-                        currentValue: profile.effectiveCalories,
-                        range: 800...6000, step: 50,
-                        onSave: { setCalories(to: $0) },
+                        label: "Calories", unit: energyUnit.symbol,
+                        currentValue: energyUnit.displayValue(kcal: profile.effectiveCalories),
+                        range: energyUnit.goalPickerRange, step: energyUnit.goalPickerStep,
+                        onSave: { setCalories(to: energyUnit.goalKcal(fromPicked: $0, currentKcal: profile.effectiveCalories)) },
                         onResetToAuto: profile.isCaloriesLocked ? { resetCaloriesLock() } : nil
                     )
 
@@ -6518,6 +6765,7 @@ struct ProfileView: View {
                         waterStore.clear()
                         fastingStore.clear()
                         strengthWorkoutStore.clearAll()
+                        WorkoutRestTimerController.shared.skip()
                         importedHealthWorkoutStore.clearAll()
                         FoodImageStore.shared.deleteAll()
                         notificationManager.cancelAllNotifications()
@@ -6525,6 +6773,7 @@ struct ProfileView: View {
                         UserDefaults.standard.removePersistentDomain(forName: domain)
                         AIProviderSettings.deleteAllData()
                         SpeechSettings.deleteAllData()
+                        FoodDataCentralSettings.setAPIKey(nil)
                         chatStore.reset()
                         WidgetSnapshot.clear()
                         WidgetCenter.shared.reloadAllTimelines()
@@ -7363,7 +7612,7 @@ struct ProfileView: View {
             markGoalsRecalculated()
             AdaptiveGoalSettings.markCheckedToday()
             if showAlert {
-                showAdaptiveGoalAlert(title: "Adaptive Goals", message: "Updated to \(result.calories) kcal from your latest data." + (result.reason.map { " \($0)" } ?? ""))
+                showAdaptiveGoalAlert(title: "Adaptive Goals", message: "Updated to \(energyUnit.format(kcal: result.calories)) from your latest data." + (result.reason.map { " \($0)" } ?? ""))
             }
         } catch {
             guard adaptiveGoalsEnabled,

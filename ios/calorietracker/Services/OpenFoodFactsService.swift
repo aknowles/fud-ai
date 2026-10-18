@@ -154,7 +154,7 @@ enum OpenFoodFactsService {
         "product_quantity", "product_quantity_unit", "serving_size", "serving_quantity",
         "nutriments", "ingredients_text", "allergens_tags", "traces_tags",
         "nutriscore_grade", "nova_group", "ecoscore_grade", "labels_tags",
-        "categories_tags", "image_front_url",
+        "categories_tags", "image_front_url", "ingredients_text_with_allergens",
     ].joined(separator: ",")
 
     private static func requestURL(for code: String) -> URL? {
@@ -215,7 +215,10 @@ enum OpenFoodFactsService {
         let metadata = FoodProductMetadata(
             barcode: barcode,
             packageQuantity: firstNonEmpty(product.quantity),
-            ingredientsText: firstNonEmpty(product.ingredientsText),
+            ingredientsText: IngredientLabelParser.markingAllergens(
+                plain: firstNonEmpty(product.ingredientsText),
+                markup: firstNonEmpty(product.ingredientsTextWithAllergens)
+            ),
             allergens: displayTags(product.allergenTags, limit: 16),
             traces: displayTags(product.traceTags, limit: 16),
             nutriScore: normalizedScore(product.nutriScore),
@@ -395,7 +398,8 @@ enum OpenFoodFactsService {
         grams.map { round($0 * 1_000_000 * 10) / 10 }
     }
 
-    private static func grams(from servingSize: String?) -> Double? {
+    /// Grams in a serving text such as "30 g (1 cup)"; FoodData Central reuses it (#533).
+    static func grams(from servingSize: String?) -> Double? {
         guard var text = servingSize?.lowercased() else { return nil }
         text = text.replacingOccurrences(of: ",", with: ".")
         text = text.replacingOccurrences(of: "fl. oz", with: "fl oz")
@@ -437,6 +441,7 @@ enum OpenFoodFactsService {
         let productQuantity: FlexibleDouble?
         let productQuantityUnit: String?
         let ingredientsText: String?
+        let ingredientsTextWithAllergens: String?
         let allergenTags: [String]?
         let traceTags: [String]?
         let nutriScore: String?
@@ -457,6 +462,7 @@ enum OpenFoodFactsService {
             case productQuantity = "product_quantity"
             case productQuantityUnit = "product_quantity_unit"
             case ingredientsText = "ingredients_text"
+            case ingredientsTextWithAllergens = "ingredients_text_with_allergens"
             case allergenTags = "allergens_tags"
             case traceTags = "traces_tags"
             case nutriScore = "nutriscore_grade"

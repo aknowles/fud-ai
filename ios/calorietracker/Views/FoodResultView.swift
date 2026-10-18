@@ -20,6 +20,12 @@ struct FoodResultView: View {
     let source: FoodSource
     let progressiveMeal: Bool
     let productMetadata: FoodProductMetadata?
+    /// True when a barcode Open Food Facts could not use was prefilled from the
+    /// user's own earlier nutrition-label scan (#485).
+    let usesSavedBarcodeLabel: Bool
+    /// False when the review re-logs an entry that already holds one portion of
+    /// a split recipe, so that portion is never split again (#458).
+    let allowsRecipeServings: Bool
 
     @State private var baseServingSizeGrams: Double
     @State private var servingUnitOptions: [ServingUnitOption]
@@ -32,6 +38,8 @@ struct FoodResultView: View {
     @State private var quantityFocusRequest = 0
     @State private var isQuantityEditing = false
     @State private var nutritionUnlocked = false
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
+    @AppStorage(AminoAcidSettings.enabledKey) private var aminoAcidsEnabled = false
     @State private var editableCalories: Int
     @State private var editableProtein: Double
     @State private var editableCarbs: Double
@@ -61,6 +69,7 @@ struct FoodResultView: View {
     @State private var editableFolate: Double?
     @State private var editableOmega3: Double?
     @State private var editableIngredients: [MealIngredient]
+    @State private var recipeServings = 1
     @State private var ingredientEditor: IngredientEditorTarget?
     @State private var showWhatIfSheet = false
     @State private var imagePreview: FullScreenImagePreview?
@@ -96,7 +105,7 @@ struct FoodResultView: View {
     private var scaledCholesterol: Double? { editableCholesterol.map { round($0 * scale * 10) / 10 } }
     private var scaledCaffeine: Double? { editableCaffeine.map { round($0 * scale * 10) / 10 } }
     private var scaledSupplementalNutrients: [String: Double] {
-        editableSupplementalNutrients.mapValues { round($0 * scale * 10) / 10 }
+        AminoAcidEstimates.roundedSupplementalNutrients(editableSupplementalNutrients, scaledBy: scale)
     }
     private var scaledSodium: Double? { editableSodium.map { round($0 * scale * 10) / 10 } }
     private var scaledPotassium: Double? { editablePotassium.map { round($0 * scale * 10) / 10 } }
@@ -132,6 +141,8 @@ struct FoodResultView: View {
         ingredients: [MealIngredient] = [],
         progressiveMeal: Bool = false,
         productMetadata: FoodProductMetadata? = nil,
+        usesSavedBarcodeLabel: Bool = false,
+        allowsRecipeServings: Bool = true,
         servingSizeGrams: Double = 100,
         sugar: Double? = nil,
         addedSugar: Double? = nil,
@@ -199,6 +210,8 @@ struct FoodResultView: View {
         self.source = source
         self.progressiveMeal = progressiveMeal
         self.productMetadata = productMetadata
+        self.usesSavedBarcodeLabel = usesSavedBarcodeLabel
+        self.allowsRecipeServings = allowsRecipeServings
         self._baseServingSizeGrams = State(initialValue: servingSizeGrams)
         self._servingUnitOptions = State(initialValue: normalizedServingUnitOptions)
         self._servingSizeIsKnown = State(initialValue: servingSizeIsKnown)
@@ -280,8 +293,10 @@ struct FoodResultView: View {
         value.map { String(format: "%.1f", $0) } ?? "—"
     }
 
+    /// The field shows the energy unit in use; the entry stores kcal.
     private func updateBaseCalories(from text: String) {
-        editableCalories = Int(round((decimalValue(from: text) ?? 0) / safeInverseScale))
+        let kcal = energyUnit.kcalAmount(fromDisplayed: decimalValue(from: text) ?? 0)
+        editableCalories = Int(round(kcal / safeInverseScale))
     }
 
     private func updateBaseDouble(from text: String, set: (Double) -> Void) {
@@ -360,18 +375,37 @@ struct FoodResultView: View {
     }
 
     private func applyIngredientChanges(_ displayedIngredients: [MealIngredient]) {
+        // While a recipe split is active the edit is to one portion, so the split carries over.
+        let keptSplit = RecipeServings.keepingSplit(
+            displayedIngredients: displayedIngredients,
+            scale: scale,
+            servings: recipeServings,
+            options: servingUnitOptions,
+            selectedUnitID: selectedServingUnitID
+        )
+        let nextIngredients = keptSplit?.ingredients ?? displayedIngredients
         applyMicros(
             currentMicros.stretched(
                 oldGrams: editableIngredients.ingredientTotals.grams,
-                newGrams: displayedIngredients.ingredientTotals.grams
+                newGrams: nextIngredients.ingredientTotals.grams
             )
         )
-        editableIngredients = displayedIngredients
-        let totals = displayedIngredients.ingredientTotals
+        editableIngredients = nextIngredients
+        let totals = nextIngredients.ingredientTotals
         editableCalories = totals.calories
         editableProtein = totals.protein
         editableCarbs = totals.carbs
         editableFat = totals.fat
+        if let keptSplit {
+            baseServingSizeGrams = totals.grams
+            recipeServings = keptSplit.split.servings
+            servingUnitOptions = keptSplit.split.options
+            selectedServingUnitID = keptSplit.split.selectedUnitID
+            servingSizeGrams = keptSplit.split.servingSizeGrams
+            servingSizeText = keptSplit.split.quantityText
+            servingSizeIsKnown = true
+            return
+        }
         guard totals.grams > 0 else { return }
         baseServingSizeGrams = totals.grams
         servingSizeGrams = totals.grams
@@ -379,6 +413,33 @@ struct FoodResultView: View {
         selectedServingUnitID = ServingUnitOption.grams.unit
         servingUnitOptions = []
         servingSizeIsKnown = true
+        // The edited list is now the whole meal again, so any split is gone.
+        recipeServings = 1
+    }
+
+    /// Shown only for a real ingredient breakdown with a known total mass (#458).
+    private var recipeServingsBinding: Binding<Int>? {
+        guard allowsRecipeServings,
+              RecipeServings.isAvailable(
+                  ingredientCount: editableIngredients.count,
+                  totalGrams: baseServingSizeGrams,
+                  servingSizeIsKnown: servingSizeIsKnown
+              )
+        else { return nil }
+        return Binding(get: { recipeServings }, set: applyRecipeServings)
+    }
+
+    private func applyRecipeServings(_ servings: Int) {
+        let split = RecipeServings.split(
+            options: servingUnitOptions,
+            totalGrams: baseServingSizeGrams,
+            servings: servings
+        )
+        recipeServings = split.servings
+        servingUnitOptions = split.options
+        selectedServingUnitID = split.selectedUnitID
+        servingSizeGrams = split.servingSizeGrams
+        servingSizeText = split.quantityText
     }
 
     var body: some View {
@@ -430,6 +491,10 @@ struct FoodResultView: View {
                         }
                     }
 
+                    if usesSavedBarcodeLabel {
+                        SavedBarcodeLabelNoticeSection()
+                    }
+
                     Section("Food Details") {
                         HStack {
                             Text("Name")
@@ -439,16 +504,9 @@ struct FoodResultView: View {
                         }
                     }
 
-                    if let productMetadata, productMetadata.hasDisplayDetails {
-                        FoodProductMetadataSection(
-                            metadata: productMetadata,
-                            allergenAnalysis: makeFoodEntry(includeImage: false).allergenAnalysis(
-                                for: profile.configuredAllergenSensitivities
-                            )
-                        )
-                    }
-                    if !(productMetadata?.hasDisplayDetails ?? false),
-                       !profile.configuredAllergenSensitivities.isEmpty {
+                    // Allergen safety stays near the top for configured sensitivities;
+                    // the longer product details sit at the end of the form (#426).
+                    if !profile.configuredAllergenSensitivities.isEmpty {
                         Section("Allergen Check") {
                             Text(
                                 makeFoodEntry(includeImage: false).allergenAnalysis(
@@ -496,9 +554,9 @@ struct FoodResultView: View {
                     Section {
                         ReviewNutritionValueRow(
                             label: "Calories",
-                            displayValue: "\(scaledCalories)",
-                            editValue: "\(scaledCalories)",
-                            unit: "kcal",
+                            displayValue: "\(energyUnit.displayValue(kcal: scaledCalories))",
+                            editValue: "\(energyUnit.displayValue(kcal: scaledCalories))",
+                            unit: energyUnit.symbol,
                             isUnlocked: nutritionUnlocked,
                             onEdit: updateBaseCalories
                         )
@@ -557,7 +615,8 @@ struct FoodResultView: View {
                                     applyIngredientChanges(scaledIngredients + [ingredient])
                                 }
                             )
-                        )
+                        ),
+                        recipeServings: recipeServingsBinding
                     )
 
                     Section {
@@ -605,6 +664,29 @@ struct FoodResultView: View {
                                     }
                                 )
                             }
+                            if aminoAcidsEnabled {
+                                AminoAcidEstimateHeader()
+                                ForEach(AminoAcid.allCases) { aminoAcid in
+                                    let value = scaledSupplementalNutrients[aminoAcid.storageKey]
+                                    ReviewNutritionValueRow(
+                                        label: aminoAcid.englishName,
+                                        displayValue: value.map(AminoAcidEstimates.formattedGrams) ?? "—",
+                                        editValue: value.map(AminoAcidEstimates.formattedGrams) ?? "",
+                                        unit: "g",
+                                        isUnlocked: nutritionUnlocked,
+                                        dim: true,
+                                        onEdit: { text in
+                                            updateOptionalBaseDouble(from: text) { value in
+                                                if let value {
+                                                    editableSupplementalNutrients[aminoAcid.storageKey] = value
+                                                } else {
+                                                    editableSupplementalNutrients.removeValue(forKey: aminoAcid.storageKey)
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                         }
                         .tint(AppColors.calorie)
                     }
@@ -625,6 +707,13 @@ struct FoodResultView: View {
                             .tint(AppColors.calorie)
                         DatePicker("Time", selection: $loggedAt, displayedComponents: .hourAndMinute)
                             .tint(AppColors.calorie)
+                    }
+
+                    if let productMetadata, productMetadata.hasDisplayDetails {
+                        FoodProductMetadataSection(
+                            metadata: productMetadata,
+                            allergenSensitivities: profile.configuredAllergenSensitivities
+                        )
                     }
 
                 }
@@ -760,6 +849,20 @@ struct FoodResultView: View {
 
 }
 
+/// Explains a review prefilled from the user's saved nutrition label for a
+/// barcode, and how to forget that label without any extra settings (#485).
+private struct SavedBarcodeLabelNoticeSection: View {
+    var body: some View {
+        Section {
+            Label("Using your saved label for this barcode", systemImage: "barcode.viewfinder")
+                .font(.system(.body, design: .rounded, weight: .semibold))
+                .foregroundStyle(AppColors.calorie)
+        } footer: {
+            Text("Open Food Facts has no nutrition for this product. To forget this label, delete the food logs that used it.")
+        }
+    }
+}
+
 struct IngredientEditorTarget: Identifiable {
     let id = UUID()
     let index: Int?
@@ -771,6 +874,9 @@ struct MealIngredientsSection: View {
     let onEdit: (Int) -> Void
     var onAdd: (() -> Void)? = nil
     var addMenu: AnyView? = nil
+    /// "Servings in recipe" stepper; nil hides it (#458).
+    var recipeServings: Binding<Int>? = nil
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
 
     var body: some View {
         Section {
@@ -801,7 +907,7 @@ struct MealIngredientsSection: View {
                                     .font(.system(.body, design: .rounded, weight: .semibold))
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                Text("\(MacroValueFormatter.string(ingredient.grams))g · \(ingredient.calories) kcal")
+                                Text("\(MacroValueFormatter.string(ingredient.grams))g · \(energyUnit.format(kcal: ingredient.calories))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")
@@ -829,10 +935,27 @@ struct MealIngredientsSection: View {
                 }
                 .tint(AppColors.calorie)
             }
+
+            if let recipeServings {
+                Stepper(value: recipeServings, in: RecipeServings.range) {
+                    HStack {
+                        Text("Servings in recipe")
+                        Spacer()
+                        Text(String(recipeServings.wrappedValue))
+                            .monospacedDigit()
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
         } header: {
             Text("Ingredients")
         } footer: {
-            Text("Ingredient changes update the meal's calorie and macro totals automatically.")
+            VStack(alignment: .leading, spacing: 4) {
+                Text("Ingredient changes update the meal's calorie and macro totals automatically.")
+                if recipeServings != nil {
+                    Text("Set this after adding every ingredient. Fud AI splits the recipe so you log 1 serving, and Saved Meals keep that serving size.")
+                }
+            }
         }
     }
 
@@ -855,19 +978,23 @@ struct IngredientEditorSheet: View {
     @State private var protein: String
     @State private var carbs: String
     @State private var fat: String
+    /// Calories here (text and base) are in the energy unit in use; save converts to kcal.
     @State private var nutritionBase: IngredientPortion
+    private let energyUnit: EnergyUnit
 
     init(target: IngredientEditorTarget, onSave: @escaping (MealIngredient) -> Void, onDelete: (() -> Void)?) {
+        let energyUnit = EnergyUnit.current
         self.target = target
         self.onSave = onSave
         self.onDelete = onDelete
+        self.energyUnit = energyUnit
         _nutritionBase = State(initialValue: IngredientPortion(
-            grams: target.ingredient.grams, calories: Double(target.ingredient.calories),
+            grams: target.ingredient.grams, calories: energyUnit.displayAmount(kcal: Double(target.ingredient.calories)),
             protein: target.ingredient.protein, carbs: target.ingredient.carbs, fat: target.ingredient.fat
         ))
         _name = State(initialValue: target.ingredient.name)
         _grams = State(initialValue: MacroValueFormatter.string(target.ingredient.grams))
-        _calories = State(initialValue: String(target.ingredient.calories))
+        _calories = State(initialValue: String(energyUnit.displayValue(kcal: target.ingredient.calories)))
         _protein = State(initialValue: MacroValueFormatter.string(target.ingredient.protein))
         _carbs = State(initialValue: MacroValueFormatter.string(target.ingredient.carbs))
         _fat = State(initialValue: MacroValueFormatter.string(target.ingredient.fat))
@@ -886,7 +1013,7 @@ struct IngredientEditorSheet: View {
             id: target.ingredient.id,
             name: trimmedName,
             grams: grams,
-            calories: Int(round(calories)),
+            calories: energyUnit.kcal(fromDisplayed: calories),
             protein: protein,
             carbs: carbs,
             fat: fat,
@@ -902,7 +1029,7 @@ struct IngredientEditorSheet: View {
                 Section("Ingredient") {
                     TextField("Name", text: $name)
                     valueRow("Weight", text: Binding(get: { grams }, set: changeWeight), unit: "g")
-                    valueRow("Calories", text: nutritionBinding($calories), unit: "kcal")
+                    valueRow("Calories", text: nutritionBinding($calories), unit: energyUnit.symbol)
                 }
                 Section("Macros") {
                     valueRow("Protein", text: nutritionBinding($protein), unit: "g")
@@ -986,6 +1113,7 @@ private struct WhatIfMealImpactSheet: View {
     let weightMetric: Bool
 
     @Environment(\.dismiss) private var dismiss
+    @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
     @State private var isLoadingSuggestion = true
     @State private var suggestion: String?
     @State private var suggestionError: String?
@@ -1032,8 +1160,8 @@ private struct WhatIfMealImpactSheet: View {
                 Section {
                     WhatIfImpactRow(
                         label: "Calories",
-                        added: "+\(entry.calories) kcal",
-                        after: "\(afterTotals.calories) / \(goals.calories) kcal",
+                        added: "+\(energyUnit.format(kcal: entry.calories))",
+                        after: "\(energyUnit.number(kcal: afterTotals.calories)) / \(energyUnit.format(kcal: goals.calories))",
                         remaining: remainingCaloriesText,
                         isOver: afterTotals.calories > goals.calories,
                         tint: AppColors.calorie
@@ -1112,11 +1240,11 @@ private struct WhatIfMealImpactSheet: View {
     }
 
     private var remainingCaloriesText: String {
-        let remaining = goals.calories - afterTotals.calories
+        let remaining = energyUnit.displayValue(kcal: goals.calories) - energyUnit.displayValue(kcal: afterTotals.calories)
         if remaining >= 0 {
-            return String(localized: "\(remaining) kcal left")
+            return String(localized: "\(energyUnit.format(displayed: remaining)) left")
         }
-        return String(localized: "\(abs(remaining)) kcal over")
+        return String(localized: "\(energyUnit.format(displayed: abs(remaining))) over")
     }
 
     private func remainingMacroText(_ value: Double, goal: Double) -> String {
@@ -1605,13 +1733,14 @@ struct OptionalNutritionDisplayRow: View {
     let label: String
     let value: Double?
     let unit: String
+    var format: (Double) -> String = { String(format: "%.1f", $0) }
 
     var body: some View {
         HStack {
             Text(LocalizedDisplayText.text(label))
                 .foregroundStyle(.secondary)
             Spacer()
-            Text(value.map { String(format: "%.1f", $0) } ?? "—")
+            Text(value.map(format) ?? "—")
                 .fontWeight(.medium)
             Text(unit)
                 .foregroundStyle(.secondary)

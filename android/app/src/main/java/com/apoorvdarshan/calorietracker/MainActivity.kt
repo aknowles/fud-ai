@@ -11,6 +11,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,6 +25,7 @@ import com.apoorvdarshan.calorietracker.services.QuickActionShortcutManager
 import com.apoorvdarshan.calorietracker.services.ReviewPrompter
 import com.apoorvdarshan.calorietracker.services.update.AndroidUpdateChecker
 import com.apoorvdarshan.calorietracker.services.voice.VoiceEntryPoints
+import com.apoorvdarshan.calorietracker.ui.components.LocalEnergyUnit
 import com.apoorvdarshan.calorietracker.ui.home.ImportSharedMealSheet
 import com.apoorvdarshan.calorietracker.ui.navigation.FudAINavHost
 import com.apoorvdarshan.calorietracker.ui.theme.AppThemeColor
@@ -85,6 +87,8 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        // A rest that ends while the app is visible is announced in-app, not by notification.
+        (application as FudAIApp).container.workoutRestTimer.setAppInForeground(true)
         if (!(application as FudAIApp).backgroundServicesEnabled) return
         lifecycleScope.launch {
             // Adaptive Goals auto-runs the full goal calculation about once a week (Energy Burn,
@@ -105,6 +109,7 @@ open class MainActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        (application as FudAIApp).container.workoutRestTimer.setAppInForeground(false)
         if (!(application as FudAIApp).backgroundServicesEnabled) return
         lifecycleScope.launch {
             runCatching { (application as FudAIApp).container.cloudBackup.autoBackupIfNeeded() }
@@ -165,6 +170,7 @@ open class MainActivity : AppCompatActivity() {
         val startOnboarding = runBlocking { !container.prefs.hasCompletedOnboarding.first() }
         val initialAppearance = runBlocking { container.prefs.appearanceMode.first() }
         val initialThemeColorKey = runBlocking { container.prefs.appThemeColor.first() }
+        val initialEnergyUnit = runBlocking { container.prefs.energyUnit.first() }
 
         // Hold the splash on screen until the saved profile has loaded from
         // DataStore so Home doesn't briefly render its 2000/150/220/70 fallback
@@ -184,6 +190,7 @@ open class MainActivity : AppCompatActivity() {
             val appearance by container.prefs.appearanceMode.collectAsState(initial = initialAppearance)
             val themeColorKey by container.prefs.appThemeColor.collectAsState(initial = initialThemeColorKey)
             val themeColor = AppThemeColor.fromKey(themeColorKey)
+            val energyUnit by container.prefs.energyUnit.collectAsState(initial = initialEnergyUnit)
             val systemDark = isSystemInDarkTheme()
             val darkTheme = when (appearance) {
                 "light" -> false
@@ -191,43 +198,46 @@ open class MainActivity : AppCompatActivity() {
                 else -> systemDark
             }
             FudAITheme(darkTheme = darkTheme, themeColor = themeColor) {
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-                    FudAINavHost(
-                        container = container,
-                        startOnboarding = startOnboarding,
-                        quickActionRequest = pendingQuickAction,
-                        onQuickActionHandled = { requestID ->
-                            if (pendingQuickAction?.id == requestID) pendingQuickAction = null
-                        },
-                        voiceLaunchRequest = pendingVoiceLaunch,
-                        onVoiceLaunchHandled = { requestID ->
-                            if (pendingVoiceLaunch == requestID) pendingVoiceLaunch = null
-                        }
-                    )
+                // Above the NavHost and the shared-meal sheet so both show the chosen unit.
+                CompositionLocalProvider(LocalEnergyUnit provides energyUnit) {
+                    Surface(
+                        modifier = Modifier.fillMaxSize(),
+                        color = MaterialTheme.colorScheme.background
+                    ) {
+                        FudAINavHost(
+                            container = container,
+                            startOnboarding = startOnboarding,
+                            quickActionRequest = pendingQuickAction,
+                            onQuickActionHandled = { requestID ->
+                                if (pendingQuickAction?.id == requestID) pendingQuickAction = null
+                            },
+                            voiceLaunchRequest = pendingVoiceLaunch,
+                            onVoiceLaunchHandled = { requestID ->
+                                if (pendingVoiceLaunch == requestID) pendingVoiceLaunch = null
+                            }
+                        )
 
-                    if (pendingSharedMeals.isNotEmpty()) {
-                        ImportSharedMealSheet(
-                            meals = pendingSharedMeals,
-                            onAdd = { meals ->
-                                lifecycleScope.launch {
-                                    for (meal in meals) {
-                                        if (!container.foodRepository.addEntry(meal)) {
-                                            Toast.makeText(
-                                                this@MainActivity,
-                                                getString(R.string.food_blocked_by_active_fast),
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            break
+                        if (pendingSharedMeals.isNotEmpty()) {
+                            ImportSharedMealSheet(
+                                meals = pendingSharedMeals,
+                                onAdd = { meals ->
+                                    lifecycleScope.launch {
+                                        for (meal in meals) {
+                                            if (!container.foodRepository.addEntry(meal)) {
+                                                Toast.makeText(
+                                                    this@MainActivity,
+                                                    getString(R.string.food_blocked_by_active_fast),
+                                                    Toast.LENGTH_LONG
+                                                ).show()
+                                                break
+                                            }
                                         }
                                     }
-                                }
-                                pendingSharedMeals = emptyList()
-                            },
-                            onDismiss = { pendingSharedMeals = emptyList() }
-                        )
+                                    pendingSharedMeals = emptyList()
+                                },
+                                onDismiss = { pendingSharedMeals = emptyList() }
+                            )
+                        }
                     }
                 }
             }

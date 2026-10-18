@@ -310,7 +310,8 @@ final class calorietrackerUITests: XCTestCase {
         let waterMenu = app.buttons["Water"]
         XCTAssertTrue(waterMenu.waitForExistence(timeout: 5))
         waterMenu.tap()
-        let glass = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "1 Glass")).firstMatch
+        // The smallest default quick-add amount.
+        let glass = app.buttons.matching(NSPredicate(format: "label == %@", "250 ml")).firstMatch
         XCTAssertTrue(glass.waitForExistence(timeout: 5))
         glass.tap()
 
@@ -455,7 +456,7 @@ final class calorietrackerUITests: XCTestCase {
     func testWaterTrackingSettingPersistsAfterRelaunch() throws {
         let app = makeApp()
         app.launch()
-        openSettingsCategory("trackingReminders", in: app)
+        openSettingsCategory("trackingNotifications", in: app)
 
         let toggle = app.switches["settings.water.enabled"]
         let waterGoal = app.staticTexts["Daily Water Goal"]
@@ -469,7 +470,7 @@ final class calorietrackerUITests: XCTestCase {
 
         relaunchPreservingData(app)
         XCTAssertTrue(app.staticTexts["Water"].waitForExistence(timeout: 5))
-        openSettingsCategory("trackingReminders", in: app)
+        openSettingsCategory("trackingNotifications", in: app)
         reveal(toggle, in: app)
         waitForValue("1", in: toggle)
         XCTAssertTrue(waterGoal.exists)
@@ -477,9 +478,33 @@ final class calorietrackerUITests: XCTestCase {
         XCTAssertTrue(waterGoal.waitForNonExistence(timeout: 5))
 
         relaunchPreservingData(app)
-        openSettingsCategory("trackingReminders", in: app)
+        openSettingsCategory("trackingNotifications", in: app)
         reveal(toggle, in: app)
         waitForValue("0", in: toggle)
         XCTAssertFalse(waterGoal.exists)
+    }
+
+    @MainActor
+    func testTrackingAndNotificationsShareOneSettingsPage() throws {
+        let app = makeApp()
+        app.launch()
+
+        let settings = app.tabBars.buttons["Settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 15))
+        settings.tap()
+        let combined = app.buttons["settings.category.trackingNotifications"]
+        reveal(combined, in: app)
+        // The former separate rows are gone (#432).
+        XCTAssertFalse(app.buttons["settings.category.trackingReminders"].exists)
+        XCTAssertFalse(app.buttons["settings.category.notifications"].exists)
+        combined.tap()
+
+        XCTAssertTrue(app.navigationBars["Tracking & Notifications"].waitForExistence(timeout: 5))
+        let waterTracking = app.switches["settings.water.enabled"]
+        XCTAssertTrue(waterTracking.waitForExistence(timeout: 5))
+        // Tracking comes first, then the notification master switch.
+        let notifications = app.switches["settings.notifications.enabled"]
+        XCTAssertTrue(notifications.waitForExistence(timeout: 5))
+        XCTAssertLessThan(waterTracking.frame.minY, notifications.frame.minY)
     }
 }

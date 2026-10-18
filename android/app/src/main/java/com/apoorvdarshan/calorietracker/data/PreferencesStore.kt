@@ -12,6 +12,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.apoorvdarshan.calorietracker.models.AddMenuConfig
+import com.apoorvdarshan.calorietracker.models.ImportedHealthWorkout
+import com.apoorvdarshan.calorietracker.models.TabBarSettings
 import com.apoorvdarshan.calorietracker.models.AIProvider
 import com.apoorvdarshan.calorietracker.models.AutoBalanceMacro
 import com.apoorvdarshan.calorietracker.models.BodyFatEntry
@@ -23,13 +25,16 @@ import com.apoorvdarshan.calorietracker.models.HomeTopNutrient
 import com.apoorvdarshan.calorietracker.models.MealSchedule
 import com.apoorvdarshan.calorietracker.models.OptionalNutrientGoals
 import com.apoorvdarshan.calorietracker.models.PendingFoodAnalysisDraft
+import com.apoorvdarshan.calorietracker.models.ProductInfoField
 import com.apoorvdarshan.calorietracker.models.QuickAction
 import com.apoorvdarshan.calorietracker.models.SpeechLanguage
+import com.apoorvdarshan.calorietracker.models.EnergyUnit
 import com.apoorvdarshan.calorietracker.models.SpeechProvider
 import com.apoorvdarshan.calorietracker.models.UserProfile
 import com.apoorvdarshan.calorietracker.models.WeightEntry
 import com.apoorvdarshan.calorietracker.models.WidgetSnapshot
 import com.apoorvdarshan.calorietracker.models.WaterEntry
+import com.apoorvdarshan.calorietracker.models.WaterQuickAddPresets
 import com.apoorvdarshan.calorietracker.backup.CloudBackupPolicy
 import com.apoorvdarshan.calorietracker.backup.CloudBackupValue
 import com.apoorvdarshan.calorietracker.models.WaterUnit
@@ -91,7 +96,9 @@ data class FoodAiCallSettings(
     val baseUrl: String,
     val maxTokens: Int,
     val requestTimeoutSeconds: Int,
-    val openRouterReasoningEffort: OpenRouterReasoningEffort
+    val openRouterReasoningEffort: OpenRouterReasoningEffort,
+    /** Opt-in amino acid estimates (#491); off leaves food-analysis prompts unchanged. */
+    val aminoAcidEstimates: Boolean = false
 )
 
 internal fun executableAIProviderOrDefault(
@@ -131,7 +138,7 @@ class PreferencesStore(
     private val context: Context,
     private val isLocalGemmaExecutable: () -> Boolean = { false },
     private val isLocalWhisperExecutable: () -> Boolean = { false }
-) : WorkoutStateStore, NutritionSyncStore {
+) : WorkoutStateStore, NutritionSyncStore, ImportedHealthWorkoutStore {
 
     // coerceInputValues: an enum value this build does not know (e.g. a meal
     // type added by a newer release) falls back to the property default
@@ -178,12 +185,19 @@ class PreferencesStore(
         key: Preferences.Key<String>,
         serializer: KSerializer<T>,
         transform: (List<T>) -> List<T>
+    ): List<T> = updateJsonListReading(key, serializer) { _, current -> transform(current) }
+
+    /** [updateJsonList] whose transform can also read other keys from the same transaction. */
+    private suspend fun <T> updateJsonListReading(
+        key: Preferences.Key<String>,
+        serializer: KSerializer<T>,
+        transform: (Preferences, List<T>) -> List<T>
     ): List<T> {
         var result: List<T> = emptyList()
         ds.edit { prefs ->
             val decoded = decodeList(prefs[key], serializer, key.name)
             preserveIfUnreadable(prefs, key, decoded)
-            result = transform(decoded.itemsOrEmpty)
+            result = transform(prefs, decoded.itemsOrEmpty)
             prefs[key] = json.encodeToString(ListSerializer(serializer), result)
         }
         return result
@@ -329,6 +343,13 @@ class PreferencesStore(
     val waterUnit: Flow<WaterUnit> = ds.data.map { WaterUnit.fromStorage(it[Keys.WATER_UNIT]) }
     suspend fun setWaterUnit(v: WaterUnit) { ds.edit { it[Keys.WATER_UNIT] = v.storageValue } }
 
+    val waterQuickAddPresetsMl: Flow<List<Int>> = ds.data.map {
+        WaterQuickAddPresets.decode(it[Keys.WATER_QUICK_ADD_PRESETS])
+    }
+    suspend fun setWaterQuickAddPresetsMl(v: List<Int>) {
+        ds.edit { it[Keys.WATER_QUICK_ADD_PRESETS] = WaterQuickAddPresets.encode(v) }
+    }
+
     val waterReminderEnabled: Flow<Boolean> = ds.data.map { it[Keys.WATER_REMINDER_ENABLED] ?: false }
     suspend fun setWaterReminderEnabled(v: Boolean) { ds.edit { it[Keys.WATER_REMINDER_ENABLED] = v } }
 
@@ -409,6 +430,35 @@ class PreferencesStore(
     /// the restore should be allowed to run again.
     val healthFoodRestoreDone: Flow<Boolean> = ds.data.map { it[Keys.HEALTH_FOOD_RESTORE_DONE] ?: false }
     suspend fun setHealthFoodRestoreDone(v: Boolean) { ds.edit { it[Keys.HEALTH_FOOD_RESTORE_DONE] = v } }
+
+    /// Read-only copies of other apps' Health Connect exercise sessions (Workouts + Progress).
+    /// Re-imported from Health Connect on a new device, so Drive backups skip them.
+    override val importedHealthWorkouts: Flow<List<ImportedHealthWorkout>> =
+        jsonListFlow(Keys.IMPORTED_HEALTH_WORKOUTS, ImportedHealthWorkout.serializer())
+
+    override suspend fun updateImportedHealthWorkouts(
+        transform: (List<ImportedHealthWorkout>) -> List<ImportedHealthWorkout>
+    ) {
+        updateJsonList(Keys.IMPORTED_HEALTH_WORKOUTS, ImportedHealthWorkout.serializer(), transform)
+    }
+
+    override suspend fun updateImportedHealthWorkoutsIfSyncEnabled(
+        transform: (List<ImportedHealthWorkout>) -> List<ImportedHealthWorkout>
+    ): Boolean {
+        val key = Keys.IMPORTED_HEALTH_WORKOUTS
+        val serializer = ImportedHealthWorkout.serializer()
+        var applied = false
+        ds.edit { prefs ->
+            // Same transaction as the write: a wipe (Delete All Data) or the toggle turning
+            // off while the import was reading Health Connect leaves the store as it is.
+            if (prefs[Keys.HEALTH_CONNECT_ENABLED] != true) return@edit
+            val decoded = decodeList(prefs[key], serializer, key.name)
+            preserveIfUnreadable(prefs, key, decoded)
+            prefs[key] = json.encodeToString(ListSerializer(serializer), transform(decoded.itemsOrEmpty))
+            applied = true
+        }
+        return applied
+    }
 
     /// Food entries whose Health Connect write was never confirmed, retried on the next
     /// foreground sync. Comma-joined UUIDs, matching [healthChangesTokenTypes] — UUIDs
@@ -602,8 +652,30 @@ class PreferencesStore(
     }
     suspend fun setWeightUnit(v: String) { ds.edit { it[Keys.WEIGHT_UNIT] = v } }
 
+    /** Progress calorie chart + nutrition averages include today's still-in-progress log
+     *  (default). Off ends those windows yesterday so a partial day can't drag them down. */
+    val progressIncludeToday: Flow<Boolean> = ds.data.map { it[Keys.PROGRESS_INCLUDE_TODAY] ?: true }
+    suspend fun setProgressIncludeToday(v: Boolean) { ds.edit { it[Keys.PROGRESS_INCLUDE_TODAY] = v } }
+
     val preferGramsByDefault: Flow<Boolean> = ds.data.map { it[Keys.PREFER_GRAMS_BY_DEFAULT] ?: false }
     suspend fun setPreferGramsByDefault(v: Boolean) { ds.edit { it[Keys.PREFER_GRAMS_BY_DEFAULT] = v } }
+
+    /** Barcode Product information block (#427). Mirrors iOS @AppStorage("productInfoShown"); on by default. */
+    val productInfoShown: Flow<Boolean> = ds.data.map { it[Keys.PRODUCT_INFO_SHOWN] ?: true }
+    suspend fun setProductInfoShown(v: Boolean) { ds.edit { it[Keys.PRODUCT_INFO_SHOWN] = v } }
+
+    /** Product information fields the user hid; mirrors iOS "productInfoHiddenFields" (comma-separated keys). */
+    val productInfoHiddenFields: Flow<Set<ProductInfoField>> = ds.data.map {
+        ProductInfoField.hiddenFromStorage(it[Keys.PRODUCT_INFO_HIDDEN_FIELDS])
+    }
+    suspend fun setProductInfoFieldHidden(field: ProductInfoField, hidden: Boolean) {
+        ds.edit {
+            val current = ProductInfoField.hiddenFromStorage(it[Keys.PRODUCT_INFO_HIDDEN_FIELDS])
+            it[Keys.PRODUCT_INFO_HIDDEN_FIELDS] = ProductInfoField.storageValue(
+                if (hidden) current + field else current - field
+            )
+        }
+    }
 
     val saveMealPhotosToGallery: Flow<Boolean> = ds.data.map { it[Keys.SAVE_MEAL_PHOTOS_TO_GALLERY] ?: false }
     suspend fun setSaveMealPhotosToGallery(v: Boolean) { ds.edit { it[Keys.SAVE_MEAL_PHOTOS_TO_GALLERY] = v } }
@@ -619,6 +691,10 @@ class PreferencesStore(
     /** false = Sunday, true = Monday (default). Mirrors iOS @AppStorage("weekStartsOnMonday"). */
     val weekStartsOnMonday: Flow<Boolean> = ds.data.map { it[Keys.WEEK_STARTS_MONDAY] ?: true }
     suspend fun setWeekStartsOnMonday(v: Boolean) { ds.edit { it[Keys.WEEK_STARTS_MONDAY] = v } }
+
+    /** kcal (default) or kJ for display and calorie input; stored values stay kcal. Mirrors iOS "energyUnit". */
+    val energyUnit: Flow<EnergyUnit> = ds.data.map { EnergyUnit.fromStorage(it[Keys.ENERGY_UNIT]) }
+    suspend fun setEnergyUnit(v: EnergyUnit) { ds.edit { it[Keys.ENERGY_UNIT] = v.storageValue } }
 
     val quickAction1: Flow<QuickAction> = quickAction(Keys.QUICK_ACTION_1, QuickAction.Defaults[0])
     val quickAction2: Flow<QuickAction> = quickAction(Keys.QUICK_ACTION_2, QuickAction.Defaults[1])
@@ -643,6 +719,13 @@ class PreferencesStore(
 
     suspend fun setAddMenuConfig(config: AddMenuConfig) {
         ds.edit { it[Keys.ADD_MENU_CONFIG] = AddMenuConfig.encode(config) }
+    }
+
+    val hiddenTabs: Flow<Set<String>> = ds.data.map { TabBarSettings.decode(it[Keys.HIDDEN_TABS]) }
+
+    /** Shows or hides one tab, reading the other tabs' state inside the same edit. */
+    suspend fun setTabHidden(route: String, hidden: Boolean) {
+        ds.edit { it[Keys.HIDDEN_TABS] = TabBarSettings.withTabHidden(it[Keys.HIDDEN_TABS], route, hidden) }
     }
 
     suspend fun resetAddMenuConfig() {
@@ -704,6 +787,10 @@ class PreferencesStore(
     suspend fun setHomeTopNutrients(v: String) {
         ds.edit { it[Keys.HOME_TOP_NUTRIENTS] = v }
     }
+
+    /** Opt-in essential amino acid estimates in AI food analyses (#491). Mirrors iOS "aminoAcidEstimatesEnabled"; off by default. */
+    val aminoAcidEstimatesEnabled: Flow<Boolean> = ds.data.map { it[Keys.AMINO_ACID_ESTIMATES_ENABLED] ?: false }
+    suspend fun setAminoAcidEstimatesEnabled(v: Boolean) { ds.edit { it[Keys.AMINO_ACID_ESTIMATES_ENABLED] = v } }
 
     /** Goals for nutrients outside the calorie/protein/carb/fat calculator. */
     val optionalNutrientGoals: Flow<OptionalNutrientGoals> = ds.data.map { prefs ->
@@ -1055,7 +1142,8 @@ class PreferencesStore(
             ),
             openRouterReasoningEffort = OpenRouterReasoningEffort.fromValue(
                 prefs[Keys.OPENROUTER_REASONING_EFFORT]
-            )
+            ),
+            aminoAcidEstimates = prefs[Keys.AMINO_ACID_ESTIMATES_ENABLED] ?: false
         )
     }
 
@@ -1322,6 +1410,12 @@ class PreferencesStore(
                 ?.flatMap { it.imagePaths }
                 ?.filter { com.apoorvdarshan.calorietracker.models.UserExercise.isUserPhotoFilename(it) }
                 ?.forEach { add(it) }
+            // A routine keeps its exercises' photos after the exercise itself is deleted.
+            workoutState?.routines
+                ?.flatMap { it.exercises }
+                ?.flatMap { it.imagePaths }
+                ?.filter { com.apoorvdarshan.calorietracker.models.UserExercise.isUserPhotoFilename(it) }
+                ?.forEach { add(it) }
         }
     }
 
@@ -1352,6 +1446,31 @@ class PreferencesStore(
     suspend fun updateWeightEntries(transform: (List<WeightEntry>) -> List<WeightEntry>): List<WeightEntry> =
         updateJsonList(Keys.WEIGHT_ENTRIES, WeightEntry.serializer(), transform)
 
+    /// Remembers the id of a weight entry the user deleted, oldest first. Kept after
+    /// deletion (and in cloud backups) so a Health Connect re-import never resurrects it —
+    /// another app's record survives our delete. Comma-joined UUIDs, like
+    /// [pendingNutritionHealthWrites]. Never trimmed: each id is one deletion made by hand,
+    /// and dropping one would let that reading come back.
+    suspend fun addDeletedWeightEntryId(id: String) = addDeletedId(Keys.DELETED_WEIGHT_ENTRY_IDS, id)
+
+    /// [updateWeightEntries] with the deleted weight ids read in the same transaction. A
+    /// deletion records its id before removing the entry, so one that lands while an
+    /// import is in flight is either seen here or removes the entry after this write.
+    suspend fun updateWeightEntriesSkippingDeleted(
+        transform: (entries: List<WeightEntry>, deletedIds: Set<String>) -> List<WeightEntry>
+    ): List<WeightEntry> = updateJsonListReading(Keys.WEIGHT_ENTRIES, WeightEntry.serializer()) { prefs, current ->
+        transform(current, parseIdList(prefs[Keys.DELETED_WEIGHT_ENTRY_IDS]).toSet())
+    }
+
+    private fun parseIdList(raw: String?): List<String> =
+        raw?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+
+    private suspend fun addDeletedId(key: Preferences.Key<String>, id: String) {
+        ds.edit { prefs ->
+            prefs[key] = (parseIdList(prefs[key]) - id + id).joinToString(",")
+        }
+    }
+
     // -- Body fat entries --------------------------------------------------
     val bodyFatEntries: Flow<List<BodyFatEntry>> = jsonListFlow(Keys.BODY_FAT_ENTRIES, BodyFatEntry.serializer())
 
@@ -1361,6 +1480,16 @@ class PreferencesStore(
 
     suspend fun updateBodyFatEntries(transform: (List<BodyFatEntry>) -> List<BodyFatEntry>): List<BodyFatEntry> =
         updateJsonList(Keys.BODY_FAT_ENTRIES, BodyFatEntry.serializer(), transform)
+
+    /// Same as [addDeletedWeightEntryId], for body-fat readings another app wrote.
+    suspend fun addDeletedBodyFatEntryId(id: String) = addDeletedId(Keys.DELETED_BODY_FAT_ENTRY_IDS, id)
+
+    /// Same as [updateWeightEntriesSkippingDeleted], for body-fat readings.
+    suspend fun updateBodyFatEntriesSkippingDeleted(
+        transform: (entries: List<BodyFatEntry>, deletedIds: Set<String>) -> List<BodyFatEntry>
+    ): List<BodyFatEntry> = updateJsonListReading(Keys.BODY_FAT_ENTRIES, BodyFatEntry.serializer()) { prefs, current ->
+        transform(current, parseIdList(prefs[Keys.DELETED_BODY_FAT_ENTRY_IDS]).toSet())
+    }
 
     // -- Body measurement (circumference) entries --------------------------
     val bodyMeasurements: Flow<List<BodyMeasurement>> = jsonListFlow(Keys.BODY_MEASUREMENTS, BodyMeasurement.serializer())
@@ -1468,6 +1597,7 @@ class PreferencesStore(
         val WATER_TRACKING_ENABLED = booleanPreferencesKey("waterTrackingEnabled")
         val WATER_DAILY_GOAL_ML = intPreferencesKey("waterDailyGoalMl")
         val WATER_UNIT = stringPreferencesKey("waterUnit")
+        val WATER_QUICK_ADD_PRESETS = stringPreferencesKey(WaterQuickAddPresets.STORAGE_KEY)
         val WATER_REMINDER_ENABLED = booleanPreferencesKey("waterReminderEnabled")
         val WATER_REMINDER_HOUR = intPreferencesKey("waterReminderHour")
         val WATER_REMINDER_MINUTE = intPreferencesKey("waterReminderMinute")
@@ -1484,6 +1614,9 @@ class PreferencesStore(
         val HEALTH_CHANGES_TOKEN_TYPES = stringPreferencesKey("healthChangesTokenTypes")
         val HEALTH_FOOD_RESTORE_DONE = booleanPreferencesKey("healthFoodRestoreDone")
         val PENDING_NUTRITION_HEALTH_WRITES = stringPreferencesKey("pendingNutritionHealthWrites")
+        val IMPORTED_HEALTH_WORKOUTS = stringPreferencesKey("importedHealthWorkoutsV1")
+        val DELETED_WEIGHT_ENTRY_IDS = stringPreferencesKey("deletedWeightEntryIds")
+        val DELETED_BODY_FAT_ENTRY_IDS = stringPreferencesKey("deletedBodyFatEntryIds")
         val CLOUD_BACKUP_ENABLED = booleanPreferencesKey("cloudBackupEnabled")
         val CLOUD_BACKUP_LAST_AT = stringPreferencesKey("cloudBackupLastAt")
         val CLOUD_BACKUP_LAST_HASH = stringPreferencesKey("cloudBackupLastHash")
@@ -1506,15 +1639,21 @@ class PreferencesStore(
         val USE_METRIC = booleanPreferencesKey("useMetric")
         val HEIGHT_UNIT = stringPreferencesKey("heightUnit")
         val WEIGHT_UNIT = stringPreferencesKey("weightUnit")
+        val PROGRESS_INCLUDE_TODAY = booleanPreferencesKey("progressIncludeToday")
         val PREFER_GRAMS_BY_DEFAULT = booleanPreferencesKey("foodMeasurementPreferGramsByDefault")
+        val AMINO_ACID_ESTIMATES_ENABLED = booleanPreferencesKey("aminoAcidEstimatesEnabled")
+        val PRODUCT_INFO_SHOWN = booleanPreferencesKey("productInfoShown")
+        val PRODUCT_INFO_HIDDEN_FIELDS = stringPreferencesKey("productInfoHiddenFields")
         val SAVE_MEAL_PHOTOS_TO_GALLERY = booleanPreferencesKey("saveMealPhotosToGallery")
         val APPEARANCE_MODE = stringPreferencesKey("appearanceMode")
         val APP_THEME_COLOR = stringPreferencesKey("appThemeColor")
         val WEEK_STARTS_MONDAY = booleanPreferencesKey("weekStartsOnMonday")
+        val ENERGY_UNIT = stringPreferencesKey("energyUnit")
         val QUICK_ACTION_1 = stringPreferencesKey("quickAction.slot1")
         val QUICK_ACTION_2 = stringPreferencesKey("quickAction.slot2")
         val QUICK_ACTION_3 = stringPreferencesKey("quickAction.slot3")
         val ADD_MENU_CONFIG = stringPreferencesKey(AddMenuConfig.STORAGE_KEY)
+        val HIDDEN_TABS = stringPreferencesKey(TabBarSettings.STORAGE_KEY)
         val WORKOUT_STATE = stringPreferencesKey("workoutDiaryStateV1")
         val MEAL_BREAKFAST_START = intPreferencesKey("mealBreakfastStartMinutes")
         val MEAL_LUNCH_START = intPreferencesKey("mealLunchStartMinutes")

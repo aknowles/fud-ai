@@ -11,14 +11,17 @@ import com.apoorvdarshan.calorietracker.models.AIProvider
 import com.apoorvdarshan.calorietracker.models.AddMenuConfig
 import com.apoorvdarshan.calorietracker.models.AutoBalanceMacro
 import com.apoorvdarshan.calorietracker.models.CurrentMealSchedule
+import com.apoorvdarshan.calorietracker.models.EnergyUnit
 import com.apoorvdarshan.calorietracker.models.MealSchedule
 import com.apoorvdarshan.calorietracker.models.OptionalNutrientGoals
 import com.apoorvdarshan.calorietracker.models.QuickAction
 import com.apoorvdarshan.calorietracker.models.SpeechLanguage
 import com.apoorvdarshan.calorietracker.models.SpeechProvider
+import com.apoorvdarshan.calorietracker.models.TabBarSettings
 import com.apoorvdarshan.calorietracker.models.UserProfile
 import com.apoorvdarshan.calorietracker.models.WeightEntry
 import com.apoorvdarshan.calorietracker.models.WeightGoal
+import com.apoorvdarshan.calorietracker.models.WaterQuickAddPresets
 import com.apoorvdarshan.calorietracker.models.WaterUnit
 import com.apoorvdarshan.calorietracker.models.WorkoutRpeScale
 import com.apoorvdarshan.calorietracker.models.WorkoutSplit
@@ -70,6 +73,7 @@ data class SettingsUiState(
     val waterTrackingEnabled: Boolean = false,
     val waterDailyGoalMl: Int = 2_000,
     val waterUnit: WaterUnit = WaterUnit.Default,
+    val waterQuickAddPresetsMl: List<Int> = WaterQuickAddPresets.Defaults,
     val waterReminderEnabled: Boolean = false,
     val fastingTrackingEnabled: Boolean = false,
     val walkRunQuickLogEnabled: Boolean = false,
@@ -77,6 +81,10 @@ data class SettingsUiState(
     val fastingGoalNotificationEnabled: Boolean = true,
     val healthConnectEnabled: Boolean = false,
     val workoutHealthWriteGranted: Boolean = false,
+    /** Connected without Health Connect history access, so older weigh-ins stay hidden. */
+    val healthHistoryAccessMissing: Boolean = false,
+    /** Connected without the optional Exercise read, so other apps' workouts are not imported. */
+    val healthExerciseAccessMissing: Boolean = false,
     val healthEnergyGoalsEnabled: Boolean = false,
     val adaptiveGoalsEnabled: Boolean = true,
     val applyingHealthEnergyGoals: Boolean = false,
@@ -91,9 +99,12 @@ data class SettingsUiState(
     val appearanceMode: String = "system",
     val appThemeColor: AppThemeColor = AppThemeColor.FUD_PINK,
     val weekStartsOnMonday: Boolean = true,
+    val energyUnit: EnergyUnit = EnergyUnit.Default,
     val mealSchedule: MealSchedule = MealSchedule.Default,
     val workoutSplit: WorkoutSplit = WorkoutSplit.FULL_BODY,
     val workoutRpeScale: WorkoutRpeScale = WorkoutRpeScale.STRENGTH,
+    /** Rest countdown after a logged set, in seconds; 0 = off. */
+    val workoutRestTimerSeconds: Int = com.apoorvdarshan.calorietracker.models.WorkoutRestTimerSetting.DEFAULT_SECONDS,
     val userContext: String = "",
     val fallbackEnabled: Boolean = false,
     val fallbackProvider: AIProvider = AIProvider.GEMINI,
@@ -104,10 +115,13 @@ data class SettingsUiState(
     val textFallbackModel: String = AIProvider.GEMINI.defaultTextModel,
     val textFallbackApiKeyMasked: String = "",
     val optionalNutrientGoals: OptionalNutrientGoals = OptionalNutrientGoals.Default,
+    val aminoAcidEstimatesEnabled: Boolean = false,
     val quickActions: List<QuickAction> = QuickAction.Defaults,
     val addMenuConfig: AddMenuConfig = AddMenuConfig.Default,
     /** False until DataStore has delivered the menu, so the editor cannot save the factory default over a real layout. */
     val addMenuLoaded: Boolean = false,
+    /** Bottom-bar tab routes the user hid (Progress, Coach, Workouts). */
+    val hiddenTabs: Set<String> = emptySet(),
     val localModelStates: Map<LocalModelId, LocalModelState> = emptyMap(),
     /** A goal-relevant input changed since the last Recalculate. Drives a soft nudge on the
      *  Recalculate row; the button stays tappable at all times — this never disables it. */
@@ -145,6 +159,10 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
     /** Goal-input fingerprint captured at the last Recalculate (or seeded on first load). */
     private var lastRecalcSignature: String? = null
 
+    /** Set once the live collectors below have delivered a value, so the startup snapshot keeps it. */
+    private var hiddenTabsCollected = false
+    private var waterQuickAddPresetsCollected = false
+
     /** True when [profile]'s goal inputs differ from the last-recalculated baseline. */
     private fun needsRecalc(profile: com.apoorvdarshan.calorietracker.models.UserProfile?): Boolean =
         lastRecalcSignature != null && profile != null && lastRecalcSignature != profile.goalInputSignature
@@ -160,7 +178,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             container.workoutRepository.preferences.collect { preferences ->
                 _ui.value = _ui.value.copy(
                     workoutSplit = preferences.split,
-                    workoutRpeScale = preferences.rpeScale
+                    workoutRpeScale = preferences.rpeScale,
+                    workoutRestTimerSeconds = preferences.restTimerSeconds
                 )
             }
         }
@@ -172,8 +191,29 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
 
         viewModelScope.launch {
+            container.prefs.aminoAcidEstimatesEnabled.collect { enabled ->
+                _ui.value = _ui.value.copy(aminoAcidEstimatesEnabled = enabled)
+            }
+        }
+
+        viewModelScope.launch {
             container.prefs.addMenuConfig.collect { config ->
                 _ui.value = _ui.value.copy(addMenuConfig = config, addMenuLoaded = true)
+            }
+        }
+
+        // Follow the stored values (a cloud restore can change them while Settings is open).
+        viewModelScope.launch {
+            container.prefs.hiddenTabs.collect { hidden ->
+                hiddenTabsCollected = true
+                _ui.value = _ui.value.copy(hiddenTabs = hidden)
+            }
+        }
+
+        viewModelScope.launch {
+            container.prefs.waterQuickAddPresetsMl.collect { presets ->
+                waterQuickAddPresetsCollected = true
+                _ui.value = _ui.value.copy(waterQuickAddPresetsMl = presets)
             }
         }
 
@@ -216,6 +256,7 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             val waterTracking = container.prefs.waterTrackingEnabled.first()
             val waterGoal = container.prefs.waterDailyGoalMl.first()
             val waterUnit = container.prefs.waterUnit.first()
+            val waterQuickAddPresets = container.prefs.waterQuickAddPresetsMl.first()
             val waterReminder = container.prefs.waterReminderEnabled.first()
             val fastingTracking = container.prefs.fastingTrackingEnabled.first()
             val walkRunQuickLog = container.prefs.walkRunQuickLogEnabled.first()
@@ -255,6 +296,7 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 container.prefs.quickAction3.first()
             )
             val addMenuConfig = container.prefs.addMenuConfig.first()
+            val hiddenTabs = container.prefs.hiddenTabs.first()
             // Seed the recalc baseline for existing users / first launch so the nudge only fires
             // after a genuine change from here on, never immediately on open.
             val storedSignature = container.prefs.lastRecalcGoalSignature.first()
@@ -263,6 +305,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 container.prefs.setLastRecalcGoalSignature(profile.goalInputSignature)
             }
             val openRouterReasoningEffort = container.prefs.openRouterReasoningEffort.first()
+            // Values the live collectors (menu, hidden tabs, water amounts) already delivered
+            // are newer than the reads above, so the snapshot keeps them.
             val menuOnScreen = _ui.value
             _ui.value = SettingsUiState(
                 selectedAI = provider,
@@ -295,6 +339,11 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 waterTrackingEnabled = waterTracking,
                 waterDailyGoalMl = waterGoal,
                 waterUnit = waterUnit,
+                waterQuickAddPresetsMl = if (waterQuickAddPresetsCollected) {
+                    menuOnScreen.waterQuickAddPresetsMl
+                } else {
+                    waterQuickAddPresets
+                },
                 waterReminderEnabled = waterReminder,
                 fastingTrackingEnabled = fastingTracking,
                 walkRunQuickLogEnabled = walkRunQuickLog,
@@ -327,8 +376,10 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                     diskRead = addMenuConfig,
                 ),
                 addMenuLoaded = menuOnScreen.addMenuLoaded,
+                hiddenTabs = if (hiddenTabsCollected) menuOnScreen.hiddenTabs else hiddenTabs,
                 workoutSplit = workoutPreferences.split,
                 workoutRpeScale = workoutPreferences.rpeScale,
+                workoutRestTimerSeconds = workoutPreferences.restTimerSeconds,
                 localModelStates = container.localModels.states.value,
                 goalsNeedRecalc = needsRecalc(profile)
             )
@@ -340,11 +391,17 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             val reconciledHealthConnect = reconcileHealthConnectState()
             val reconciledWorkoutWrite = reconciledHealthConnect &&
                 container.health.hasActiveEnergyWrite()
+            val reconciledHistoryMissing = reconciledHealthConnect &&
+                container.health.isHistoryAccessMissing()
+            val reconciledExerciseMissing = reconciledHealthConnect &&
+                !container.health.hasExerciseRead()
             val reconciledProfile = container.profileRepository.current()
             _ui.value = _ui.value.copy(
                 profile = reconciledProfile ?: _ui.value.profile,
                 healthConnectEnabled = reconciledHealthConnect,
                 workoutHealthWriteGranted = reconciledWorkoutWrite,
+                healthHistoryAccessMissing = reconciledHistoryMissing,
+                healthExerciseAccessMissing = reconciledExerciseMissing,
                 healthEnergyGoalsEnabled = container.prefs.healthEnergyGoalsEnabled.first() &&
                     reconciledHealthConnect,
                 goalsNeedRecalc = needsRecalc(reconciledProfile ?: _ui.value.profile)
@@ -378,6 +435,9 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
         viewModelScope.launch {
             prefs.waterUnit.distinctUntilChanged().collect { _ui.value = _ui.value.copy(waterUnit = it) }
+        }
+        viewModelScope.launch {
+            prefs.energyUnit.distinctUntilChanged().collect { _ui.value = _ui.value.copy(energyUnit = it) }
         }
     }
 
@@ -430,10 +490,23 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun selectWorkoutRestTimer(seconds: Int) {
+        viewModelScope.launch {
+            container.workoutRepository.updatePreferences { it.copy(restTimerSeconds = seconds) }
+        }
+    }
+
     fun setOptionalNutrientGoals(goals: OptionalNutrientGoals) {
         viewModelScope.launch {
             container.prefs.setOptionalNutrientGoals(goals)
             _ui.value = _ui.value.copy(optionalNutrientGoals = goals)
+        }
+    }
+
+    fun setAminoAcidEstimatesEnabled(v: Boolean) {
+        viewModelScope.launch {
+            container.prefs.setAminoAcidEstimatesEnabled(v)
+            _ui.value = _ui.value.copy(aminoAcidEstimatesEnabled = v)
         }
     }
 
@@ -600,6 +673,16 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun setTabHidden(route: String, hidden: Boolean) {
+        if (route !in TabBarSettings.Hideable) return
+        // Flip the switch right away; the hiddenTabs collector then shows what was stored.
+        val shown = _ui.value.hiddenTabs
+        _ui.value = _ui.value.copy(hiddenTabs = if (hidden) shown + route else shown - route)
+        viewModelScope.launch {
+            container.prefs.setTabHidden(route, hidden)
+        }
+    }
+
     fun resetAddMenuConfig() {
         if (!_ui.value.addMenuLoaded) return
         _ui.value = _ui.value.copy(addMenuConfig = AddMenuConfig.Default, addMenuLoaded = true)
@@ -620,6 +703,14 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         viewModelScope.launch {
             container.prefs.setWeekStartsOnMonday(monday)
             _ui.value = _ui.value.copy(weekStartsOnMonday = monday)
+        }
+    }
+
+    /** Display/input unit only; widgets pick it up through the snapshot writer. */
+    fun setEnergyUnit(unit: EnergyUnit) {
+        viewModelScope.launch {
+            container.prefs.setEnergyUnit(unit)
+            _ui.value = _ui.value.copy(energyUnit = unit)
         }
     }
 
@@ -1008,6 +1099,16 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
     }
 
+    fun setWaterQuickAddPresetsMl(presets: List<Int>) {
+        if (presets.size != WaterQuickAddPresets.Defaults.size ||
+            presets.any { it !in WaterQuickAddPresets.ValidRange }
+        ) return
+        viewModelScope.launch {
+            container.prefs.setWaterQuickAddPresetsMl(presets)
+            _ui.value = _ui.value.copy(waterQuickAddPresetsMl = presets.sorted())
+        }
+    }
+
     fun setWaterReminderEnabled(v: Boolean) {
         viewModelScope.launch {
             container.prefs.setWaterReminderEnabled(v)
@@ -1137,6 +1238,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                     profile = restored ?: _ui.value.profile,
                     healthConnectEnabled = false,
                     workoutHealthWriteGranted = false,
+                    healthHistoryAccessMissing = false,
+                    healthExerciseAccessMissing = false,
                     healthEnergyGoalsEnabled = false
                 )
                 return@launch
@@ -1155,6 +1258,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             _ui.value = _ui.value.copy(
                 healthConnectEnabled = enabled,
                 workoutHealthWriteGranted = enabled && container.health.hasActiveEnergyWrite(),
+                healthHistoryAccessMissing = enabled && container.health.isHistoryAccessMissing(),
+                healthExerciseAccessMissing = enabled && !container.health.hasExerciseRead(),
                 healthEnergyGoalsEnabled = if (enabled) _ui.value.healthEnergyGoalsEnabled else false
             )
         }
@@ -1339,6 +1444,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
     fun deleteAllData(onComplete: () -> Unit = {}) {
         viewModelScope.launch {
             val challengeDeleted = container.weeklyChallengeRepository.prepareForDeleteEverything()
+            // Stops the countdown and clears its saved state and alarm, which live outside DataStore.
+            container.workoutRestTimer.skip()
             container.prefs.clearAll()
             container.keyStore.clearAll(preserveWeeklyChallengeToken = !challengeDeleted)
             container.imageStore.clearAll()
@@ -1429,7 +1536,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 customCarbs = result.carbs,
                 customFat = result.fat
             )
-            val message = "Updated to ${result.calories} kcal." + (result.reason?.let { " $it" } ?: "")
+            val energy = container.prefs.energyUnit.first().format(container.appContext.resources, result.calories)
+            val message = "Updated to $energy." + (result.reason?.let { " $it" } ?: "")
             container.profileRepository.save(next)
             // Goals are now fresh — capture this input baseline so the recalc nudge clears.
             lastRecalcSignature = next.goalInputSignature

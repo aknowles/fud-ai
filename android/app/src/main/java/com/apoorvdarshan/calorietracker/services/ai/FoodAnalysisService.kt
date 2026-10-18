@@ -4,6 +4,7 @@ import com.apoorvdarshan.calorietracker.services.SecureHttpClient
 import com.apoorvdarshan.calorietracker.data.KeyStore
 import com.apoorvdarshan.calorietracker.data.PreferencesStore
 import com.apoorvdarshan.calorietracker.models.AIProvider
+import com.apoorvdarshan.calorietracker.models.AminoAcidEstimates
 import com.apoorvdarshan.calorietracker.models.BodyMeasurement
 import com.apoorvdarshan.calorietracker.models.FoodEntry
 import com.apoorvdarshan.calorietracker.models.OptionalNutrientGoals
@@ -57,7 +58,7 @@ internal fun multiPhotoAnalysisPrompt(
                 unit_options is required. It must be [] or a JSON array of complete objects, never an array of strings.
                 Every unit_options object must have this exact shape (the values are schema examples only; never copy them): {"unit":"slice","quantity":2.0,"grams_per_unit":60.0}. unit is a non-gram unit name, quantity is the positive number of those units in the whole analyzed amount, and grams_per_unit is the positive gram weight of one unit. All three fields are required.
                 For every option, quantity * grams_per_unit must approximately equal serving_size_grams.
-                ingredients is required. Return each clearly separate food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the full meal and add up approximately to the meal totals. Return [] only when a reliable breakdown is not possible.
+                ingredients is required. Return each clearly separate food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the full meal and add up approximately to the meal totals. Return [] only when a reliable breakdown is not possible. Every ingredient must have a positive grams estimate even when no weight is shown. For screenshots or photos of menus, recipes, meal plans, or food-logging apps that list several dishes, return each listed dish as its own ingredient using its listed calories/macros. Return at most 20 ingredients; when there are more foods or dishes, combine similar or minor ones so the list still covers the whole meal. Never add a total or subtotal row as an ingredient.
                 Only return a count when it is visible in the images, stated in the user context, or strongly implied by an unambiguous single-item portion. Never invent a count from the food name or serving_size_grams alone.
                 Use slice/piece for visibly counted foods; use ml/cup/fl oz for visible or labeled liquid volumes; use tbsp/tsp for visible or labeled spoon measures; use can/packet only when visible or labeled. Use [] when no reliable non-gram unit exists. Do not include g/gram/grams in unit_options.
                 Use null for any nutrient you cannot estimate.
@@ -319,6 +320,8 @@ class FoodAnalysisService(
             ?.let { "${(it * 100).toInt()}%" }
             ?: "not set"
         fun grams(value: Double) = String.format(Locale.US, "%.1fg", value)
+        // Empty for kcal users, so their prompt is unchanged.
+        val energyHint = prefs.energyUnit.first().aiReplyInstruction()?.let { "\n\n$it" }.orEmpty()
 
         val prompt = """
             The user tapped "What if?" before logging a meal in a nutrition tracker.
@@ -358,7 +361,7 @@ class FoodAnalysisService(
             - Protein: ${grams(afterProtein)}
             - Carbs: ${grams(afterCarbs)}
             - Fat: ${grams(afterFat)}
-        """.trimIndent()
+        """.trimIndent() + energyHint
         return callAi(prompt, imageBytesList = emptyList(), jsonResponse = false).trim()
     }
 
@@ -373,12 +376,14 @@ class FoodAnalysisService(
             unit_options is required. It must be [] or a JSON array of complete objects, never an array of strings.
             Every unit_options object must have this exact shape (the values are schema examples only; never copy them): {"unit":"slice","quantity":2.0,"grams_per_unit":60.0}. unit is a non-gram unit name, quantity is the positive number of those units in the whole analyzed amount, and grams_per_unit is the positive gram weight of one unit. All three fields are required.
             For every option, quantity * grams_per_unit must approximately equal serving_size_grams.
-            ingredients is required. For a meal with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a single simple food or when a reliable breakdown is not possible.
+            ingredients is required. For a meal with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a single simple food or when a reliable breakdown is not possible. Every ingredient must have a positive grams estimate even when no weight is shown. For screenshots or photos of menus, recipes, meal plans, or food-logging apps that list several dishes, return each listed dish as its own ingredient using its listed calories/macros. Return at most 20 ingredients; when there are more foods or dishes, combine similar or minor ones so the list still covers the whole meal. Never add a total or subtotal row as an ingredient.
             Only return a count when it is stated in the text or user context, or strongly implied by an unambiguous described portion. Never invent a count from the food name or serving_size_grams alone.
             Use slice/piece for explicitly counted pizza, cake, bread, cookies, fruit pieces, etc.; use ml/cup/fl oz for stated liquid volumes; use tbsp/tsp for stated spoon measures; use can/packet only when stated or strongly implied. Use [] when no reliable non-gram unit exists. Do not include g/gram/grams in unit_options.
             For "emoji" pick the single most specific food emoji that depicts this dish — e.g. 🥚 for eggs, 🍕 for pizza, 🍎 for an apple, 🥗 for a salad, 🍔 for a burger, 🍜 for ramen, 🍰 for cake, 🥑 for avocado, ☕ for coffee, 🍣 for sushi. Only fall back to 🍽️ when the food truly cannot be represented by any specific emoji. Use null for any nutrient you cannot estimate.
         """.trimIndent()
-        val parsed = FoodJsonParser.parseFoodResponse(callAi(prompt, null))
+        val parsed = FoodJsonParser.parseFoodResponse(
+            callAi(prompt, null, aminoAcidInstruction = AminoAcidEstimates.foodPromptInstruction)
+        )
         return addingFallbackServingUnits(
             analysis = parsed.analysis,
             imageBytes = null,
@@ -401,12 +406,14 @@ class FoodAnalysisService(
             unit_options is required. It must be [] or a JSON array of complete objects, never an array of strings.
             Every unit_options object must have this exact shape (the values are schema examples only; never copy them): {"unit":"slice","quantity":2.0,"grams_per_unit":60.0}. unit is a non-gram unit name, quantity is the positive number of those units in the whole analyzed amount, and grams_per_unit is the positive gram weight of one unit. All three fields are required.
             For every option, quantity * grams_per_unit must approximately equal serving_size_grams.
-            ingredients is required. For a food photo with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a nutrition label, a single simple food, or when a reliable breakdown is not possible.
+            ingredients is required. For a food photo with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the analyzed amount and add up approximately to the meal totals. Return [] for a nutrition label, a single simple food, or when a reliable breakdown is not possible. Every ingredient must have a positive grams estimate even when no weight is shown. For screenshots or photos of menus, recipes, meal plans, or food-logging apps that list several dishes, return each listed dish as its own ingredient using its listed calories/macros. Return at most 20 ingredients; when there are more foods or dishes, combine similar or minor ones so the list still covers the whole meal. Never add a total or subtotal row as an ingredient.
             Only return a count when it is visible in the image or label, stated in visible text, or strongly implied by an unambiguous single-item portion. Never invent a count from the food name or serving_size_grams alone.
             Use slice/piece for visibly counted pizza, cake, bread, cookies, fruit pieces, etc.; use ml/cup/fl oz for visible or labeled liquid volumes; use tbsp/tsp for visible or labeled spoon measures; use can/packet only when visible or labeled. Use [] when no reliable non-gram unit exists. Do not include g/gram/grams in unit_options.
             Use null for any nutrient you cannot estimate.
         """.trimIndent()
-        val parsed = FoodJsonParser.parseFoodResponse(callAi(prompt, imageBytes))
+        val parsed = FoodJsonParser.parseFoodResponse(
+            callAi(prompt, imageBytes, aminoAcidInstruction = AminoAcidEstimates.foodPromptInstruction)
+        )
         return addingFallbackServingUnits(
             analysis = parsed.analysis,
             imageBytes = imageBytes,
@@ -425,7 +432,7 @@ class FoodAnalysisService(
             unit_options is required. It must be [] or a JSON array of complete objects, never an array of strings.
             Every unit_options object must have this exact shape (the values are schema examples only; never copy them): {"unit":"slice","quantity":2.0,"grams_per_unit":60.0}. unit is a non-gram unit name, quantity is the positive number of those units in the whole analyzed amount, and grams_per_unit is the positive gram weight of one unit. All three fields are required.
             For every option, quantity * grams_per_unit must approximately equal serving_size_grams.
-            ingredients is required. For a meal with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the visible amount and add up approximately to the meal totals. Return [] for a single simple food or when a reliable breakdown is not possible.
+            ingredients is required. For a meal with multiple meaningful foods, return each food once using {"name":"...","grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0}. Ingredient grams and macros must describe the visible amount and add up approximately to the meal totals. Return [] for a single simple food or when a reliable breakdown is not possible. Every ingredient must have a positive grams estimate even when no weight is shown. For screenshots or photos of menus, recipes, meal plans, or food-logging apps that list several dishes, return each listed dish as its own ingredient using its listed calories/macros. Return at most 20 ingredients; when there are more foods or dishes, combine similar or minor ones so the list still covers the whole meal. Never add a total or subtotal row as an ingredient.
             Only return a count when it is visible in the image, stated in the user context, or strongly implied by an unambiguous single-item portion. Never invent a count from the food name or serving_size_grams alone.
             Use slice/piece for visibly counted pizza, cake, bread, cookies, fruit pieces, etc.; use ml/cup/fl oz for visible liquid volumes; use tbsp/tsp for visible spoon measures; use can/packet only when visible or strongly implied by packaging. Use [] when no reliable non-gram unit exists. Do not include g/gram/grams in unit_options.
             Give your best estimate for the visible food amount shown in the image. For whole/mostly-whole cakes, pizzas, pies, loaves, or similar foods, estimate the total visible item/remaining item weight rather than defaulting to one slice. Use null for any nutrient you cannot estimate.
@@ -433,7 +440,9 @@ class FoodAnalysisService(
         if (!description.isNullOrBlank()) {
             prompt += "\n\nAdditional context from the user about this meal: $description\nUse this context to improve accuracy of identification, portion size, and nutrition estimates."
         }
-        val parsed = FoodJsonParser.parseFoodResponse(callAi(prompt, imageBytes))
+        val parsed = FoodJsonParser.parseFoodResponse(
+            callAi(prompt, imageBytes, aminoAcidInstruction = AminoAcidEstimates.foodPromptInstruction)
+        )
         return addingFallbackServingUnits(
             analysis = parsed.analysis,
             imageBytes = imageBytes,
@@ -450,7 +459,9 @@ class FoodAnalysisService(
         val prompt = multiPhotoAnalysisPrompt(progressiveMeal, description)
         val images = imageBytesList.filter { it.isNotEmpty() }
         if (images.isEmpty()) throw AiError.InvalidResponse
-        val parsed = FoodJsonParser.parseFoodResponse(callAi(prompt, images))
+        val parsed = FoodJsonParser.parseFoodResponse(
+            callAi(prompt, images, aminoAcidInstruction = AminoAcidEstimates.foodPromptInstruction)
+        )
         return addingFallbackServingUnits(
             analysis = parsed.analysis,
             imageBytes = images.first(),
@@ -471,7 +482,9 @@ class FoodAnalysisService(
             Only return a count or volume when it is printed on the label, visible in the image, or strongly implied by an unambiguous labeled single-item serving. Never invent a count from the product name or serving_size_grams alone.
             Use [] when no reliable non-gram label unit is visible. Do not include g/gram/grams in unit_options.
         """.trimIndent()
-        val parsed = FoodJsonParser.parseLabelResponse(callAi(prompt, imageBytes))
+        val parsed = FoodJsonParser.parseLabelResponse(
+            callAi(prompt, imageBytes, aminoAcidInstruction = AminoAcidEstimates.labelPromptInstruction)
+        )
         return addingFallbackServingUnits(
             analysis = parsed.analysis,
             imageBytes = imageBytes,
@@ -498,21 +511,40 @@ class FoodAnalysisService(
         return FoodJsonParser.parseAllergensFromLabReport(callAi(prompt, images))
     }
 
+    /**
+     * Identifies the exercise in a custom-exercise photo. Metadata is limited to [options];
+     * the result only prefills the editor and is never saved here.
+     */
+    suspend fun suggestUserExercise(
+        imageBytes: ByteArray,
+        options: UserExerciseAiFill.Options
+    ): UserExerciseAiFill.Suggestion {
+        if (imageBytes.isEmpty()) throw AiError.ImageConversionFailed
+        return UserExerciseAiFill.parse(callAi(UserExerciseAiFill.prompt(options), imageBytes), options)
+    }
+
     // -- Internal dispatch ------------------------------------------------
 
-    private suspend fun callAi(prompt: String, imageBytes: ByteArray?): String {
-        return callAi(prompt, imageBytes?.let { listOf(it) }.orEmpty())
+    private suspend fun callAi(
+        prompt: String,
+        imageBytes: ByteArray?,
+        aminoAcidInstruction: String? = null
+    ): String {
+        return callAi(prompt, imageBytes?.let { listOf(it) }.orEmpty(), aminoAcidInstruction = aminoAcidInstruction)
     }
 
     /**
      * @param jsonResponse true for the (default) prompts that demand a JSON object; providers that
      * support structured output are asked for `application/json` so they cannot wander off into
      * prose. Pass false for the few plain-English prompts.
+     * @param aminoAcidInstruction food analyses pass the amino acid keys to request; they are
+     * added only while the opt-in setting is on (#491), read in the same settings snapshot.
      */
     private suspend fun callAi(
         prompt: String,
         imageBytesList: List<ByteArray>,
-        jsonResponse: Boolean = true
+        jsonResponse: Boolean = true,
+        aminoAcidInstruction: String? = null
     ): String {
         // Load settings + preprocess images in parallel. A chain of DataStore `.first()` calls
         // used to queue behind cold-start migrations and stall the analyzing overlay before any
@@ -524,6 +556,7 @@ class FoodAnalysisService(
             }
             settingsDeferred.await() to imagesDeferred.await()
         }
+        val requestPrompt = AminoAcidEstimates.prompt(prompt, aminoAcidInstruction, settings.aminoAcidEstimates)
         if (settings.accessMode == AiAccessMode.HOSTED && hosted != null) {
             // Hosted AI (Plus/Pro): the Worker picks the model and meters the call.
             // No BYOK key, fallback chain, or on-device model is involved.
@@ -532,7 +565,7 @@ class FoodAnalysisService(
                 throw AiError.Hosted(AiErrorKind.HOSTED_TOO_MANY_IMAGES, "too_many_images")
             }
             return hosted.client.generate(
-                prompt = prompt,
+                prompt = requestPrompt,
                 jpegImages = uploadImages,
                 systemInstruction = settings.userContext.takeIf { it.isNotBlank() }
                     ?.let { "User context (apply to every analysis): $it" },
@@ -540,9 +573,9 @@ class FoodAnalysisService(
             )
         }
         val finalPrompt = if (settings.userContext.isNotBlank()) {
-            "User context (apply to every analysis): ${settings.userContext}\n\n$prompt"
+            "User context (apply to every analysis): ${settings.userContext}\n\n$requestPrompt"
         } else {
-            prompt
+            requestPrompt
         }
         val primaryKey = keyStore.apiKey(settings.provider)
         if (settings.provider.requiresApiKey && primaryKey.isNullOrEmpty()) throw AiError.NoApiKey

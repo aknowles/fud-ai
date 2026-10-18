@@ -13,6 +13,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import com.apoorvdarshan.calorietracker.backup.DriveCloudBackupClient
+import com.apoorvdarshan.calorietracker.backup.cloudBackupErrorMessage
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.content.ContextCompat
 import androidx.core.os.LocaleListCompat
@@ -54,6 +55,7 @@ import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.outlined.LockOpen
 import androidx.compose.material.icons.automirrored.outlined.DirectionsWalk
 import androidx.compose.material.icons.outlined.FitnessCenter
+import androidx.compose.material.icons.outlined.HourglassEmpty
 import androidx.compose.material.icons.outlined.LocalDining
 import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.outlined.SportsMartialArts
@@ -73,6 +75,7 @@ import androidx.compose.material.icons.outlined.CloudUpload
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.Cake
 import androidx.compose.material.icons.outlined.DataUsage
+import androidx.compose.material.icons.outlined.Science
 import androidx.compose.material.icons.outlined.DeleteForever
 import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material.icons.outlined.Download
@@ -96,6 +99,7 @@ import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Palette
 import androidx.compose.material.icons.outlined.Calculate
 import androidx.compose.material.icons.outlined.Percent
+import androidx.compose.material.icons.outlined.QrCodeScanner
 import androidx.compose.material.icons.outlined.SystemUpdate
 import androidx.compose.material.icons.outlined.TrackChanges
 import androidx.compose.material.icons.outlined.Timer
@@ -105,6 +109,7 @@ import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.SmartToy
 import androidx.compose.material.icons.outlined.WorkspacePremium
 import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Tab
 import androidx.compose.material.icons.outlined.Speed
 import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
@@ -172,6 +177,7 @@ import com.apoorvdarshan.calorietracker.models.ActivityLevel
 import com.apoorvdarshan.calorietracker.models.AIProvider
 import com.apoorvdarshan.calorietracker.models.AutoBalanceMacro
 import com.apoorvdarshan.calorietracker.models.Gender
+import com.apoorvdarshan.calorietracker.models.MaintenanceBreakdown
 import com.apoorvdarshan.calorietracker.models.MealSchedule
 import com.apoorvdarshan.calorietracker.models.OptionalNutrient
 import com.apoorvdarshan.calorietracker.models.OptionalNutrientGoals
@@ -181,7 +187,10 @@ import com.apoorvdarshan.calorietracker.models.SpeechProvider
 import com.apoorvdarshan.calorietracker.models.UserProfile
 import com.apoorvdarshan.calorietracker.models.WeightDisplayFormatter
 import com.apoorvdarshan.calorietracker.models.WeightGoal
+import com.apoorvdarshan.calorietracker.models.WaterQuickAddPresets
+import com.apoorvdarshan.calorietracker.models.EnergyUnit
 import com.apoorvdarshan.calorietracker.models.WaterUnit
+import com.apoorvdarshan.calorietracker.models.WorkoutRestTimerSetting
 import com.apoorvdarshan.calorietracker.models.WorkoutRpeScale
 import com.apoorvdarshan.calorietracker.models.WorkoutSplit
 import com.apoorvdarshan.calorietracker.export.DiaryImportMode
@@ -201,6 +210,9 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 import com.apoorvdarshan.calorietracker.ui.components.DecimalWheelPicker
+import com.apoorvdarshan.calorietracker.ui.components.LocalEnergyUnit
+import com.apoorvdarshan.calorietracker.ui.components.energyText
+import com.apoorvdarshan.calorietracker.ui.components.energyUnitLabel
 import com.apoorvdarshan.calorietracker.ui.components.DateWheelPicker
 import com.apoorvdarshan.calorietracker.ui.components.FudGlassDialog
 import com.apoorvdarshan.calorietracker.ui.components.FudGlassDialogActions
@@ -230,6 +242,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import java.util.Locale
 import java.time.LocalTime
+import kotlin.math.abs
 import kotlin.math.roundToInt
 
 private enum class SettingsSheet {
@@ -240,8 +253,11 @@ private enum class SettingsSheet {
     SPEECH_FALLBACK_PROVIDER, SPEECH_FALLBACK_LANGUAGE, SPEECH_FALLBACK_KEY,
     GENDER, BIRTHDAY, HEIGHT, WEIGHT, BODY_FAT, GOAL_BODY_FAT, ACTIVITY, GOAL, GOAL_WEIGHT, GOAL_SPEED,
     CALORIES, PROTEIN, CARBS, FAT, OPTIONAL_NUTRIENTS,
-    APPEARANCE, APP_LANGUAGE, WEEK_START, MEAL_TIMES, WATER_GOAL, WATER_UNIT, FASTING_GOAL, WORKOUT_SPLIT, WORKOUT_RPE
+    APPEARANCE, APP_LANGUAGE, WEEK_START, ENERGY_UNIT, MEAL_TIMES, WATER_GOAL, WATER_UNIT, WATER_QUICK_ADD, FASTING_GOAL, WORKOUT_SPLIT, WORKOUT_RPE, WORKOUT_REST
 }
+
+private fun energyUnitTitleRes(unit: EnergyUnit): Int =
+    if (unit == EnergyUnit.KJ) R.string.settings_energy_unit_kj else R.string.settings_energy_unit_kcal
 
 /** First tag from the AndroidX per-app locale list, or null to follow the system. */
 private fun currentAppLanguageTag(): String? =
@@ -278,13 +294,12 @@ internal enum class SettingsCategory(
 ) {
     PERSONAL_INFO(R.string.settings_section_personal, Icons.Outlined.Person),
     GOALS_NUTRITION(R.string.settings_section_goals, Icons.Outlined.TrackChanges),
-    TRACKING_REMINDERS(R.string.settings_section_tracking_reminders, Icons.Outlined.Timer),
-    NOTIFICATIONS(R.string.settings_notifications, Icons.Outlined.Notifications),
+    TRACKING_NOTIFICATIONS(R.string.settings_section_tracking_notifications, Icons.Outlined.Notifications),
     AI_ACCESS(R.string.settings_category_ai_access, Icons.Outlined.WorkspacePremium),
     AI_PROVIDERS(R.string.settings_category_ai_providers, Icons.Outlined.SmartToy),
     SPEECH_TO_TEXT(R.string.settings_section_speech, Icons.Outlined.Mic),
     VOICE_ASSISTANT(R.string.settings_category_voice_assistant, Icons.Outlined.RecordVoiceOver),
-    APP_PREFERENCES(R.string.settings_section_app, Icons.Outlined.Palette),
+    APP_PREFERENCES(R.string.settings_section_app, Icons.Outlined.Tune),
     WORKOUT(R.string.settings_section_workout, Icons.Outlined.FitnessCenter),
     HEALTH_DATA(R.string.settings_section_health, Icons.Outlined.Favorite),
     DATA_MANAGEMENT(R.string.settings_section_data_management, Icons.Outlined.Download),
@@ -319,8 +334,7 @@ internal enum class SettingsCategory(
         get() = when (this) {
             PERSONAL_INFO -> VoiceSettingsSection.PROFILE
             GOALS_NUTRITION -> VoiceSettingsSection.GOALS
-            TRACKING_REMINDERS -> VoiceSettingsSection.REMINDERS
-            NOTIFICATIONS -> VoiceSettingsSection.NOTIFICATIONS
+            TRACKING_NOTIFICATIONS -> VoiceSettingsSection.NOTIFICATIONS
             AI_ACCESS, AI_PROVIDERS -> VoiceSettingsSection.AI_PROVIDERS
             SPEECH_TO_TEXT -> VoiceSettingsSection.SPEECH
             VOICE_ASSISTANT -> VoiceSettingsSection.VOICE_ASSISTANT
@@ -339,8 +353,8 @@ internal enum class SettingsCategory(
         fun forVoiceSection(section: VoiceSettingsSection): SettingsCategory = when (section) {
             VoiceSettingsSection.PROFILE -> PERSONAL_INFO
             VoiceSettingsSection.GOALS -> GOALS_NUTRITION
-            VoiceSettingsSection.REMINDERS -> TRACKING_REMINDERS
-            VoiceSettingsSection.NOTIFICATIONS -> NOTIFICATIONS
+            // Tracking and notifications share one page (#432); REMINDERS still opens it.
+            VoiceSettingsSection.REMINDERS, VoiceSettingsSection.NOTIFICATIONS -> TRACKING_NOTIFICATIONS
             VoiceSettingsSection.AI_PROVIDERS -> AI_PROVIDERS
             VoiceSettingsSection.SPEECH -> SPEECH_TO_TEXT
             VoiceSettingsSection.APPEARANCE -> APP_PREFERENCES
@@ -386,6 +400,7 @@ fun SettingsScreen(
     var showDefaultGramsInfo by remember { mutableStateOf(false) }
     var showHealthEnergyGoalsInfo by remember { mutableStateOf(false) }
     var showAdaptiveGoalsInfo by remember { mutableStateOf(false) }
+    var showMaintenanceInfo by remember { mutableStateOf(false) }
     var showCloudEnableConfirm by remember { mutableStateOf(false) }
     var showCloudRestoreChoice by remember { mutableStateOf(false) }
     var showCloudDeleteConfirm by remember { mutableStateOf(false) }
@@ -419,6 +434,11 @@ fun SettingsScreen(
     val settingsScope = rememberCoroutineScope()
     val importReadFailedMessage = stringResource(R.string.import_read_failed)
     val cloudBackupSignInFailed = stringResource(R.string.cloud_backup_sign_in_failed)
+    val cloudBackupFailed = stringResource(R.string.error_title)
+    val cloudBackupNoSpace = stringResource(R.string.cloud_backup_restore_no_space)
+    val cloudBackupFailure: (Throwable) -> String = {
+        cloudBackupErrorMessage(it, cloudBackupFailed, cloudBackupNoSpace)
+    }
     val cloudBackup by container.cloudBackup.ui.collectAsState()
     LaunchedEffect(selectedCategory) {
         if (selectedCategory == SettingsCategory.DATA_MANAGEMENT) {
@@ -432,7 +452,7 @@ fun SettingsScreen(
                 showCloudRestoreChoice = true
             } else {
                 container.cloudBackup.enableAfterAuth(restoreIfPresent = false)
-                    .onFailure { cloudBackupError = it.message }
+                    .onFailure { cloudBackupError = cloudBackupFailure(it) }
             }
         }
     }
@@ -649,7 +669,7 @@ fun SettingsScreen(
         pendingHealthPermissionAction = HealthConnectPermissionAction.SYNC
         healthConnectLauncher.launch(
             if (ui.dailySummaryEnabled) container.health.dailySummaryPermissions
-            else container.health.permissions
+            else container.health.connectPermissions
         )
     }
 
@@ -663,7 +683,7 @@ fun SettingsScreen(
             return
         }
         pendingHealthPermissionAction = HealthConnectPermissionAction.ENERGY_GOALS
-        healthConnectLauncher.launch(container.health.permissions)
+        healthConnectLauncher.launch(container.health.connectPermissions)
     }
 
     fun openBatteryOptimizationSettings() {
@@ -829,12 +849,14 @@ fun SettingsScreen(
                     }
                     LockableGoalRow(
                         label = stringResource(R.string.settings_calories),
-                        value = stringResource(R.string.kcal_value_format, p.effectiveCalories),
+                        value = energyText(p.effectiveCalories),
                         icon = Icons.Outlined.LocalFireDepartment,
                         locked = p.caloriesLocked,
                         lockEnabled = lockEnabled,
                         onClick = { openGoal(SettingsSheet.CALORIES) }
                     )
+                    HorizontalDivider()
+                    MaintenanceEstimateRow(p.maintenanceBreakdown) { showMaintenanceInfo = true }
                     HorizontalDivider()
                     LockableGoalRow(
                         label = stringResource(R.string.macro_protein),
@@ -995,6 +1017,12 @@ fun SettingsScreen(
                 ) { sheet = SettingsSheet.WEEK_START }
                 HorizontalDivider()
                 SettingRow(
+                    stringResource(R.string.settings_energy_unit),
+                    stringResource(energyUnitTitleRes(ui.energyUnit)),
+                    icon = Icons.Outlined.LocalFireDepartment
+                ) { sheet = SettingsSheet.ENERGY_UNIT }
+                HorizontalDivider()
+                SettingRow(
                     stringResource(R.string.settings_quick_actions),
                     stringResource(R.string.settings_meal_times_customize),
                     icon = Icons.Outlined.Bolt
@@ -1005,10 +1033,24 @@ fun SettingsScreen(
                     stringResource(R.string.settings_meal_times_customize),
                     icon = Icons.Outlined.Add
                 ) { nav.navigate(FudAIRoutes.ADD_MENU) }
+                HorizontalDivider()
+                SettingRow(
+                    stringResource(R.string.product_information),
+                    stringResource(R.string.settings_meal_times_customize),
+                    icon = Icons.Outlined.QrCodeScanner
+                ) { nav.navigate(FudAIRoutes.PRODUCT_INFO) }
+                HorizontalDivider()
+                SettingRow(
+                    stringResource(R.string.settings_tab_bar),
+                    stringResource(R.string.settings_meal_times_customize),
+                    icon = Icons.Outlined.Tab
+                ) { nav.navigate(FudAIRoutes.TAB_BAR) }
             }
             }
 
-            if (selectedCategory == SettingsCategory.TRACKING_REMINDERS) {
+            // Tracking first, then notifications, so one page holds the features and the
+            // reminders that depend on them (#432).
+            if (selectedCategory == SettingsCategory.TRACKING_NOTIFICATIONS) {
             SectionCard {
                 SettingRow(
                     stringResource(R.string.settings_meal_times),
@@ -1040,6 +1082,12 @@ fun SettingsScreen(
                         },
                         icon = Icons.Outlined.Straighten
                     ) { sheet = SettingsSheet.WATER_UNIT }
+                    HorizontalDivider()
+                    SettingRow(
+                        stringResource(R.string.settings_water_quick_add),
+                        WaterQuickAddPresets.summary(ui.waterQuickAddPresetsMl, ui.waterUnit),
+                        icon = Icons.Filled.WaterDrop
+                    ) { sheet = SettingsSheet.WATER_QUICK_ADD }
                 }
                 HorizontalDivider()
                 ToggleRow(
@@ -1055,6 +1103,29 @@ fun SettingsScreen(
                         stringResource(R.string.settings_fasting_goal_value, ui.fastingDefaultGoalMinutes / 60),
                         icon = Icons.Outlined.TrackChanges
                     ) { sheet = SettingsSheet.FASTING_GOAL }
+                }
+            }
+            SectionCard {
+                ToggleRow(
+                    stringResource(R.string.settings_notifications),
+                    ui.notificationsEnabled,
+                    icon = Icons.Outlined.Notifications,
+                    switchModifier = Modifier.testTag("settings.notifications.enabled"),
+                    onChange = ::onNotificationsToggle
+                )
+                if (ui.notificationsEnabled) {
+                    HorizontalDivider()
+                    NotificationTypeRows(
+                        ui = ui,
+                        vm = vm,
+                        onDailySummaryChange = ::onDailySummaryToggle
+                    )
+                    HorizontalDivider()
+                    SettingRow(
+                        stringResource(R.string.settings_battery_opt),
+                        stringResource(R.string.settings_battery_opt_value),
+                        icon = Icons.Outlined.BatteryAlert
+                    ) { openBatteryOptimizationSettings() }
                 }
             }
             }
@@ -1085,6 +1156,20 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 )
                 HorizontalDivider()
+                SettingRow(
+                    stringResource(R.string.settings_rest_timer),
+                    restTimerLabel(ui.workoutRestTimerSeconds),
+                    icon = Icons.Outlined.HourglassEmpty,
+                    inlineMenu = true
+                ) { sheet = SettingsSheet.WORKOUT_REST }
+                Text(
+                    stringResource(R.string.settings_rest_timer_footer),
+                    fontSize = 12.sp,
+                    lineHeight = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                )
+                HorizontalDivider()
                 ToggleRow(
                     stringResource(R.string.settings_walk_run_quick_log),
                     ui.walkRunQuickLogEnabled,
@@ -1099,26 +1184,6 @@ fun SettingsScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
                 )
             }
-            }
-
-            if (selectedCategory == SettingsCategory.NOTIFICATIONS) {
-                SectionCard {
-                    ToggleRow(stringResource(R.string.settings_notifications), ui.notificationsEnabled, icon = Icons.Outlined.Notifications, onChange = ::onNotificationsToggle)
-                    if (ui.notificationsEnabled) {
-                        HorizontalDivider()
-                        NotificationTypeRows(
-                            ui = ui,
-                            vm = vm,
-                            onDailySummaryChange = ::onDailySummaryToggle
-                        )
-                        HorizontalDivider()
-                        SettingRow(
-                            stringResource(R.string.settings_battery_opt),
-                            stringResource(R.string.settings_battery_opt_value),
-                            icon = Icons.Outlined.BatteryAlert
-                        ) { openBatteryOptimizationSettings() }
-                    }
-                }
             }
 
             if (selectedCategory == SettingsCategory.AI_ACCESS) {
@@ -1459,7 +1524,33 @@ fun SettingsScreen(
                         icon = Icons.Outlined.LocalFireDepartment
                     ) {
                         pendingHealthPermissionAction = HealthConnectPermissionAction.SYNC
-                        healthConnectLauncher.launch(container.health.permissions)
+                        healthConnectLauncher.launch(container.health.connectPermissions)
+                    }
+                }
+                // Optional Exercise read imports other apps' workouts (Garmin Connect, Strava, …)
+                // into Workouts and Progress. Everything else works without it.
+                if (ui.healthConnectEnabled && ui.healthExerciseAccessMissing) {
+                    HorizontalDivider()
+                    SettingRow(
+                        stringResource(R.string.settings_health_exercise_access),
+                        stringResource(R.string.settings_grant_permission),
+                        icon = Icons.Outlined.FitnessCenter
+                    ) {
+                        pendingHealthPermissionAction = HealthConnectPermissionAction.SYNC
+                        healthConnectLauncher.launch(container.health.exerciseImportPermissions)
+                    }
+                }
+                // Users who connected before history access was requested only see weigh-ins
+                // from 30 days before their first grant; granting it re-runs the import.
+                if (ui.healthConnectEnabled && ui.healthHistoryAccessMissing) {
+                    HorizontalDivider()
+                    SettingRow(
+                        stringResource(R.string.settings_health_history_access),
+                        stringResource(R.string.settings_grant_permission),
+                        icon = Icons.Outlined.MonitorWeight
+                    ) {
+                        pendingHealthPermissionAction = HealthConnectPermissionAction.SYNC
+                        healthConnectLauncher.launch(container.health.connectPermissions)
                     }
                 }
                 HorizontalDivider()
@@ -1516,7 +1607,7 @@ fun SettingsScreen(
                                 .clickable(enabled = !cloudBackup.busy) {
                                     settingsScope.launch {
                                         container.cloudBackup.backupNow()
-                                            .onFailure { cloudBackupError = it.message }
+                                            .onFailure { cloudBackupError = cloudBackupFailure(it) }
                                     }
                                 }
                                 .padding(horizontal = 16.dp, vertical = 13.dp),
@@ -1534,7 +1625,7 @@ fun SettingsScreen(
                                 .clickable(enabled = !cloudBackup.busy) {
                                     settingsScope.launch {
                                         container.cloudBackup.restoreNow()
-                                            .onFailure { cloudBackupError = it.message }
+                                            .onFailure { cloudBackupError = cloudBackupFailure(it) }
                                     }
                                 }
                                 .padding(horizontal = 16.dp, vertical = 13.dp),
@@ -1674,6 +1765,7 @@ fun SettingsScreen(
                     )
                 }
             }
+            StorageSettingsCard(container.storageMaintenance)
             }
 
             // App information and support actions are first-class Settings destinations.
@@ -1803,7 +1895,7 @@ fun SettingsScreen(
                     showCloudRestoreChoice = false
                     settingsScope.launch {
                         container.cloudBackup.enableAfterAuth(restoreIfPresent = true)
-                            .onFailure { cloudBackupError = it.message }
+                            .onFailure { cloudBackupError = cloudBackupFailure(it) }
                     }
                 },
                 dismissText = stringResource(R.string.cloud_backup_keep),
@@ -1811,7 +1903,7 @@ fun SettingsScreen(
                     showCloudRestoreChoice = false
                     settingsScope.launch {
                         container.cloudBackup.enableAfterAuth(restoreIfPresent = false)
-                            .onFailure { cloudBackupError = it.message }
+                            .onFailure { cloudBackupError = cloudBackupFailure(it) }
                     }
                 }
             )
@@ -1831,7 +1923,7 @@ fun SettingsScreen(
                     showCloudDeleteConfirm = false
                     settingsScope.launch {
                         container.cloudBackup.deleteCloudBackup()
-                            .onFailure { cloudBackupError = it.message }
+                            .onFailure { cloudBackupError = cloudBackupFailure(it) }
                     }
                 },
                 dismissText = stringResource(R.string.action_cancel),
@@ -1943,6 +2035,20 @@ fun SettingsScreen(
             FudGlassDialogActions(
                 primaryText = stringResource(R.string.action_ok),
                 onPrimary = { showHealthEnergyGoalsInfo = false }
+            )
+        }
+    }
+
+    if (showMaintenanceInfo) {
+        FudGlassDialog(onDismissRequest = { showMaintenanceInfo = false }) {
+            Text(stringResource(R.string.settings_estimated_maintenance), fontSize = 21.sp, fontWeight = FontWeight.Bold)
+            Text(
+                stringResource(R.string.settings_estimated_maintenance_info),
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.68f)
+            )
+            FudGlassDialogActions(
+                primaryText = stringResource(R.string.action_ok),
+                onPrimary = { showMaintenanceInfo = false }
             )
         }
     }
@@ -2317,6 +2423,30 @@ fun OptionalNutrientGoalsScreen(
             item {
                 Text(
                     stringResource(R.string.settings_other_nutrients_note),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp)
+                )
+            }
+
+            item {
+                FudGlassSurface(
+                    modifier = Modifier.fillMaxWidth(),
+                    cornerRadius = 22.dp,
+                    padding = 0.dp
+                ) {
+                    ToggleRow(
+                        label = stringResource(R.string.nutrition_section_amino_acids),
+                        checked = ui.aminoAcidEstimatesEnabled,
+                        icon = Icons.Outlined.Science,
+                        onChange = vm::setAminoAcidEstimatesEnabled
+                    )
+                }
+            }
+
+            item {
+                Text(
+                    stringResource(R.string.settings_amino_acids_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.55f),
                     modifier = Modifier.padding(start = 4.dp, top = 4.dp)
@@ -2929,6 +3059,13 @@ private fun SettingsSheets(
                     selected = { it == ui.workoutSplit },
                     onSelect = { vm.selectWorkoutSplit(it); onDismiss() }
                 )
+                SettingsSheet.WORKOUT_REST -> ListSheet(
+                    title = stringResource(R.string.settings_rest_timer),
+                    items = WorkoutRestTimerSetting.Options,
+                    label = { restTimerLabel(it) },
+                    selected = { it == ui.workoutRestTimerSeconds },
+                    onSelect = { vm.selectWorkoutRestTimer(it); onDismiss() }
+                )
                 SettingsSheet.WORKOUT_RPE -> ListSheet(
                     title = stringResource(R.string.settings_rpe_scale),
                     items = WorkoutRpeScale.entries,
@@ -3172,6 +3309,13 @@ private fun SettingsSheets(
                     selected = { it.first == ui.weekStartsOnMonday },
                     onSelect = { vm.setWeekStartsOnMonday(it.first); onDismiss() }
                 )
+                SettingsSheet.ENERGY_UNIT -> ListSheet(
+                    title = stringResource(R.string.settings_energy_unit),
+                    items = EnergyUnit.entries,
+                    label = { stringResource(energyUnitTitleRes(it)) },
+                    selected = { it == ui.energyUnit },
+                    onSelect = { vm.setEnergyUnit(it); onDismiss() }
+                )
                 SettingsSheet.MEAL_TIMES -> MealTimesSheet(
                     current = ui.mealSchedule,
                     onSave = {
@@ -3200,6 +3344,14 @@ private fun SettingsSheets(
                     selected = { it == ui.waterUnit },
                     onSelect = { vm.setWaterUnit(it); onDismiss() }
                 )
+                SettingsSheet.WATER_QUICK_ADD -> WaterQuickAddSheet(
+                    current = ui.waterQuickAddPresetsMl,
+                    unit = ui.waterUnit,
+                    onSave = {
+                        vm.setWaterQuickAddPresetsMl(it)
+                        onDismiss()
+                    }
+                )
                 SettingsSheet.FASTING_GOAL -> FastingGoalSheet(
                     currentMinutes = ui.fastingDefaultGoalMinutes,
                     onSave = {
@@ -3207,18 +3359,22 @@ private fun SettingsSheets(
                         onDismiss()
                     }
                 )
-                SettingsSheet.CALORIES -> NutritionPickerSheet(
-                    label = stringResource(R.string.macro_calories), unit = stringResource(R.string.unit_kcal),
-                    currentValue = ui.profile?.effectiveCalories ?: 2000,
-                    range = 800..6000, step = 50,
-                    onSave = { v ->
-                        vm.editCaloriesGoal(v)
-                        onDismiss()
-                    },
-                    onResetToAuto = if (ui.profile?.caloriesLocked == true) {
-                        { vm.resetCaloriesLock(); onDismiss() }
-                    } else null
-                )
+                SettingsSheet.CALORIES -> {
+                    val energyUnit = LocalEnergyUnit.current
+                    val currentKcal = ui.profile?.effectiveCalories ?: 2000
+                    NutritionPickerSheet(
+                        label = stringResource(R.string.macro_calories), unit = energyUnitLabel(),
+                        currentValue = energyUnit.displayValue(currentKcal),
+                        range = energyUnit.goalPickerRange, step = energyUnit.goalPickerStep,
+                        onSave = { v ->
+                            vm.editCaloriesGoal(energyUnit.goalKcal(v, currentKcal))
+                            onDismiss()
+                        },
+                        onResetToAuto = if (ui.profile?.caloriesLocked == true) {
+                            { vm.resetCaloriesLock(); onDismiss() }
+                        } else null
+                    )
+                }
                 SettingsSheet.PROTEIN -> NutritionPickerSheet(
                     label = stringResource(R.string.macro_protein), unit = stringResource(R.string.unit_g),
                     currentValue = ui.profile?.effectiveProtein ?: 0,
@@ -3383,6 +3539,20 @@ private fun ThemeColorSwatch(themeColor: AppThemeColor, modifier: Modifier = Mod
             .clip(CircleShape)
             .background(Brush.linearGradient(listOf(themeColor.start, themeColor.end)))
     )
+}
+
+/** "Off", or the rest length in the app language's own units, such as "1 min, 30 sec". */
+@Composable
+private fun restTimerLabel(seconds: Int): String {
+    if (seconds <= 0) return stringResource(R.string.workout_rest_off)
+    val locale = LocalConfiguration.current.locales[0]
+    val measures = buildList {
+        if (seconds / 60 > 0) add(android.icu.util.Measure(seconds / 60, android.icu.util.MeasureUnit.MINUTE))
+        if (seconds % 60 > 0) add(android.icu.util.Measure(seconds % 60, android.icu.util.MeasureUnit.SECOND))
+    }
+    return android.icu.text.MeasureFormat
+        .getInstance(locale, android.icu.text.MeasureFormat.FormatWidth.SHORT)
+        .formatMeasures(*measures.toTypedArray())
 }
 
 @Composable
@@ -3731,6 +3901,69 @@ private fun WaterGoalSheet(current: Int, unit: WaterUnit, onSave: (Int) -> Unit)
     )
     Spacer(Modifier.height(16.dp))
     GradientSaveButton { onSave(unit.toMilliliters(goal.toDouble())) }
+    Spacer(Modifier.height(8.dp))
+}
+
+@Composable
+private fun WaterQuickAddSheet(current: List<Int>, unit: WaterUnit, onSave: (List<Int>) -> Unit) {
+    // Untouched fields keep their exact milliliters instead of round-tripping through fl oz.
+    val originalTexts = remember(current, unit) { current.map { WaterQuickAddPresets.editingText(it, unit) } }
+    var original by remember(current, unit) { mutableStateOf(current) }
+    var baseline by remember(current, unit) { mutableStateOf(originalTexts) }
+    var texts by remember(current, unit) { mutableStateOf(originalTexts) }
+    val resolved = texts.mapIndexed { index, text ->
+        if (text == baseline.getOrNull(index)) original.getOrNull(index)
+        else WaterQuickAddPresets.millilitersFromEditingText(text, unit)
+    }
+    val maxAmount = unit.format(WaterQuickAddPresets.ValidRange.last)
+
+    Text(stringResource(R.string.settings_water_quick_add), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(12.dp))
+    texts.forEachIndexed { index, text ->
+        val invalid = resolved[index] == null
+        OutlinedTextField(
+            value = text,
+            onValueChange = { value ->
+                texts = texts.toMutableList().also { it[index] = WaterQuickAddPresets.filteredInput(value, unit) }
+            },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
+                .testTag("settings.water.quickAdd.$index"),
+            label = { Text(stringResource(R.string.settings_water_quick_add_amount, index + 1)) },
+            suffix = { Text(unit.symbol) },
+            isError = invalid,
+            supportingText = if (invalid) {
+                { Text(stringResource(R.string.settings_water_quick_add_invalid, maxAmount)) }
+            } else null,
+            singleLine = true,
+            keyboardOptions = KeyboardOptions(
+                keyboardType = if (unit == WaterUnit.MILLILITERS) KeyboardType.Number else KeyboardType.Decimal
+            )
+        )
+    }
+    Spacer(Modifier.height(4.dp))
+    Text(
+        stringResource(R.string.settings_water_quick_add_footer),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+    )
+    Spacer(Modifier.height(16.dp))
+    GradientSaveButton(enabled = resolved.all { it != null }) {
+        onSave(resolved.filterNotNull())
+    }
+    TextButton(
+        onClick = {
+            val defaults = WaterQuickAddPresets.Defaults
+            val defaultTexts = defaults.map { WaterQuickAddPresets.editingText(it, unit) }
+            original = defaults
+            baseline = defaultTexts
+            texts = defaultTexts
+        },
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Text(stringResource(R.string.action_reset), color = MaterialTheme.colorScheme.error)
+    }
     Spacer(Modifier.height(8.dp))
 }
 
@@ -4426,6 +4659,64 @@ private fun LockableGoalRow(
 }
 
 /**
+ * Read-only Daily Targets row: the formula maintenance estimate (BMR × activity) and the daily
+ * deficit or surplus of the calorie target against it. Tapping explains how it's estimated.
+ */
+@Composable
+private fun MaintenanceEstimateRow(
+    breakdown: MaintenanceBreakdown,
+    onClick: () -> Unit
+) {
+    val energyUnit = LocalEnergyUnit.current
+    val amount = energyUnit.displayValue(abs(breakdown.dailyDifference))
+    val balanceText = when (breakdown.balance) {
+        MaintenanceBreakdown.Balance.DEFICIT -> stringResource(
+            energyUnit.pick(R.string.settings_maintenance_deficit_format, R.string.settings_maintenance_deficit_format_kj),
+            amount
+        )
+        MaintenanceBreakdown.Balance.SURPLUS -> stringResource(
+            energyUnit.pick(R.string.settings_maintenance_surplus_format, R.string.settings_maintenance_surplus_format_kj),
+            amount
+        )
+        MaintenanceBreakdown.Balance.MAINTENANCE -> stringResource(R.string.settings_maintenance_close)
+    }
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = 16.dp, vertical = 11.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        FudIconBubble(icon = Icons.Outlined.Speed, size = 22.dp, iconSize = 14.dp)
+        Spacer(Modifier.width(14.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                stringResource(R.string.settings_estimated_maintenance),
+                style = MaterialTheme.typography.bodyLarge
+            )
+            Text(
+                balanceText,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
+            )
+        }
+        Text(
+            energyText(breakdown.maintenanceCalories),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+            modifier = Modifier.padding(start = 12.dp)
+        )
+        Spacer(Modifier.width(10.dp))
+        Icon(
+            Icons.Outlined.Info,
+            contentDescription = stringResource(R.string.action_info),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.45f),
+            modifier = Modifier.size(18.dp)
+        )
+    }
+}
+
+/**
  * Multi-line text editor with a Save row at the bottom that pulses brand pink
  * when the current text differs from the persisted value, mirrors iOS Custom
  * AI Instructions section.
@@ -4476,7 +4767,7 @@ private fun CustomInstructionsBlock(
 }
 
 @Composable
-private fun ToggleRow(
+internal fun ToggleRow(
     label: String,
     checked: Boolean,
     icon: ImageVector? = null,

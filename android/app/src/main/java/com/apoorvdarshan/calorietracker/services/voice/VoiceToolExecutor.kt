@@ -8,6 +8,7 @@ import com.apoorvdarshan.calorietracker.models.WaterEntry
 import com.apoorvdarshan.calorietracker.models.WeightEntry
 import com.apoorvdarshan.calorietracker.models.WorkoutClarification
 import com.apoorvdarshan.calorietracker.models.WorkoutTextDraft
+import com.apoorvdarshan.calorietracker.services.FoodDataCentralService
 import com.apoorvdarshan.calorietracker.services.OpenFoodFactsService
 import com.apoorvdarshan.calorietracker.services.ai.AiError
 import com.apoorvdarshan.calorietracker.services.ai.AiErrorKind
@@ -382,6 +383,13 @@ class VoiceToolExecutor(
         return ToolResults.ok {
             put("screen", screen.screen?.wireValue ?: "other")
             screen.section?.let { put("settings_section", it.wireValue) }
+            // open_screen can't show these until the user turns them back on.
+            val hidden = ports.hiddenScreens()
+            if (hidden.isNotEmpty()) {
+                putJsonArray("hidden_screens") {
+                    VoiceScreen.entries.filter { it in hidden }.forEach { add(JsonPrimitive(it.wireValue)) }
+                }
+            }
             put("diary_date", VoiceArguments.formatDate(diaryDate))
             put("today", VoiceArguments.formatDate(today))
             put("time", VoiceArguments.formatTime(localTime(ports.now())))
@@ -429,6 +437,12 @@ class VoiceToolExecutor(
         }
         if (section != null && screen != VoiceScreen.SETTINGS) {
             fail(ToolError.INVALID_ARGUMENTS, "settings_section only works with screen=settings.")
+        }
+        if (screen in ports.hiddenScreens()) {
+            fail(
+                ToolError.UNSUPPORTED,
+                "The user hid the ${screen.wireValue} tab. It can be shown again in Settings > App Settings > Tab Bar."
+            )
         }
         ports.showScreen(screen, section)
         return ToolResults.ok {
@@ -532,10 +546,15 @@ class VoiceToolExecutor(
                     ToolResults.error(ToolError.INVALID_ARGUMENTS, "That barcode could not be read. Try scanning again.")
                 else -> ToolResults.error(ToolError.ANALYSIS_FAILED, "The barcode lookup failed. Check the connection and try again.")
             }
+        } catch (usda: FoodDataCentralService.LookupException) {
+            return ToolResults.error(
+                ToolError.NOT_FOUND,
+                "No product was found for barcode $code in Open Food Facts, and USDA FoodData Central rejected the API key saved in Settings > Product information. Offer to take a photo of the label instead."
+            )
         } catch (error: Throwable) {
             return ToolResults.error(ToolError.ANALYSIS_FAILED, "The barcode lookup failed. Please try again.")
         }
-        return foodDraft(product.analysis, listOfNotNull(product.imageBytes), FoodSource.BARCODE) {
+        return foodDraft(product.analysis, listOfNotNull(product.imageBytes), product.source) {
             put("barcode", code)
         }
     }
@@ -919,7 +938,7 @@ class VoiceToolExecutor(
             fail(ToolError.INVALID_ARGUMENTS, "goal_hours must be between 1 and 168.")
         }
         if (!ports.trackingPrefs().fastingEnabled) {
-            fail(ToolError.UNSUPPORTED, "Fasting tracking is off. The user can turn it on in Settings, Tracking & Reminders.")
+            fail(ToolError.UNSUPPORTED, "Fasting tracking is off. The user can turn it on in Settings, Tracking & Notifications.")
         }
         if (ports.activeFast() != null) fail(ToolError.INVALID_ARGUMENTS, "A fast is already running.")
         val goalHours = (minutes / 60.0).roundToInt()
@@ -1411,7 +1430,9 @@ class VoiceToolExecutor(
                 selectedServingQuantity = if (analysis.servingSizeIsKnown) {
                     analysis.selectedServingQuantity?.takeIf { analysis.servingUnitOptions.isNotEmpty() }?.times(servings)
                 } else {
-                    servings
+                    // Without a known mass the analysis amount is a count of logged servings (a
+                    // saved label can hold two), so [servings] multiplies it instead of replacing it.
+                    (analysis.selectedServingQuantity?.takeIf { it.isFinite() && it > 0.0 } ?: 1.0) * servings
                 },
                 customNote = analysis.customNote,
                 progressiveMeal = analysis.progressiveMeal,

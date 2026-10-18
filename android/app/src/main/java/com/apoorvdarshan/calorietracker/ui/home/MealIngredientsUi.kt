@@ -9,6 +9,9 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import com.apoorvdarshan.calorietracker.FudAIApp
 import com.apoorvdarshan.calorietracker.services.FoodImageStore
+import com.apoorvdarshan.calorietracker.ui.components.LocalEnergyUnit
+import com.apoorvdarshan.calorietracker.ui.components.energyText
+import com.apoorvdarshan.calorietracker.ui.components.energyUnitLabel
 import com.apoorvdarshan.calorietracker.ui.components.rememberFoodThumbnail
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.rememberScrollState
@@ -21,10 +24,14 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -39,6 +46,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.foundation.text.KeyboardOptions
@@ -49,6 +59,7 @@ import com.apoorvdarshan.calorietracker.models.MacroValueFormatter
 import kotlin.math.roundToInt
 import com.apoorvdarshan.calorietracker.models.IngredientPortion
 import com.apoorvdarshan.calorietracker.models.MealIngredient
+import com.apoorvdarshan.calorietracker.models.RecipeServings
 import com.apoorvdarshan.calorietracker.ui.theme.AppColors
 import kotlinx.serialization.Serializable
 
@@ -64,7 +75,10 @@ internal fun MealIngredientsCard(
     onEdit: (Int) -> Unit,
     onAdd: () -> Unit = {},
     addMenu: (@Composable () -> Unit)? = null,
-    imageStore: FoodImageStore? = null
+    imageStore: FoodImageStore? = null,
+    /** "Servings in recipe" value; null hides the row (#458). */
+    recipeServings: Int? = null,
+    onRecipeServingsChange: (Int) -> Unit = {}
 ) {
     val context = LocalContext.current
     val store = imageStore ?: remember(context) {
@@ -105,7 +119,7 @@ internal fun MealIngredientsCard(
                             modifier = Modifier.weight(1f)
                         )
                         Text(
-                            "${MacroValueFormatter.string(ingredient.grams)}g · ${ingredient.calories} kcal",
+                            "${MacroValueFormatter.string(ingredient.grams)}g · ${energyText(ingredient.calories)}",
                             fontSize = 13.sp,
                             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.58f)
                         )
@@ -130,6 +144,74 @@ internal fun MealIngredientsCard(
         } else {
             MealIngredientsAddRow(onClick = onAdd)
         }
+        if (recipeServings != null) {
+            SheetHairline()
+            RecipeServingsRow(recipeServings, onRecipeServingsChange)
+        }
+    }
+}
+
+@Composable
+internal fun RecipeServingsRow(servings: Int, onChange: (Int) -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 18.dp, vertical = 10.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                stringResource(R.string.recipe_servings_title),
+                fontSize = 16.sp,
+                modifier = Modifier.weight(1f)
+            )
+            RecipeServingsStepButton(
+                icon = Icons.Filled.Remove,
+                contentDescription = stringResource(R.string.cd_recipe_servings_fewer),
+                enabled = servings > RecipeServings.MIN,
+                onClick = { onChange(servings - 1) }
+            )
+            // A polite live region, so TalkBack reads the new count after - or +.
+            Text(
+                servings.toString(),
+                fontSize = 16.sp,
+                fontWeight = FontWeight.SemiBold,
+                modifier = Modifier
+                    .padding(horizontal = 4.dp)
+                    .semantics { liveRegion = LiveRegionMode.Polite }
+            )
+            RecipeServingsStepButton(
+                icon = Icons.Filled.Add,
+                contentDescription = stringResource(R.string.cd_recipe_servings_more),
+                enabled = servings < RecipeServings.MAX,
+                onClick = { onChange(servings + 1) }
+            )
+        }
+        Text(
+            stringResource(R.string.recipe_servings_footer),
+            fontSize = 12.sp,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
+        )
+    }
+}
+
+/** A real button with a 48dp touch target, so TalkBack and switch access treat it as one. */
+@Composable
+private fun RecipeServingsStepButton(
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    contentDescription: String,
+    enabled: Boolean,
+    onClick: () -> Unit
+) {
+    IconButton(
+        onClick = onClick,
+        enabled = enabled,
+        colors = IconButtonDefaults.iconButtonColors(
+            contentColor = AppColors.Calorie,
+            disabledContentColor = AppColors.Calorie.copy(alpha = 0.35f)
+        )
+    ) {
+        Icon(icon, contentDescription = contentDescription)
     }
 }
 
@@ -174,14 +256,16 @@ internal fun MealIngredientEditorDialog(
     onDelete: (() -> Unit)?,
     onDismiss: () -> Unit
 ) {
+    // Calories here (text and base) are in the energy unit in use; save converts to kcal.
+    val energyUnit = LocalEnergyUnit.current
     var name by rememberSaveable(target) { mutableStateOf(target.ingredient.name) }
     var grams by rememberSaveable(target) { mutableStateOf(MacroValueFormatter.string(target.ingredient.grams)) }
-    var calories by rememberSaveable(target) { mutableStateOf(target.ingredient.calories.toString()) }
+    var calories by rememberSaveable(target) { mutableStateOf(energyUnit.displayValue(target.ingredient.calories).toString()) }
     var protein by rememberSaveable(target) { mutableStateOf(MacroValueFormatter.string(target.ingredient.protein)) }
     var carbs by rememberSaveable(target) { mutableStateOf(MacroValueFormatter.string(target.ingredient.carbs)) }
     var fat by rememberSaveable(target) { mutableStateOf(MacroValueFormatter.string(target.ingredient.fat)) }
     var nutritionBase by rememberSaveable(target, stateSaver = IngredientPortionSaver) { mutableStateOf(IngredientPortion(
-        target.ingredient.grams, target.ingredient.calories.toDouble(),
+        target.ingredient.grams, energyUnit.displayAmount(target.ingredient.calories.toDouble()),
         target.ingredient.protein, target.ingredient.carbs, target.ingredient.fat
     )) }
     fun number(text: String) = text.trim().replace(',', '.').toDoubleOrNull()?.takeIf { it.isFinite() && it >= 0 }
@@ -208,7 +292,7 @@ internal fun MealIngredientEditorDialog(
         MealIngredient(
             name = validName,
             grams = parsedGrams,
-            calories = parsedCalories.roundToInt(),
+            calories = energyUnit.toKcal(parsedCalories),
             protein = parsedProtein,
             carbs = parsedCarbs,
             fat = parsedFat,
@@ -228,7 +312,7 @@ internal fun MealIngredientEditorDialog(
             ) {
                 OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text(stringResource(R.string.sheet_name)) }, singleLine = true)
                 IngredientNumberField(stringResource(R.string.ingredients_weight), grams, ::changeWeight, stringResource(R.string.unit_g))
-                IngredientNumberField(stringResource(R.string.nutrition_label_calories), calories, { calories = it; rebaseNutrition() }, stringResource(R.string.unit_kcal))
+                IngredientNumberField(stringResource(R.string.nutrition_label_calories), calories, { calories = it; rebaseNutrition() }, energyUnitLabel())
                 IngredientNumberField(stringResource(R.string.nutrition_label_protein), protein, { protein = it; rebaseNutrition() }, stringResource(R.string.unit_g))
                 IngredientNumberField(stringResource(R.string.nutrition_label_carbs), carbs, { carbs = it; rebaseNutrition() }, stringResource(R.string.unit_g))
                 IngredientNumberField(stringResource(R.string.nutrition_label_fat), fat, { fat = it; rebaseNutrition() }, stringResource(R.string.unit_g))
