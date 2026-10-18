@@ -67,7 +67,7 @@ private val AIProvider.logoDrawableRes: Int?
         AIProvider.DEEP_INFRA -> R.drawable.provider_deepinfra
         AIProvider.MISTRAL -> R.drawable.provider_mistral
         AIProvider.DEEPSEEK -> R.drawable.provider_deepseek
-        AIProvider.QWEN -> null
+        AIProvider.QWEN -> R.drawable.provider_qwen
         AIProvider.CEREBRAS -> R.drawable.provider_cerebras
         AIProvider.LOCAL_GEMMA -> null
         AIProvider.OLLAMA -> R.drawable.provider_ollama

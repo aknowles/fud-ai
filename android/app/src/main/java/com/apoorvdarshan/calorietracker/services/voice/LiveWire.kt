@@ -655,12 +655,24 @@ class QwenRealtimeWire : OpenAIRealtimeWire() {
         if (config.tools.isNotEmpty()) {
             messages += sessionUpdate(buildJsonObject { put("tools", VoiceToolCatalog.realtimeTools(config.tools)) })
         }
+        // Transcription goes alone too, so a problem with it can't drop the tools.
+        messages += sessionUpdate(buildJsonObject {
+            putJsonObject("input_audio_transcription") { put("model", TRANSCRIPTION_MODEL) }
+        })
         return messages
     }
 
-    /** Microphone audio is always sent first, as Qwen requires before any image. */
+    @Volatile
+    private var hasSentAudio = false
+
+    override fun audioMessage(pcm16: ByteArray): String {
+        hasSentAudio = true
+        return super.audioMessage(pcm16)
+    }
+
+    /** Qwen takes images only after some audio and refuses frames over 256 KB; both are skipped. */
     override fun imageMessages(jpeg: ByteArray): List<String> {
-        if (jpeg.size > MAX_IMAGE_BYTES) return emptyList()
+        if (!hasSentAudio || jpeg.size > MAX_IMAGE_BYTES) return emptyList()
         return listOf(buildJsonObject {
             put("type", "input_image_buffer.append")
             put("image", base64(jpeg))
@@ -672,6 +684,9 @@ class QwenRealtimeWire : OpenAIRealtimeWire() {
     companion object {
         /** Qwen refuses camera frames larger than this. */
         const val MAX_IMAGE_BYTES = 256 * 1024
+
+        /** Transcribes what the user says; Model Studio fixes this model for Qwen Omni Realtime. */
+        const val TRANSCRIPTION_MODEL = "qwen3-asr-flash-realtime"
     }
 }
 
