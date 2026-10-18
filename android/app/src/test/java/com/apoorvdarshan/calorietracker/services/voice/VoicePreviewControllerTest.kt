@@ -85,6 +85,33 @@ class VoicePreviewControllerTest {
         assertEquals(1, audio.stops)
     }
 
+    @Test fun gptLiveSampleEndsWhenAudioGoesQuietNotWhenItsBackendFinishes() = runTest {
+        val fixture = Fixture(this, prepare = {
+            voicePreviewConfig(LiveProvider.GPT_LIVE, VoiceAssistantPreferences(), "en", "saved-key", null)
+        })
+        fixture.controller.start("Sample", "en")
+        runCurrent()
+        val connection = fixture.connections.single()
+        connection.emit(LiveEvent.Ready)
+        runCurrent()
+        // The backend finishes before GPT-Live speaks the sample.
+        connection.emit(LiveEvent.TurnComplete(endsSpokenTurn = false))
+        runCurrent()
+        assertTrue(fixture.controller.state.value.active)
+        assertEquals(0, connection.closes)
+        connection.emit(LiveEvent.Audio(byteArrayOf(1, 2), null))
+        runCurrent()
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(0, connection.closes)
+        advanceTimeBy(1_000)
+        runCurrent()
+        assertEquals(1, connection.closes)
+        fixture.outputs.single().drain()
+        runCurrent()
+        assertEquals(VoicePreviewState(), fixture.controller.state.value)
+    }
+
     @Test fun alreadyDrainedAudioFinishesWhenTheProviderCompletes() = runTest {
         val fixture = Fixture(this)
         fixture.controller.start("Sample", "en")

@@ -523,10 +523,12 @@ class VoiceAssistantController(private val container: AppContainer) : VoiceUiBri
             LiveEvent.Interrupted -> interruptReply(tellProvider = false)
             is LiveEvent.ResponseStarted -> responseInProgress = true
             is LiveEvent.TurnComplete -> {
-                responseInProgress = false
-                awaitingReplySince = 0
-                saveTurn()
-                flushDeferred()
+                if (event.endsResponse) responseInProgress = false
+                if (event.endsSpokenTurn) {
+                    awaitingReplySince = 0
+                    saveTurn()
+                }
+                if (event.endsResponse) flushDeferred()
                 updateOrb()
             }
             is LiveEvent.ToolCalls -> runTools(event.calls)

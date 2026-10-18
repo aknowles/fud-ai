@@ -451,7 +451,11 @@ class LiveWireTest {
             wire.parse("""{"type":"session.output_transcript.delta","delta":"Logging it."}""")
         )
         assertEquals(
-            listOf(LiveEvent.TurnComplete(), LiveEvent.UserText("thanks", replacing = false)),
+            listOf(
+                LiveEvent.TurnComplete(endsResponse = false),
+                LiveEvent.UserSpeechStarted,
+                LiveEvent.UserText("thanks", replacing = false)
+            ),
             wire.parse("""{"type":"session.input_transcript.delta","delta":"thanks"}""")
         )
         assertEquals(
@@ -467,7 +471,10 @@ class LiveWireTest {
         val call = (events[0] as LiveEvent.ToolCalls).calls.single()
         assertEquals("log_water", call.name)
         assertEquals("250", call.arguments["amount"]!!.jsonPrimitive.content)
-        assertTrue(events.last() is LiveEvent.TurnComplete)
+        // The backend finishing frees response.create but doesn't end the spoken turn.
+        val done = events.last() as LiveEvent.TurnComplete
+        assertTrue(done.endsResponse)
+        assertFalse(done.endsSpokenTurn)
     }
 
     @Test

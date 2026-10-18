@@ -78,8 +78,16 @@ sealed interface LiveEvent {
     /** OpenAI/xAI started a response. */
     data class ResponseStarted(val responseId: String?) : LiveEvent
 
-    /** The turn ended; Realtime can end an incomplete or cancelled response too. */
-    data class TurnComplete(val responseId: String? = null, val successful: Boolean = true) : LiveEvent
+    /**
+     * The turn ended; Realtime can end an incomplete or cancelled response too. GPT-Live
+     * splits the two: [endsResponse] frees `response.create`, [endsSpokenTurn] saves the turn.
+     */
+    data class TurnComplete(
+        val responseId: String? = null,
+        val successful: Boolean = true,
+        val endsSpokenTurn: Boolean = true,
+        val endsResponse: Boolean = true
+    ) : LiveEvent
 
     data class ToolCalls(val calls: List<LiveToolCall>) : LiveEvent
     data class ToolCallsCancelled(val ids: List<String>) : LiveEvent
@@ -782,8 +790,12 @@ class GPTLiveWire : OpenAIRealtimeWire() {
             "session.input_transcript.delta" -> {
                 val delta = LiveJson.string(json, "delta")?.takeIf { it.isNotEmpty() } ?: return emptyList()
                 // GPT-Live reports no turn ends, so the user speaking after the assistant
-                // closes the assistant's turn.
-                val ended = if (assistantSpokeLast) listOf(LiveEvent.TurnComplete()) else emptyList()
+                // closes the assistant's turn: it is saved and its playback stops.
+                val ended = if (assistantSpokeLast) {
+                    listOf(LiveEvent.TurnComplete(endsResponse = false), LiveEvent.UserSpeechStarted)
+                } else {
+                    emptyList()
+                }
                 assistantSpokeLast = false
                 ended + LiveEvent.UserText(delta, replacing = false)
             }
@@ -806,10 +818,12 @@ class GPTLiveWire : OpenAIRealtimeWire() {
                 val withStatus = if (response.containsKey("status")) response else JsonObject(
                     response + ("status" to JsonPrimitive(if (type == "response.completed") "completed" else type.removePrefix("response.")))
                 )
+                // The backend finishing frees response.create but doesn't end the spoken
+                // turn: GPT-Live may still be speaking the answer.
                 super.parse(buildJsonObject {
                     put("type", "response.done")
                     put("response", withStatus)
-                }.toString())
+                }.toString()).map { if (it is LiveEvent.TurnComplete) it.copy(endsSpokenTurn = false) else it }
             }
             else -> emptyList()
         }

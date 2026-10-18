@@ -63,6 +63,24 @@ struct VoicePreviewTests {
         #expect(harness.audio.stopCount == 1)
     }
 
+    @Test func gptLiveSampleEndsWhenAudioGoesQuietNotWhenItsBackendFinishes() async throws {
+        let harness = PreviewHarness(provider: .gptLive)
+        defer { harness.close() }
+        let session = try await harness.startReady()
+        // The backend finishes before GPT-Live speaks the sample.
+        session.emit(.responseDone(hasToolCalls: true))
+        await flushEvents()
+        #expect(harness.preview.isRunning)
+        #expect(harness.preview.errorMessage == nil)
+        session.emit(.audio(Data([1, 2]), itemID: nil))
+        try await waitUntil { harness.audio.chunks.count == 1 }
+        try await waitUntil { session.closed }
+        #expect(harness.preview.isRunning)
+        harness.audio.finish()
+        #expect(!harness.preview.isRunning)
+        #expect(harness.preview.errorMessage == nil)
+    }
+
     @Test func completionAfterPlaybackAlreadyDrainedReturnsIdle() async throws {
         let harness = PreviewHarness(provider: .openai)
         defer { harness.close() }
@@ -299,7 +317,8 @@ private final class PreviewHarness {
         credential: @escaping @MainActor (LiveProvider) async -> LiveSessionConfig.Credential? = {
             $0 == .hosted ? .hostedUser("test-user") : .apiKey("test-key")
         },
-        waitForDeadline: @escaping @Sendable () async throws -> Void = { try await Task.sleep(for: .seconds(30)) }
+        waitForDeadline: @escaping @Sendable () async throws -> Void = { try await Task.sleep(for: .seconds(30)) },
+        quietFinishDelay: Duration = .milliseconds(100)
     ) {
         defaults = UserDefaults(suiteName: suite)!
         route = .ready(provider)
@@ -311,7 +330,7 @@ private final class PreviewHarness {
                 self.sessions.append(session)
                 return session
             }, makeAudio: { [unowned self] in self.audio }, notificationCenter: notifications,
-            waitForDeadline: waitForDeadline
+            waitForDeadline: waitForDeadline, quietFinishDelay: quietFinishDelay
         )
     }
 

@@ -57,6 +57,12 @@ enum class LiveProvider(val storageValue: String) {
 
     val defaultVoice: String get() = voices.first()
 
+    /**
+     * Whether the provider says when a spoken reply ends. GPT-Live doesn't, so its turns
+     * end when the user speaks and its voice preview ends after a quiet moment.
+     */
+    val reportsTurnEnds: Boolean get() = this != GPT_LIVE
+
     val cameraFrames: CameraFrames
         get() = when (this) {
             HOSTED, GEMINI, QWEN -> CameraFrames.CONTINUOUS

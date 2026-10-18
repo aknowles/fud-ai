@@ -52,6 +52,11 @@ final class VoicePreviewController {
     @ObservationIgnored private var receivedAudioBytes = 0
     @ObservationIgnored private var maximumAudioBytes = 0
     @ObservationIgnored private var outputSampleRate = 24_000.0
+    /// False for GPT-Live, whose sample ends after a quiet moment instead of a turn end.
+    @ObservationIgnored private var reportsTurnEnds = true
+    @ObservationIgnored private var quietFinish: Task<Void, Never>?
+    /// How long GPT-Live audio must pause before its sample counts as finished.
+    @ObservationIgnored private let quietFinishDelay: Duration
 
     init(
         settings: VoiceAssistantSettings = VoiceAssistantSettings(),
@@ -65,7 +70,8 @@ final class VoicePreviewController {
         notificationCenter: NotificationCenter = .default,
         waitForDeadline: @escaping @Sendable () async throws -> Void = {
             try await Task.sleep(for: .seconds(VoicePreviewController.maximumDuration))
-        }
+        },
+        quietFinishDelay: Duration = .milliseconds(1500)
     ) {
         self.settings = settings
         self.resolveRoute = resolveRoute ?? { VoiceAssistantRouting.current(settings: settings) }
@@ -75,6 +81,7 @@ final class VoicePreviewController {
         self.makeAudio = makeAudio
         self.notificationCenter = notificationCenter
         self.waitForDeadline = waitForDeadline
+        self.quietFinishDelay = quietFinishDelay
     }
 
     func start(appLanguageCode: String, sample: String) {
@@ -121,6 +128,7 @@ final class VoicePreviewController {
                 instructions: Self.instructions(languageCode: language), tools: []
             )
             self.outputSampleRate = provider.wire.outputSampleRate
+            self.reportsTurnEnds = provider.reportsTurnEnds
             self.maximumAudioBytes = Int(self.outputSampleRate * 2 * Self.maximumDuration)
             let session = self.makeSession(config) { [weak self] event in
                 // A serial queue hop preserves socket order: turn completion must
@@ -142,6 +150,8 @@ final class VoicePreviewController {
         preparation = nil
         deadline?.cancel()
         deadline = nil
+        quietFinish?.cancel()
+        quietFinish = nil
         session?.close()
         session = nil
         audio?.stop()
@@ -190,23 +200,41 @@ final class VoicePreviewController {
             receivedAudioBytes += bytes.count
             phase = .playing
             audio?.play(bytes)
+            if !reportsTurnEnds { scheduleQuietFinish(generation: number) }
         case .turnComplete, .responseDone(hasToolCalls: false, successful: true):
-            guard receivedAudioBytes > 0 else {
-                showFailure()
-                return
-            }
-            generationFinished = true
-            // Hosted billing ends here, independently of how long the remaining
-            // locally queued PCM takes to play.
-            session?.close()
-            session = nil
-            finishIfDrained()
+            finishGeneration()
+        case .responseDone where !reportsTurnEnds:
+            // GPT-Live's backend finishes before the sample is spoken.
+            break
         case .error, .hostedError, .closed, .toolCalls, .responseDone:
             showFailure()
         case .interrupted, .userSpeechStarted:
             stop()
         default:
             break
+        }
+    }
+
+    private func finishGeneration() {
+        guard receivedAudioBytes > 0 else {
+            showFailure()
+            return
+        }
+        generationFinished = true
+        // Hosted billing ends here, independently of how long the remaining
+        // locally queued PCM takes to play.
+        session?.close()
+        session = nil
+        finishIfDrained()
+    }
+
+    /// The sample is over once audio has stopped arriving for a moment.
+    private func scheduleQuietFinish(generation number: Int) {
+        quietFinish?.cancel()
+        quietFinish = Task { [weak self] in
+            try? await Task.sleep(for: self?.quietFinishDelay ?? .milliseconds(1500))
+            guard !Task.isCancelled, let self, self.generation == number, self.isRunning, !self.generationFinished else { return }
+            self.finishGeneration()
         }
     }
 

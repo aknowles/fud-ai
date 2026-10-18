@@ -74,6 +74,10 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         }
     }
 
+    /// Whether the provider says when a spoken reply ends. GPT-Live doesn't, so its
+    /// turns end when the user speaks and its voice preview ends after a quiet moment.
+    var reportsTurnEnds: Bool { self != .gptLive }
+
     /// The provider whose settings (model, voice) this one uses. Hosted sessions
     /// pick from Gemini's voices, so they share Gemini's voice choice.
     var settingsProvider: LiveProvider {
@@ -877,8 +881,9 @@ nonisolated struct GPTLiveWire: LiveWire {
         case "session.input_transcript.delta":
             guard let delta = json["delta"] as? String, !delta.isEmpty else { return [] }
             // GPT-Live reports no turn ends, so the user speaking after the
-            // assistant closes the assistant's turn.
-            let ended: [LiveEvent] = turns.userSpoke() ? [.turnComplete] : []
+            // assistant closes the assistant's turn: the turn is saved now, its
+            // playback stops, and the new words start a fresh caption.
+            let ended: [LiveEvent] = turns.userSpoke() ? [.turnComplete, .userSpeechStarted] : []
             return ended + [.userText(delta, replacing: false)]
         case "response.event":
             guard let nested = json["event"] as? [String: Any] else { return [] }

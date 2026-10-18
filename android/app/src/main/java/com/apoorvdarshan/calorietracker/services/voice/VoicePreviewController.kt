@@ -45,6 +45,7 @@ class VoicePreviewController(
     private var completed = false
     private var receivedBytes = 0L
     private var maxBytes = 0L
+    private var quietFinish: Job? = null
 
     fun start(sample: String, appLanguage: String) {
         stop()
@@ -113,18 +114,22 @@ class VoicePreviewController(
                     require(receivedBytes <= maxBytes)
                     audio?.play(event.pcm)
                     _state.value = VoicePreviewState(VoicePreviewPhase.PLAYING)
+                    if (!config.provider.reportsTurnEnds) {
+                        // GPT-Live never says the sample ended; it's over once audio stops.
+                        quietFinish?.cancel()
+                        quietFinish = scope.launch {
+                            delay(QUIET_FINISH_MS)
+                            if (id == generation && !completed) completeSample(id)
+                        }
+                    }
                 }
-                is LiveEvent.TurnComplete -> if (!completed) {
+                // GPT-Live's backend finishing doesn't end the spoken sample.
+                is LiveEvent.TurnComplete -> if (!completed && event.endsSpokenTurn) {
                     if (!event.successful) {
                         finish(id, VoicePreviewError.FAILED)
                         return
                     }
-                    completed = true
-                    // End provider billing promptly, then let already queued output finish.
-                    connection?.close()
-                    connection = null
-                    if (receivedBytes == 0L) finish(id, VoicePreviewError.FAILED)
-                    else if (audio?.isPlaying != true) finish(id)
+                    completeSample(id)
                 }
                 is LiveEvent.Closed -> if (!completed) finish(id, VoicePreviewError.FAILED)
                 is LiveEvent.ProviderError, is LiveEvent.HostedNotice, is LiveEvent.ToolCalls ->
@@ -137,9 +142,20 @@ class VoicePreviewController(
         }
     }
 
+    private fun completeSample(id: Long) {
+        completed = true
+        // End provider billing promptly, then let already queued output finish.
+        connection?.close()
+        connection = null
+        if (receivedBytes == 0L) finish(id, VoicePreviewError.FAILED)
+        else if (audio?.isPlaying != true) finish(id)
+    }
+
     private fun finish(id: Long, error: VoicePreviewError? = null) {
         if (id != generation) return
         generation++
+        quietFinish?.cancel()
+        quietFinish = null
         preparation?.cancel()
         preparation = null
         deadline?.cancel()
@@ -156,5 +172,7 @@ class VoicePreviewController(
 
     companion object {
         private const val MAX_AUDIO_SECONDS = 30
+        /** How long GPT-Live audio must pause before its sample counts as finished. */
+        private const val QUIET_FINISH_MS = 1_500L
     }
 }

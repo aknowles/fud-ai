@@ -302,7 +302,7 @@ struct VoiceAssistantWireTests {
             == [.audio(Data([0, 1]), itemID: nil)])
         #expect(wire.parse(#"{"type":"session.output_transcript.delta","delta":"Logging it."}"#) == [.assistantText("Logging it.")])
         #expect(wire.parse(#"{"type":"session.input_transcript.delta","delta":"thanks"}"#)
-            == [.turnComplete, .userText("thanks", replacing: false)])
+            == [.turnComplete, .userSpeechStarted, .userText("thanks", replacing: false)])
         #expect(wire.parse(#"{"type":"session.input_transcript.delta","delta":" a lot"}"#) == [.userText(" a lot", replacing: false)])
 
         #expect(wire.parse(#"{"type":"response.event","delegation_id":"d1","event":{"type":"response.created","response":{"id":"resp_1"}}}"#)
