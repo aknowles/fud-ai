@@ -218,7 +218,8 @@ struct OnDeviceFoodService {
         images: [UIImage],
         description: String? = nil,
         progressiveMeal: Bool = false,
-        labelText: String? = nil
+        labelText: String? = nil,
+        portionScaleSection: String? = nil
     ) async throws -> GeminiService.FoodAnalysis {
         try OnDeviceAIService.requireAvailable()
         guard !images.isEmpty else {
@@ -229,7 +230,8 @@ struct OnDeviceFoodService {
                 images: images,
                 description: description,
                 progressiveMeal: progressiveMeal,
-                labelText: labelText
+                labelText: labelText,
+                portionScaleSection: portionScaleSection
             )
         }
         throw OnDeviceAIError.unavailable("Food photo analysis requires iOS 27 or later.")
@@ -258,7 +260,8 @@ struct OnDeviceFoodService {
         images: [UIImage],
         description: String?,
         progressiveMeal: Bool,
-        labelText: String?
+        labelText: String?,
+        portionScaleSection: String?
     ) async throws -> GeminiService.FoodAnalysis {
         let progressiveInstructions: String
         if progressiveMeal {
@@ -276,6 +279,7 @@ struct OnDeviceFoodService {
         let noteSection = trimmedNote.isEmpty
             ? ""
             : "\n\nAdditional context from the user about this meal: \(trimmedNote)"
+        let scaleSection = portionScaleSection.map { "\n\n" + $0 } ?? ""
 
         let session = LanguageModelSession(
             instructions: """
@@ -290,7 +294,7 @@ struct OnDeviceFoodService {
 
         let response = try await session.respond(generating: FoodResult.self) {
             NutritionLabelText.prompt(
-                "Analyze the attached meal photo(s) and return accurate nutrition data for the entire meal shown.\(noteSection)",
+                "Analyze the attached meal photo(s) and return accurate nutrition data for the entire meal shown.\(noteSection)\(scaleSection)",
                 adding: labelText
             )
             for (index, image) in images.enumerated() {
