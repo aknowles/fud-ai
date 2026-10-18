@@ -166222,226 +166222,226 @@
         }
       }
     },
-    "Talk to log meals, scan food and barcodes, and ask about your progress. The voice assistant runs on a Fud AI Plus or Pro plan, or on your own Gemini, OpenAI or xAI API key.": {
+    "Talk to log meals, scan food and barcodes, and ask about your progress. The voice assistant runs on a Fud AI Plus or Pro plan, or on your own Gemini, OpenAI, xAI or Qwen API key.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "تحدّث لتسجيل الوجبات ومسح الطعام والرموز الشريطية والسؤال عن تقدّمك. يعمل المساعد الصوتي مع خطة Fud AI Plus أو Pro، أو بمفتاح API الخاص بك من Gemini أو OpenAI أو xAI."
+            "value": "تحدّث لتسجيل الوجبات ومسح الطعام والرموز الشريطية والسؤال عن تقدّمك. يعمل المساعد الصوتي مع خطة Fud AI Plus أو Pro، أو بمفتاح API الخاص بك من Gemini أو OpenAI أو xAI أو Qwen."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Yeməkləri qeyd etmək, qidanı və ştrix-kodları skan etmək, irəliləyişiniz barədə soruşmaq üçün danışın. Səsli köməkçi Fud AI Plus və ya Pro planı ilə, yaxud öz Gemini, OpenAI və ya xAI API açarınızla işləyir."
+            "value": "Yeməkləri qeyd etmək, qidanı və ştrix-kodları skan etmək, irəliləyişiniz barədə soruşmaq üçün danışın. Səsli köməkçi Fud AI Plus və ya Pro planı ilə, yaxud öz Gemini, OpenAI, xAI və ya Qwen API açarınızla işləyir."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mluv a zapisuj jídla, skenuj jídlo i čárové kódy a ptej se na svůj pokrok. Hlasový asistent běží s plánem Fud AI Plus nebo Pro, nebo s tvým vlastním klíčem API od Gemini, OpenAI či xAI."
+            "value": "Mluv a zapisuj jídla, skenuj jídlo i čárové kódy a ptej se na svůj pokrok. Hlasový asistent běží s plánem Fud AI Plus nebo Pro, nebo s tvým vlastním klíčem API od Gemini, OpenAI, xAI či Qwen."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Sprich, um Mahlzeiten einzutragen, Essen und Barcodes zu scannen und nach deinem Fortschritt zu fragen. Der Sprachassistent läuft mit einem Fud AI Plus- oder Pro-Abo oder mit deinem eigenen API-Schlüssel von Gemini, OpenAI oder xAI."
+            "value": "Sprich, um Mahlzeiten einzutragen, Essen und Barcodes zu scannen und nach deinem Fortschritt zu fragen. Der Sprachassistent läuft mit einem Fud AI Plus- oder Pro-Abo oder mit deinem eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Habla para registrar comidas, escanear alimentos y códigos de barras y preguntar por tu progreso. El asistente de voz funciona con un plan Fud AI Plus o Pro, o con tu propia clave API de Gemini, OpenAI o xAI."
+            "value": "Habla para registrar comidas, escanear alimentos y códigos de barras y preguntar por tu progreso. El asistente de voz funciona con un plan Fud AI Plus o Pro, o con tu propia clave API de Gemini, OpenAI, xAI o Qwen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Parlez pour enregistrer vos repas, scanner aliments et codes-barres, et poser des questions sur vos progrès. L’assistant vocal fonctionne avec un forfait Fud AI Plus ou Pro, ou avec votre propre clé API Gemini, OpenAI ou xAI."
+            "value": "Parlez pour enregistrer vos repas, scanner aliments et codes-barres, et poser des questions sur vos progrès. L’assistant vocal fonctionne avec un forfait Fud AI Plus ou Pro, ou avec votre propre clé API Gemini, OpenAI, xAI ou Qwen."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "बोलकर भोजन लॉग करें, खाना और बारकोड स्कैन करें और अपनी प्रगति के बारे में पूछें। वॉइस असिस्टेंट Fud AI Plus या Pro प्लान पर, या आपकी अपनी Gemini, OpenAI या xAI API कुंजी पर चलता है।"
+            "value": "बोलकर भोजन लॉग करें, खाना और बारकोड स्कैन करें और अपनी प्रगति के बारे में पूछें। वॉइस असिस्टेंट Fud AI Plus या Pro प्लान पर, या आपकी अपनी Gemini, OpenAI, xAI या Qwen API कुंजी पर चलता है।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Parla per registrare i pasti, scansionare cibi e codici a barre e chiedere dei tuoi progressi. L’assistente vocale funziona con un piano Fud AI Plus o Pro, oppure con la tua chiave API di Gemini, OpenAI o xAI."
+            "value": "Parla per registrare i pasti, scansionare cibi e codici a barre e chiedere dei tuoi progressi. L’assistente vocale funziona con un piano Fud AI Plus o Pro, oppure con la tua chiave API di Gemini, OpenAI, xAI o Qwen."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "話しかけるだけで食事を記録し、食べ物やバーコードをスキャンし、進捗について質問できます。音声アシスタントはFud AI PlusまたはProプラン、またはご自身のGemini・OpenAI・xAIのAPIキーで動作します。"
+            "value": "話しかけるだけで食事を記録し、食べ物やバーコードをスキャンし、進捗について質問できます。音声アシスタントはFud AI PlusまたはProプラン、またはご自身のGemini・OpenAI・xAI・QwenのAPIキーで動作します。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "말로 식사를 기록하고, 음식과 바코드를 스캔하고, 진행 상황을 물어보세요. 음성 어시스턴트는 Fud AI Plus 또는 Pro 요금제나 본인의 Gemini, OpenAI, xAI API 키로 작동합니다."
+            "value": "말로 식사를 기록하고, 음식과 바코드를 스캔하고, 진행 상황을 물어보세요. 음성 어시스턴트는 Fud AI Plus 또는 Pro 요금제나 본인의 Gemini, OpenAI, xAI, Qwen API 키로 작동합니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Praat om maaltijden te loggen, eten en barcodes te scannen en naar je voortgang te vragen. De spraakassistent werkt met een Fud AI Plus- of Pro-abonnement, of met je eigen API-sleutel van Gemini, OpenAI of xAI."
+            "value": "Praat om maaltijden te loggen, eten en barcodes te scannen en naar je voortgang te vragen. De spraakassistent werkt met een Fud AI Plus- of Pro-abonnement, of met je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Mów, aby zapisywać posiłki, skanować jedzenie i kody kreskowe oraz pytać o postępy. Asystent głosowy działa w planie Fud AI Plus lub Pro albo z twoim własnym kluczem API Gemini, OpenAI lub xAI."
+            "value": "Mów, aby zapisywać posiłki, skanować jedzenie i kody kreskowe oraz pytać o postępy. Asystent głosowy działa w planie Fud AI Plus lub Pro albo z twoim własnym kluczem API Gemini, OpenAI, xAI lub Qwen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fale para registrar refeições, escanear alimentos e códigos de barras e perguntar sobre seu progresso. O assistente de voz funciona com um plano Fud AI Plus ou Pro, ou com sua própria chave de API do Gemini, OpenAI ou xAI."
+            "value": "Fale para registrar refeições, escanear alimentos e códigos de barras e perguntar sobre seu progresso. O assistente de voz funciona com um plano Fud AI Plus ou Pro, ou com sua própria chave de API do Gemini, OpenAI, xAI ou Qwen."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vorbește ca să înregistrezi mese, să scanezi alimente și coduri de bare și să întrebi despre progresul tău. Asistentul vocal funcționează cu un plan Fud AI Plus sau Pro ori cu propria ta cheie API Gemini, OpenAI sau xAI."
+            "value": "Vorbește ca să înregistrezi mese, să scanezi alimente și coduri de bare și să întrebi despre progresul tău. Asistentul vocal funcționează cu un plan Fud AI Plus sau Pro ori cu propria ta cheie API Gemini, OpenAI, xAI sau Qwen."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Говорите, чтобы записывать приёмы пищи, сканировать еду и штрихкоды и спрашивать о прогрессе. Голосовой ассистент работает с планом Fud AI Plus или Pro либо с вашим собственным API-ключом Gemini, OpenAI или xAI."
+            "value": "Говорите, чтобы записывать приёмы пищи, сканировать еду и штрихкоды и спрашивать о прогрессе. Голосовой ассистент работает с планом Fud AI Plus или Pro либо с вашим собственным API-ключом Gemini, OpenAI, xAI или Qwen."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Öğün kaydetmek, yiyecek ve barkod taramak ve ilerlemenizi sormak için konuşun. Sesli asistan Fud AI Plus veya Pro planıyla ya da kendi Gemini, OpenAI veya xAI API anahtarınızla çalışır."
+            "value": "Öğün kaydetmek, yiyecek ve barkod taramak ve ilerlemenizi sormak için konuşun. Sesli asistan Fud AI Plus veya Pro planıyla ya da kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızla çalışır."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Говоріть, щоб записувати прийоми їжі, сканувати їжу й штрихкоди та питати про прогрес. Голосовий асистент працює з планом Fud AI Plus або Pro чи з вашим власним API-ключем Gemini, OpenAI або xAI."
+            "value": "Говоріть, щоб записувати прийоми їжі, сканувати їжу й штрихкоди та питати про прогрес. Голосовий асистент працює з планом Fud AI Plus або Pro чи з вашим власним API-ключем Gemini, OpenAI, xAI або Qwen."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "开口即可记录餐食、扫描食物和条形码，并询问你的进展。语音助手需要 Fud AI Plus 或 Pro 订阅，或你自己的 Gemini、OpenAI 或 xAI API 密钥。"
+            "value": "开口即可记录餐食、扫描食物和条形码，并询问你的进展。语音助手需要 Fud AI Plus 或 Pro 订阅，或你自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥。"
           }
         }
       }
     },
-    "Fud AI voice is included with Plus and Pro. Subscribe, or add your own Gemini, OpenAI or xAI API key and choose it in Settings → Voice Assistant.": {
+    "Fud AI voice is included with Plus and Pro. Subscribe, or add your own Gemini, OpenAI, xAI or Qwen API key and choose it in Settings → Voice Assistant.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "صوت Fud AI مضمّن في Plus وPro. اشترك، أو أضف مفتاح API الخاص بك من Gemini أو OpenAI أو xAI واختره في الإعدادات ← المساعد الصوتي."
+            "value": "صوت Fud AI مضمّن في Plus وPro. اشترك، أو أضف مفتاح API الخاص بك من Gemini أو OpenAI أو xAI أو Qwen واختره في الإعدادات ← المساعد الصوتي."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI səsi Plus və Pro planlarına daxildir. Abunə olun və ya öz Gemini, OpenAI ya da xAI API açarınızı əlavə edib Ayarlar → Səsli köməkçi bölməsində seçin."
+            "value": "Fud AI səsi Plus və Pro planlarına daxildir. Abunə olun və ya öz Gemini, OpenAI, xAI ya da Qwen API açarınızı əlavə edib Ayarlar → Səsli köməkçi bölməsində seçin."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hlas Fud AI je součástí plánů Plus a Pro. Předplať si je, nebo přidej vlastní klíč API od Gemini, OpenAI či xAI a vyber ho v Nastavení → Hlasový asistent."
+            "value": "Hlas Fud AI je součástí plánů Plus a Pro. Předplať si je, nebo přidej vlastní klíč API od Gemini, OpenAI, xAI či Qwen a vyber ho v Nastavení → Hlasový asistent."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Sprachfunktion von Fud AI ist in Plus und Pro enthalten. Schließe ein Abo ab oder füge deinen eigenen API-Schlüssel von Gemini, OpenAI oder xAI hinzu und wähle ihn in Einstellungen → Sprachassistent."
+            "value": "Die Sprachfunktion von Fud AI ist in Plus und Pro enthalten. Schließe ein Abo ab oder füge deinen eigenen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu und wähle ihn in Einstellungen → Sprachassistent."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "La voz de Fud AI está incluida en Plus y Pro. Suscríbete, o añade tu propia clave API de Gemini, OpenAI o xAI y elígela en Ajustes → Asistente de voz."
+            "value": "La voz de Fud AI está incluida en Plus y Pro. Suscríbete, o añade tu propia clave API de Gemini, OpenAI, xAI o Qwen y elígela en Ajustes → Asistente de voz."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "La voix Fud AI est incluse avec Plus et Pro. Abonnez-vous, ou ajoutez votre propre clé API Gemini, OpenAI ou xAI et choisissez-la dans Réglages → Assistant vocal."
+            "value": "La voix Fud AI est incluse avec Plus et Pro. Abonnez-vous, ou ajoutez votre propre clé API Gemini, OpenAI, xAI ou Qwen et choisissez-la dans Réglages → Assistant vocal."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI वॉइस Plus और Pro में शामिल है। सदस्यता लें, या अपनी Gemini, OpenAI या xAI API कुंजी जोड़ें और सेटिंग्स → वॉइस असिस्टेंट में उसे चुनें।"
+            "value": "Fud AI वॉइस Plus और Pro में शामिल है। सदस्यता लें, या अपनी Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें और सेटिंग्स → वॉइस असिस्टेंट में उसे चुनें।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "La voce di Fud AI è inclusa in Plus e Pro. Abbonati, oppure aggiungi la tua chiave API di Gemini, OpenAI o xAI e sceglila in Impostazioni → Assistente vocale."
+            "value": "La voce di Fud AI è inclusa in Plus e Pro. Abbonati, oppure aggiungi la tua chiave API di Gemini, OpenAI, xAI o Qwen e sceglila in Impostazioni → Assistente vocale."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AIの音声機能はPlusとProに含まれています。サブスクリプションに登録するか、ご自身のGemini・OpenAI・xAIのAPIキーを追加して「設定」→「音声アシスタント」で選択してください。"
+            "value": "Fud AIの音声機能はPlusとProに含まれています。サブスクリプションに登録するか、ご自身のGemini・OpenAI・xAI・QwenのAPIキーを追加して「設定」→「音声アシスタント」で選択してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI 음성은 Plus와 Pro에 포함되어 있습니다. 구독하거나, 본인의 Gemini, OpenAI, xAI API 키를 추가한 뒤 설정 → 음성 어시스턴트에서 선택하세요."
+            "value": "Fud AI 음성은 Plus와 Pro에 포함되어 있습니다. 구독하거나, 본인의 Gemini, OpenAI, xAI, Qwen API 키를 추가한 뒤 설정 → 음성 어시스턴트에서 선택하세요."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI-spraak zit bij Plus en Pro. Neem een abonnement, of voeg je eigen API-sleutel van Gemini, OpenAI of xAI toe en kies hem in Instellingen → Spraakassistent."
+            "value": "Fud AI-spraak zit bij Plus en Pro. Neem een abonnement, of voeg je eigen API-sleutel van Gemini, OpenAI, xAI of Qwen toe en kies hem in Instellingen → Spraakassistent."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Głos Fud AI jest dostępny w planach Plus i Pro. Wykup subskrypcję albo dodaj własny klucz API Gemini, OpenAI lub xAI i wybierz go w Ustawienia → Asystent głosowy."
+            "value": "Głos Fud AI jest dostępny w planach Plus i Pro. Wykup subskrypcję albo dodaj własny klucz API Gemini, OpenAI, xAI lub Qwen i wybierz go w Ustawienia → Asystent głosowy."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "A voz do Fud AI está incluída no Plus e no Pro. Assine, ou adicione sua própria chave de API do Gemini, OpenAI ou xAI e escolha-a em Ajustes → Assistente de voz."
+            "value": "A voz do Fud AI está incluída no Plus e no Pro. Assine, ou adicione sua própria chave de API do Gemini, OpenAI, xAI ou Qwen e escolha-a em Ajustes → Assistente de voz."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Vocea Fud AI este inclusă în Plus și Pro. Abonează-te sau adaugă-ți propria cheie API Gemini, OpenAI sau xAI și alege-o în Setări → Asistent vocal."
+            "value": "Vocea Fud AI este inclusă în Plus și Pro. Abonează-te sau adaugă-ți propria cheie API Gemini, OpenAI, xAI sau Qwen și alege-o în Setări → Asistent vocal."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Голосовой режим Fud AI входит в планы Plus и Pro. Оформите подписку или добавьте свой API-ключ Gemini, OpenAI или xAI и выберите его в разделе «Настройки» → «Голосовой ассистент»."
+            "value": "Голосовой режим Fud AI входит в планы Plus и Pro. Оформите подписку или добавьте свой API-ключ Gemini, OpenAI, xAI или Qwen и выберите его в разделе «Настройки» → «Голосовой ассистент»."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI sesi Plus ve Pro planlarına dahildir. Abone olun ya da kendi Gemini, OpenAI veya xAI API anahtarınızı ekleyip Ayarlar → Sesli Asistan bölümünden seçin."
+            "value": "Fud AI sesi Plus ve Pro planlarına dahildir. Abone olun ya da kendi Gemini, OpenAI, xAI veya Qwen API anahtarınızı ekleyip Ayarlar → Sesli Asistan bölümünden seçin."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Голосовий режим Fud AI входить до планів Plus і Pro. Оформіть підписку або додайте власний API-ключ Gemini, OpenAI чи xAI і виберіть його в розділі «Налаштування» → «Голосовий асистент»."
+            "value": "Голосовий режим Fud AI входить до планів Plus і Pro. Оформіть підписку або додайте власний API-ключ Gemini, OpenAI, xAI чи Qwen і виберіть його в розділі «Налаштування» → «Голосовий асистент»."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Fud AI 语音包含在 Plus 和 Pro 订阅中。你可以订阅，或添加自己的 Gemini、OpenAI 或 xAI API 密钥，并在“设置 → 语音助手”中选择它。"
+            "value": "Fud AI 语音包含在 Plus 和 Pro 订阅中。你可以订阅，或添加自己的 Gemini、OpenAI、xAI 或 Qwen API 密钥，并在“设置 → 语音助手”中选择它。"
           }
         }
       }
@@ -166894,114 +166894,114 @@
         }
       }
     },
-    "Your plan's voice minutes for this month are used up. Buy credits to keep talking (4 credits a minute), or use your own Gemini, OpenAI or xAI key.": {
+    "Your plan's voice minutes for this month are used up. Buy credits to keep talking (4 credits a minute), or use your own Gemini, OpenAI, xAI or Qwen key.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "استُهلكت دقائق الصوت في خطتك لهذا الشهر. اشترِ أرصدة لمواصلة الحديث (4 أرصدة للدقيقة)، أو استخدم مفتاحك الخاص من Gemini أو OpenAI أو xAI."
+            "value": "استُهلكت دقائق الصوت في خطتك لهذا الشهر. اشترِ أرصدة لمواصلة الحديث (4 أرصدة للدقيقة)، أو استخدم مفتاحك الخاص من Gemini أو OpenAI أو xAI أو Qwen."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Planınızın bu ay üçün səs dəqiqələri bitib. Danışmağa davam etmək üçün kredit alın (dəqiqəsi 4 kredit) və ya öz Gemini, OpenAI ya da xAI açarınızdan istifadə edin."
+            "value": "Planınızın bu ay üçün səs dəqiqələri bitib. Danışmağa davam etmək üçün kredit alın (dəqiqəsi 4 kredit) və ya öz Gemini, OpenAI, xAI ya da Qwen açarınızdan istifadə edin."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hlasové minuty tvého plánu na tento měsíc jsou vyčerpané. Kup si kredity a mluv dál (4 kredity za minutu), nebo použij vlastní klíč od Gemini, OpenAI či xAI."
+            "value": "Hlasové minuty tvého plánu na tento měsíc jsou vyčerpané. Kup si kredity a mluv dál (4 kredity za minutu), nebo použij vlastní klíč od Gemini, OpenAI, xAI či Qwen."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Die Sprachminuten deines Abos für diesen Monat sind aufgebraucht. Kauf Credits, um weiterzusprechen (4 Credits pro Minute), oder nutze deinen eigenen Schlüssel von Gemini, OpenAI oder xAI."
+            "value": "Die Sprachminuten deines Abos für diesen Monat sind aufgebraucht. Kauf Credits, um weiterzusprechen (4 Credits pro Minute), oder nutze deinen eigenen Schlüssel von Gemini, OpenAI, xAI oder Qwen."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ya usaste los minutos de voz de tu plan este mes. Compra créditos para seguir hablando (4 créditos por minuto) o usa tu propia clave de Gemini, OpenAI o xAI."
+            "value": "Ya usaste los minutos de voz de tu plan este mes. Compra créditos para seguir hablando (4 créditos por minuto) o usa tu propia clave de Gemini, OpenAI, xAI o Qwen."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Les minutes vocales de votre forfait sont épuisées pour ce mois. Achetez des crédits pour continuer à parler (4 crédits par minute), ou utilisez votre propre clé Gemini, OpenAI ou xAI."
+            "value": "Les minutes vocales de votre forfait sont épuisées pour ce mois. Achetez des crédits pour continuer à parler (4 crédits par minute), ou utilisez votre propre clé Gemini, OpenAI, xAI ou Qwen."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "इस महीने आपके प्लान के वॉइस मिनट खत्म हो गए हैं। बात जारी रखने के लिए क्रेडिट खरीदें (प्रति मिनट 4 क्रेडिट), या अपनी Gemini, OpenAI या xAI कुंजी इस्तेमाल करें।"
+            "value": "इस महीने आपके प्लान के वॉइस मिनट खत्म हो गए हैं। बात जारी रखने के लिए क्रेडिट खरीदें (प्रति मिनट 4 क्रेडिट), या अपनी Gemini, OpenAI, xAI या Qwen कुंजी इस्तेमाल करें।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Hai esaurito i minuti vocali del tuo piano per questo mese. Acquista crediti per continuare a parlare (4 crediti al minuto) o usa la tua chiave di Gemini, OpenAI o xAI."
+            "value": "Hai esaurito i minuti vocali del tuo piano per questo mese. Acquista crediti per continuare a parlare (4 crediti al minuto) o usa la tua chiave di Gemini, OpenAI, xAI o Qwen."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "今月のプランの音声時間を使い切りました。会話を続けるにはクレジットを購入するか（1分あたり4クレジット）、ご自身のGemini・OpenAI・xAIのキーを使用してください。"
+            "value": "今月のプランの音声時間を使い切りました。会話を続けるにはクレジットを購入するか（1分あたり4クレジット）、ご自身のGemini・OpenAI・xAI・Qwenのキーを使用してください。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "이번 달 요금제의 음성 시간을 모두 사용했습니다. 계속 대화하려면 크레딧을 구매하거나(1분당 4크레딧) 본인의 Gemini, OpenAI, xAI 키를 사용하세요."
+            "value": "이번 달 요금제의 음성 시간을 모두 사용했습니다. 계속 대화하려면 크레딧을 구매하거나(1분당 4크레딧) 본인의 Gemini, OpenAI, xAI, Qwen 키를 사용하세요."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "De spraakminuten van je abonnement voor deze maand zijn op. Koop credits om door te praten (4 credits per minuut), of gebruik je eigen sleutel van Gemini, OpenAI of xAI."
+            "value": "De spraakminuten van je abonnement voor deze maand zijn op. Koop credits om door te praten (4 credits per minuut), of gebruik je eigen sleutel van Gemini, OpenAI, xAI of Qwen."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Minuty głosowe twojego planu na ten miesiąc się wyczerpały. Kup kredyty, aby rozmawiać dalej (4 kredyty za minutę), albo użyj własnego klucza Gemini, OpenAI lub xAI."
+            "value": "Minuty głosowe twojego planu na ten miesiąc się wyczerpały. Kup kredyty, aby rozmawiać dalej (4 kredyty za minutę), albo użyj własnego klucza Gemini, OpenAI, xAI lub Qwen."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Os minutos de voz do seu plano acabaram este mês. Compre créditos para continuar falando (4 créditos por minuto) ou use sua própria chave do Gemini, OpenAI ou xAI."
+            "value": "Os minutos de voz do seu plano acabaram este mês. Compre créditos para continuar falando (4 créditos por minuto) ou use sua própria chave do Gemini, OpenAI, xAI ou Qwen."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Minutele vocale ale planului tău pentru luna aceasta s-au terminat. Cumpără credite ca să vorbești în continuare (4 credite pe minut) sau folosește-ți propria cheie Gemini, OpenAI ori xAI."
+            "value": "Minutele vocale ale planului tău pentru luna aceasta s-au terminat. Cumpără credite ca să vorbești în continuare (4 credite pe minut) sau folosește-ți propria cheie Gemini, OpenAI, xAI ori Qwen."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Голосовые минуты вашего плана на этот месяц израсходованы. Купите кредиты, чтобы продолжить (4 кредита в минуту), или используйте свой ключ Gemini, OpenAI или xAI."
+            "value": "Голосовые минуты вашего плана на этот месяц израсходованы. Купите кредиты, чтобы продолжить (4 кредита в минуту), или используйте свой ключ Gemini, OpenAI, xAI или Qwen."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Planınızın bu ayki ses dakikaları bitti. Konuşmaya devam etmek için kredi satın alın (dakikada 4 kredi) ya da kendi Gemini, OpenAI veya xAI anahtarınızı kullanın."
+            "value": "Planınızın bu ayki ses dakikaları bitti. Konuşmaya devam etmek için kredi satın alın (dakikada 4 kredi) ya da kendi Gemini, OpenAI, xAI veya Qwen anahtarınızı kullanın."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Голосові хвилини вашого плану на цей місяць вичерпано. Придбайте кредити, щоб продовжити (4 кредити за хвилину), або використайте власний ключ Gemini, OpenAI чи xAI."
+            "value": "Голосові хвилини вашого плану на цей місяць вичерпано. Придбайте кредити, щоб продовжити (4 кредити за хвилину), або використайте власний ключ Gemini, OpenAI, xAI чи Qwen."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "本月订阅方案的语音时长已用完。购买点数即可继续对话（每分钟 4 点），或使用你自己的 Gemini、OpenAI 或 xAI 密钥。"
+            "value": "本月订阅方案的语音时长已用完。购买点数即可继续对话（每分钟 4 点），或使用你自己的 Gemini、OpenAI、xAI 或 Qwen 密钥。"
           }
         }
       }
@@ -167342,114 +167342,114 @@
         }
       }
     },
-    "Automatic uses the provider selected in AI Providers when it's Gemini, OpenAI or xAI and its key is saved; otherwise Fud AI with a Plus or Pro plan. Own keys are the ones saved in AI Providers.": {
+    "Automatic uses the provider selected in AI Providers when it's Gemini, OpenAI, xAI or Qwen and its key is saved; otherwise Fud AI with a Plus or Pro plan. Own keys are the ones saved in AI Providers.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "يستخدم الخيار التلقائي المزوّد المحدد في موفري الذكاء الاصطناعي إذا كان Gemini أو OpenAI أو xAI ومفتاحه محفوظ؛ وإلا فيستخدم Fud AI مع خطة Plus أو Pro. المفاتيح الخاصة هي تلك المحفوظة في موفري الذكاء الاصطناعي."
+            "value": "يستخدم الخيار التلقائي المزوّد المحدد في موفري الذكاء الاصطناعي إذا كان Gemini أو OpenAI أو xAI أو Qwen ومفتاحه محفوظ؛ وإلا فيستخدم Fud AI مع خطة Plus أو Pro. المفاتيح الخاصة هي تلك المحفوظة في موفري الذكاء الاصطناعي."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Avtomatik rejim Süni İntellekt Təminatçılarında seçilmiş təminatçını istifadə edir, əgər o Gemini, OpenAI və ya xAI-dırsa və açarı saxlanıbsa; əks halda Plus və ya Pro planı ilə Fud AI istifadə olunur. Öz açarlarınız Süni İntellekt Təminatçılarında saxlanmış açarlardır."
+            "value": "Avtomatik rejim Süni İntellekt Təminatçılarında seçilmiş təminatçını istifadə edir, əgər o Gemini, OpenAI, xAI və ya Qwen-dirsə və açarı saxlanıbsa; əks halda Plus və ya Pro planı ilə Fud AI istifadə olunur. Öz açarlarınız Süni İntellekt Təminatçılarında saxlanmış açarlardır."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automaticky používá poskytovatele vybraného v Poskytovatelích AI, pokud je to Gemini, OpenAI nebo xAI a má uložený klíč; jinak Fud AI s plánem Plus nebo Pro. Vlastní klíče jsou ty uložené v Poskytovatelích AI."
+            "value": "Automaticky používá poskytovatele vybraného v Poskytovatelích AI, pokud je to Gemini, OpenAI, xAI nebo Qwen a má uložený klíč; jinak Fud AI s plánem Plus nebo Pro. Vlastní klíče jsou ty uložené v Poskytovatelích AI."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatisch nutzt den in KI-Anbieter gewählten Anbieter, wenn es Gemini, OpenAI oder xAI ist und sein Schlüssel gespeichert ist; sonst Fud AI mit einem Plus- oder Pro-Abo. Eigene Schlüssel sind die in KI-Anbieter gespeicherten."
+            "value": "Automatisch nutzt den in KI-Anbieter gewählten Anbieter, wenn es Gemini, OpenAI, xAI oder Qwen ist und sein Schlüssel gespeichert ist; sonst Fud AI mit einem Plus- oder Pro-Abo. Eigene Schlüssel sind die in KI-Anbieter gespeicherten."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automático usa el proveedor elegido en Proveedores de IA si es Gemini, OpenAI o xAI y su clave está guardada; si no, Fud AI con un plan Plus o Pro. Las claves propias son las guardadas en Proveedores de IA."
+            "value": "Automático usa el proveedor elegido en Proveedores de IA si es Gemini, OpenAI, xAI o Qwen y su clave está guardada; si no, Fud AI con un plan Plus o Pro. Las claves propias son las guardadas en Proveedores de IA."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatique utilise le fournisseur choisi dans Fournisseurs d’IA s’il s’agit de Gemini, OpenAI ou xAI et que sa clé est enregistrée ; sinon Fud AI avec un forfait Plus ou Pro. Vos propres clés sont celles enregistrées dans Fournisseurs d’IA."
+            "value": "Automatique utilise le fournisseur choisi dans Fournisseurs d’IA s’il s’agit de Gemini, OpenAI, xAI ou Qwen et que sa clé est enregistrée ; sinon Fud AI avec un forfait Plus ou Pro. Vos propres clés sont celles enregistrées dans Fournisseurs d’IA."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "स्वचालित, AI प्रदाता में चुने गए प्रदाता का उपयोग करता है जब वह Gemini, OpenAI या xAI हो और उसकी कुंजी सहेजी गई हो; वरना Plus या Pro प्लान के साथ Fud AI। आपकी अपनी कुंजियाँ वही हैं जो AI प्रदाता में सहेजी गई हैं।"
+            "value": "स्वचालित, AI प्रदाता में चुने गए प्रदाता का उपयोग करता है जब वह Gemini, OpenAI, xAI या Qwen हो और उसकी कुंजी सहेजी गई हो; वरना Plus या Pro प्लान के साथ Fud AI। आपकी अपनी कुंजियाँ वही हैं जो AI प्रदाता में सहेजी गई हैं।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatico usa il provider scelto in Provider IA se è Gemini, OpenAI o xAI e la sua chiave è salvata; altrimenti Fud AI con un piano Plus o Pro. Le chiavi personali sono quelle salvate in Provider IA."
+            "value": "Automatico usa il provider scelto in Provider IA se è Gemini, OpenAI, xAI o Qwen e la sua chiave è salvata; altrimenti Fud AI con un piano Plus o Pro. Le chiavi personali sono quelle salvate in Provider IA."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "「自動」は、AIプロバイダーで選択中のプロバイダーがGemini・OpenAI・xAIのいずれかでキーが保存されていればそれを使い、そうでなければPlusまたはProプランのFud AIを使います。自分のキーとはAIプロバイダーに保存したキーのことです。"
+            "value": "「自動」は、AIプロバイダーで選択中のプロバイダーがGemini・OpenAI・xAI・Qwenのいずれかでキーが保存されていればそれを使い、そうでなければPlusまたはProプランのFud AIを使います。自分のキーとはAIプロバイダーに保存したキーのことです。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "자동은 AI 제공업체에서 선택한 제공업체가 Gemini, OpenAI, xAI 중 하나이고 키가 저장되어 있으면 그것을 사용하고, 그렇지 않으면 Plus 또는 Pro 요금제의 Fud AI를 사용합니다. 본인 키는 AI 제공업체에 저장된 키입니다."
+            "value": "자동은 AI 제공업체에서 선택한 제공업체가 Gemini, OpenAI, xAI, Qwen 중 하나이고 키가 저장되어 있으면 그것을 사용하고, 그렇지 않으면 Plus 또는 Pro 요금제의 Fud AI를 사용합니다. 본인 키는 AI 제공업체에 저장된 키입니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automatisch gebruikt de provider die bij AI-providers is gekozen als dat Gemini, OpenAI of xAI is en de sleutel is bewaard; anders Fud AI met een Plus- of Pro-abonnement. Eigen sleutels zijn de sleutels die bij AI-providers zijn bewaard."
+            "value": "Automatisch gebruikt de provider die bij AI-providers is gekozen als dat Gemini, OpenAI, xAI of Qwen is en de sleutel is bewaard; anders Fud AI met een Plus- of Pro-abonnement. Eigen sleutels zijn de sleutels die bij AI-providers zijn bewaard."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Tryb automatyczny używa dostawcy wybranego w Dostawcach AI, jeśli to Gemini, OpenAI lub xAI i ma zapisany klucz; w przeciwnym razie Fud AI z planem Plus lub Pro. Własne klucze to te zapisane w Dostawcach AI."
+            "value": "Tryb automatyczny używa dostawcy wybranego w Dostawcach AI, jeśli to Gemini, OpenAI, xAI lub Qwen i ma zapisany klucz; w przeciwnym razie Fud AI z planem Plus lub Pro. Własne klucze to te zapisane w Dostawcach AI."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automático usa o provedor escolhido em Provedores de IA quando é Gemini, OpenAI ou xAI e a chave está salva; caso contrário, o Fud AI com um plano Plus ou Pro. As chaves próprias são as salvas em Provedores de IA."
+            "value": "Automático usa o provedor escolhido em Provedores de IA quando é Gemini, OpenAI, xAI ou Qwen e a chave está salva; caso contrário, o Fud AI com um plano Plus ou Pro. As chaves próprias são as salvas em Provedores de IA."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Automat folosește furnizorul ales în Furnizori AI dacă este Gemini, OpenAI sau xAI și are cheia salvată; altfel, Fud AI cu un plan Plus sau Pro. Cheile proprii sunt cele salvate în Furnizori AI."
+            "value": "Automat folosește furnizorul ales în Furnizori AI dacă este Gemini, OpenAI, xAI sau Qwen și are cheia salvată; altfel, Fud AI cu un plan Plus sau Pro. Cheile proprii sunt cele salvate în Furnizori AI."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "В автоматическом режиме используется провайдер, выбранный в разделе «Провайдеры ИИ», если это Gemini, OpenAI или xAI и его ключ сохранён; иначе — Fud AI с планом Plus или Pro. Собственные ключи — это ключи, сохранённые в разделе «Провайдеры ИИ»."
+            "value": "В автоматическом режиме используется провайдер, выбранный в разделе «Провайдеры ИИ», если это Gemini, OpenAI, xAI или Qwen и его ключ сохранён; иначе — Fud AI с планом Plus или Pro. Собственные ключи — это ключи, сохранённые в разделе «Провайдеры ИИ»."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Otomatik, Yapay Zekâ Sağlayıcıları’nda seçili sağlayıcı Gemini, OpenAI veya xAI ise ve anahtarı kayıtlıysa onu kullanır; değilse Plus veya Pro planıyla Fud AI’ı kullanır. Kendi anahtarlarınız Yapay Zekâ Sağlayıcıları’nda kayıtlı olanlardır."
+            "value": "Otomatik, Yapay Zekâ Sağlayıcıları’nda seçili sağlayıcı Gemini, OpenAI, xAI veya Qwen ise ve anahtarı kayıtlıysa onu kullanır; değilse Plus veya Pro planıyla Fud AI’ı kullanır. Kendi anahtarlarınız Yapay Zekâ Sağlayıcıları’nda kayıtlı olanlardır."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "В автоматичному режимі використовується провайдер, вибраний у розділі «Провайдери ШІ», якщо це Gemini, OpenAI або xAI і його ключ збережено; інакше — Fud AI з планом Plus або Pro. Власні ключі — це ключі, збережені в розділі «Провайдери ШІ»."
+            "value": "В автоматичному режимі використовується провайдер, вибраний у розділі «Провайдери ШІ», якщо це Gemini, OpenAI, xAI або Qwen і його ключ збережено; інакше — Fud AI з планом Plus або Pro. Власні ключі — це ключі, збережені в розділі «Провайдери ШІ»."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "“自动”会在 AI 提供商中所选的提供商为 Gemini、OpenAI 或 xAI 且已保存密钥时使用它；否则使用 Plus 或 Pro 订阅的 Fud AI。自己的密钥即保存在 AI 提供商中的密钥。"
+            "value": "“自动”会在 AI 提供商中所选的提供商为 Gemini、OpenAI、xAI 或 Qwen 且已保存密钥时使用它；否则使用 Plus 或 Pro 订阅的 Fud AI。自己的密钥即保存在 AI 提供商中的密钥。"
           }
         }
       }
@@ -167902,114 +167902,114 @@
         }
       }
     },
-    "Subscribe to Plus or Pro, or add a Gemini, OpenAI or xAI API key": {
+    "Subscribe to Plus or Pro, or add a Gemini, OpenAI, xAI or Qwen API key": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "اشترك في Plus أو Pro، أو أضف مفتاح API من Gemini أو OpenAI أو xAI"
+            "value": "اشترك في Plus أو Pro، أو أضف مفتاح API من Gemini أو OpenAI أو xAI أو Qwen"
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus və ya Pro-ya abunə olun, ya da Gemini, OpenAI və ya xAI API açarı əlavə edin"
+            "value": "Plus və ya Pro-ya abunə olun, ya da Gemini, OpenAI, xAI və ya Qwen API açarı əlavə edin"
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Předplať si Plus nebo Pro, nebo přidej klíč API od Gemini, OpenAI či xAI"
+            "value": "Předplať si Plus nebo Pro, nebo přidej klíč API od Gemini, OpenAI, xAI či Qwen"
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Schließe Plus oder Pro ab oder füge einen API-Schlüssel von Gemini, OpenAI oder xAI hinzu"
+            "value": "Schließe Plus oder Pro ab oder füge einen API-Schlüssel von Gemini, OpenAI, xAI oder Qwen hinzu"
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Suscríbete a Plus o Pro, o añade una clave API de Gemini, OpenAI o xAI"
+            "value": "Suscríbete a Plus o Pro, o añade una clave API de Gemini, OpenAI, xAI o Qwen"
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abonnez-vous à Plus ou Pro, ou ajoutez une clé API Gemini, OpenAI ou xAI"
+            "value": "Abonnez-vous à Plus ou Pro, ou ajoutez une clé API Gemini, OpenAI, xAI ou Qwen"
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus या Pro की सदस्यता लें, या Gemini, OpenAI या xAI API कुंजी जोड़ें"
+            "value": "Plus या Pro की सदस्यता लें, या Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abbonati a Plus o Pro, oppure aggiungi una chiave API di Gemini, OpenAI o xAI"
+            "value": "Abbonati a Plus o Pro, oppure aggiungi una chiave API di Gemini, OpenAI, xAI o Qwen"
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "PlusかProに登録するか、Gemini・OpenAI・xAIのAPIキーを追加してください"
+            "value": "PlusかProに登録するか、Gemini・OpenAI・xAI・QwenのAPIキーを追加してください"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus나 Pro를 구독하거나 Gemini, OpenAI, xAI API 키를 추가하세요"
+            "value": "Plus나 Pro를 구독하거나 Gemini, OpenAI, xAI, Qwen API 키를 추가하세요"
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Neem Plus of Pro, of voeg een API-sleutel van Gemini, OpenAI of xAI toe"
+            "value": "Neem Plus of Pro, of voeg een API-sleutel van Gemini, OpenAI, xAI of Qwen toe"
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Wykup Plus lub Pro albo dodaj klucz API Gemini, OpenAI lub xAI"
+            "value": "Wykup Plus lub Pro albo dodaj klucz API Gemini, OpenAI, xAI lub Qwen"
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Assine o Plus ou o Pro, ou adicione uma chave de API do Gemini, OpenAI ou xAI"
+            "value": "Assine o Plus ou o Pro, ou adicione uma chave de API do Gemini, OpenAI, xAI ou Qwen"
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Abonează-te la Plus sau Pro ori adaugă o cheie API Gemini, OpenAI sau xAI"
+            "value": "Abonează-te la Plus sau Pro ori adaugă o cheie API Gemini, OpenAI, xAI sau Qwen"
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Оформите Plus или Pro либо добавьте API-ключ Gemini, OpenAI или xAI"
+            "value": "Оформите Plus или Pro либо добавьте API-ключ Gemini, OpenAI, xAI или Qwen"
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Plus veya Pro’ya abone olun ya da bir Gemini, OpenAI veya xAI API anahtarı ekleyin"
+            "value": "Plus veya Pro’ya abone olun ya da bir Gemini, OpenAI, xAI veya Qwen API anahtarı ekleyin"
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Оформіть Plus або Pro чи додайте API-ключ Gemini, OpenAI або xAI"
+            "value": "Оформіть Plus або Pro чи додайте API-ключ Gemini, OpenAI, xAI або Qwen"
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "订阅 Plus 或 Pro，或添加 Gemini、OpenAI 或 xAI API 密钥"
+            "value": "订阅 Plus 或 Pro，或添加 Gemini、OpenAI、xAI 或 Qwen API 密钥"
           }
         }
       }
@@ -168798,114 +168798,114 @@
         }
       }
     },
-    "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.": {
+    "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.": {
       "localizations": {
         "ar": {
           "stringUnit": {
             "state": "translated",
-            "value": "عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها."
+            "value": "عندما تكون الكاميرا مفتوحة، يلتقط المساعد الصورة فور رؤية الطعام. يرى Gemini وQwen وFud AI الكاميرا باستمرار، ويراها OpenAI في كل مرة تتحدث فيها، ولا يستطيع xAI رؤيتها."
           }
         },
         "az": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir."
+            "value": "Kamera açıq olanda köməkçi qidanı görən kimi şəkli çəkir. Gemini, Qwen və Fud AI kameranı daim görür; OpenAI hər dəfə danışanda; xAI isə onu görə bilmir."
           }
         },
         "cs": {
           "stringUnit": {
             "state": "translated",
-            "value": "Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ji nevidí."
+            "value": "Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini, Qwen a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ji nevidí."
           }
         },
         "de": {
           "stringUnit": {
             "state": "translated",
-            "value": "Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI gar nicht."
+            "value": "Ist die Kamera offen, macht der Assistent das Foto, sobald er das Essen sieht. Gemini, Qwen und Fud AI sehen die Kamera durchgehend, OpenAI bei jedem Sprechen, xAI gar nicht."
           }
         },
         "es": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con la cámara abierta, el asistente hace la foto en cuanto ve la comida. Gemini y Fud AI ven la cámara de forma continua; OpenAI, cada vez que hablas; xAI no puede verla."
+            "value": "Con la cámara abierta, el asistente hace la foto en cuanto ve la comida. Gemini, Qwen y Fud AI ven la cámara de forma continua; OpenAI, cada vez que hablas; xAI no puede verla."
           }
         },
         "fr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas."
+            "value": "Quand l’appareil photo est ouvert, l’assistant prend la photo dès qu’il voit le plat. Gemini, Qwen et Fud AI voient la caméra en continu, OpenAI à chaque fois que vous parlez, et xAI ne la voit pas."
           }
         },
         "hi": {
           "stringUnit": {
             "state": "translated",
-            "value": "कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI इसे नहीं देख सकता।"
+            "value": "कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini, Qwen और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI इसे नहीं देख सकता।"
           }
         },
         "it": {
           "stringUnit": {
             "state": "translated",
-            "value": "Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI non può vederla."
+            "value": "Con la fotocamera aperta, l’assistente scatta la foto appena vede il cibo. Gemini, Qwen e Fud AI vedono la fotocamera di continuo, OpenAI ogni volta che parli, xAI non può vederla."
           }
         },
         "ja": {
           "stringUnit": {
             "state": "translated",
-            "value": "カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。GeminiとFud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。"
+            "value": "カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。"
           }
         },
         "ko": {
           "stringUnit": {
             "state": "translated",
-            "value": "카메라가 열려 있으면 어시스턴트가 음식을 보는 즉시 사진을 찍습니다. Gemini와 Fud AI는 카메라를 계속 보고, OpenAI는 말할 때마다 보며, xAI는 볼 수 없습니다."
+            "value": "카메라가 열려 있으면 어시스턴트가 음식을 보는 즉시 사진을 찍습니다. Gemini, Qwen, Fud AI는 카메라를 계속 보고, OpenAI는 말할 때마다 보며, xAI는 볼 수 없습니다."
           }
         },
         "nl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien."
+            "value": "Als de camera open is, maakt de assistent de foto zodra hij het eten ziet. Gemini, Qwen en Fud AI zien de camera doorlopend, OpenAI telkens als je praat, xAI kan hem niet zien."
           }
         },
         "pl": {
           "stringUnit": {
             "state": "translated",
-            "value": "Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI go nie widzi."
+            "value": "Gdy aparat jest otwarty, asystent robi zdjęcie, gdy tylko zobaczy jedzenie. Gemini, Qwen i Fud AI widzą obraz z aparatu stale, OpenAI za każdym razem, gdy mówisz, a xAI go nie widzi."
           }
         },
         "pt-BR": {
           "stringUnit": {
             "state": "translated",
-            "value": "Com a câmera aberta, o assistente tira a foto assim que vê a comida. O Gemini e o Fud AI veem a câmera continuamente; o OpenAI, a cada vez que você fala; o xAI não consegue ver."
+            "value": "Com a câmera aberta, o assistente tira a foto assim que vê a comida. O Gemini, o Qwen e o Fud AI veem a câmera continuamente; o OpenAI, a cada vez que você fala; o xAI não consegue ver."
           }
         },
         "ro": {
           "stringUnit": {
             "state": "translated",
-            "value": "Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI nu o poate vedea."
+            "value": "Când camera este deschisă, asistentul face fotografia imediat ce vede mâncarea. Gemini, Qwen și Fud AI văd camera continuu, OpenAI de fiecare dată când vorbești, iar xAI nu o poate vedea."
           }
         },
         "ru": {
           "stringUnit": {
             "state": "translated",
-            "value": "Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит."
+            "value": "Когда камера открыта, ассистент делает снимок, как только видит еду. Gemini, Qwen и Fud AI видят камеру постоянно, OpenAI — каждый раз, когда вы говорите, а xAI её не видит."
           }
         },
         "tr": {
           "stringUnit": {
             "state": "translated",
-            "value": "Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez."
+            "value": "Kamera açıkken asistan yiyeceği görür görmez fotoğrafı çeker. Gemini, Qwen ve Fud AI kamerayı sürekli görür; OpenAI her konuştuğunuzda görür; xAI ise göremez."
           }
         },
         "uk": {
           "stringUnit": {
             "state": "translated",
-            "value": "Коли камеру відкрито, асистент робить знімок, щойно бачить їжу. Gemini і Fud AI бачать камеру постійно, OpenAI — щоразу, коли ви говорите, а xAI її не бачить."
+            "value": "Коли камеру відкрито, асистент робить знімок, щойно бачить їжу. Gemini, Qwen і Fud AI бачать камеру постійно, OpenAI — щоразу, коли ви говорите, а xAI її не бачить."
           }
         },
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "相机打开时，助手一看到食物就会拍照。Gemini 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 看不到。"
+            "value": "相机打开时，助手一看到食物就会拍照。Gemini、Qwen 和 Fud AI 会持续看到相机画面；OpenAI 在你每次说话时看到；xAI 看不到。"
           }
         }
       }

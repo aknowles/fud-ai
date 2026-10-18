@@ -154,6 +154,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (локально)</string>
     <string name="ai_provider_custom">Пользовательский (OpenAI-совместимый)</string>
@@ -171,6 +172,7 @@
     <string name="ai_key_placeholder_deepinfra">Вставьте ключ API DeepInfra</string>
     <string name="ai_key_placeholder_mistral">Вставьте ключ API Mistral</string>
     <string name="ai_key_placeholder_deepseek">Вставьте ключ API DeepSeek</string>
+    <string name="ai_key_placeholder_qwen">Вставьте ключ API Qwen</string>
     <string name="ai_key_placeholder_cerebras">Вставьте ключ API Cerebras</string>
     <string name="ai_key_placeholder_ollama">Ключ не нужен</string>
     <string name="ai_key_placeholder_custom">Ключ API (или что угодно, если эндпоинт его не требует)</string>

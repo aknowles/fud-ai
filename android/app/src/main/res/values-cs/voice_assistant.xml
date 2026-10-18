@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">Konec</string>
@@ -81,13 +82,13 @@
     <string name="voice_action_voice_settings">Hlasový asistent</string>
     <string name="voice_action_open_settings">Otevřít Nastavení</string>
     <string name="voice_notice_setup_title">Hlasový asistent</string>
-    <string name="voice_notice_setup_body">Mluv a zapisuj jídla, skenuj jídlo i čárové kódy a ptej se na svůj pokrok. Hlasový asistent běží s plánem Fud AI Plus nebo Pro, nebo s tvým vlastním klíčem API od Gemini, OpenAI či xAI.</string>
+    <string name="voice_notice_setup_body">Mluv a zapisuj jídla, skenuj jídlo i čárové kódy a ptej se na svůj pokrok. Hlasový asistent běží s plánem Fud AI Plus nebo Pro, nebo s tvým vlastním klíčem API od Gemini, OpenAI, xAI či Qwen.</string>
     <string name="voice_notice_missing_key_title">Přidejte klíč pro %1$s</string>
     <string name="voice_notice_missing_key_body">Hlasový asistent používá %1$s, což vyžaduje váš klíč API. Přidejte ho v části Poskytovatelé AI nebo zvolte jiného poskytovatele v nastavení hlasového asistenta.</string>
     <string name="voice_notice_subscription_title">Hlas Fud AI vyžaduje plán Plus nebo Pro</string>
-    <string name="voice_notice_subscription_body">Hlasové konverzace hostované službou Fud AI jsou součástí plánů Plus (20 minut měsíčně) a Pro (100 minut měsíčně). Můžete také použít vlastní klíč Gemini, OpenAI nebo xAI.</string>
+    <string name="voice_notice_subscription_body">Hlasové konverzace hostované službou Fud AI jsou součástí plánů Plus (20 minut měsíčně) a Pro (100 minut měsíčně). Můžete také použít vlastní klíč Gemini, OpenAI, xAI nebo Qwen.</string>
     <string name="voice_notice_minutes_title">Došly ti hlasové minuty</string>
-    <string name="voice_notice_minutes_body">Hlasové minuty tvého plánu na tento měsíc jsou vyčerpané. Kup si kredity a mluv dál (4 kredity za minutu), nebo použij vlastní klíč od Gemini, OpenAI či xAI.</string>
+    <string name="voice_notice_minutes_body">Hlasové minuty tvého plánu na tento měsíc jsou vyčerpané. Kup si kredity a mluv dál (4 kredity za minutu), nebo použij vlastní klíč od Gemini, OpenAI, xAI či Qwen.</string>
     <string name="voice_notice_limit_title">Byl dosažen limit konverzace</string>
     <string name="voice_notice_limit_body">Tahle konverzace dosáhla limitu 15 minut. Pokračuj tím, že začneš novou.</string>
     <string name="voice_notice_mic_title">Je potřeba přístup k mikrofonu</string>
@@ -119,10 +120,10 @@
     <string name="voice_settings_add_key">Přidejte klíč pro %1$s v části Poskytovatelé AI</string>
     <string name="voice_settings_key_missing">Není uložen klíč API pro %1$s</string>
     <string name="voice_settings_needs_plan">Hlas Fud AI vyžaduje plán Plus nebo Pro</string>
-    <string name="voice_settings_needs_setup">Předplať si Plus nebo Pro, nebo přidej klíč API od Gemini, OpenAI či xAI</string>
-    <string name="voice_settings_automatic_footer">Automaticky používá poskytovatele vybraného v Poskytovatelích AI, pokud je to Gemini, OpenAI nebo xAI a má uložený klíč; jinak Fud AI s plánem Plus nebo Pro. Vlastní klíče jsou ty uložené v Poskytovatelích AI.</string>
+    <string name="voice_settings_needs_setup">Předplať si Plus nebo Pro, nebo přidej klíč API od Gemini, OpenAI, xAI či Qwen</string>
+    <string name="voice_settings_automatic_footer">Automaticky používá poskytovatele vybraného v Poskytovatelích AI, pokud je to Gemini, OpenAI, xAI nebo Qwen a má uložený klíč; jinak Fud AI s plánem Plus nebo Pro. Vlastní klíče jsou ty uložené v Poskytovatelích AI.</string>
     <string name="voice_settings_auto_capture">Automatické focení</string>
-    <string name="voice_settings_auto_capture_footer">Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ji nevidí.</string>
+    <string name="voice_settings_auto_capture_footer">Když je kamera otevřená, asistent vyfotí jídlo, jakmile ho uvidí. Gemini, Qwen a Fud AI vidí kameru nepřetržitě, OpenAI pokaždé, když mluvíš, a xAI ji nevidí.</string>
     <string name="voice_settings_confirm_saves">Potvrzení před uložením</string>
     <string name="voice_settings_confirm_saves_footer">Zobrazí kartu pro schválení každého záznamu nebo změny. Když je tato volba vypnutá, změny se uloží ihned a po dobu 8 sekund je můžete vrátit zpět.</string>
     <string name="voice_settings_save_to_coach">Ukládat konverzace do Kouče</string>

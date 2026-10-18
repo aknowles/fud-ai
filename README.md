@@ -112,7 +112,7 @@ Fud AI is a Udyam-registered micro enterprise in India, operating as a sole prop
 
 ## AI Providers
 
-Pick any of the **13 LLM providers** for food analysis, meal what-if suggestions, optional nutrient-goal estimation, and Coach chat. Free Gemini keys are available at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Requests go directly from your device to the provider you configure. For text, voice-transcribed, and Siri food descriptions on supported iPhones, Apple Intelligence can run on-device only as the last fallback after BYOK provider/fallback attempts fail.
+Pick any of the **16 LLM providers** for food analysis, meal what-if suggestions, optional nutrient-goal estimation, and Coach chat. Free Gemini keys are available at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Requests go directly from your device to the provider you configure. For text, voice-transcribed, and Siri food descriptions on supported iPhones, Apple Intelligence can run on-device only as the last fallback after BYOK provider/fallback attempts fail.
 
 | Provider | Format | Highlight | Needs API Key |
 |----------|--------|-----------|:---:|
@@ -127,6 +127,9 @@ Pick any of the **13 LLM providers** for food analysis, meal what-if suggestions
 | Fireworks AI | OpenAI-compatible | Qwen 3.7 Plus, MiniMax M3, Kimi K2.6 | Yes |
 | DeepInfra | OpenAI-compatible | Gemma 4 / 3 vision models | Yes |
 | Mistral | OpenAI-compatible | Mistral Small / Medium, Ministral 14B | Yes |
+| DeepSeek | OpenAI-compatible | DeepSeek V4 Flash / Pro (text only) | Yes |
+| Alibaba Qwen | OpenAI-compatible | Qwen 3.7 Plus / 3.8 Max / 3-VL Plus; also Qwen live voice | Yes |
+| Cerebras | OpenAI-compatible | gpt-oss-120b, Gemma 4 (text only) | Yes |
 | Ollama | OpenAI-compatible (local) | Qwen 3 VL, Gemma 4, Llama 3.2 Vision, LLaVA, Moondream | No |
 | Custom (OpenAI-compatible) | OpenAI-compatible | You set base URL + free-form model name | Optional |
 

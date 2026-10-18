@@ -205,6 +205,60 @@ struct VoiceAssistantWireTests {
 
     // MARK: xAI
 
+    // MARK: Qwen
+
+    @Test func qwenKeepsTheKeyInAHeaderAndSeesTheCamera() throws {
+        let wire = QwenRealtimeWire()
+        let request = wire.request(for: Self.config(.qwen))
+        #expect(request.value(forHTTPHeaderField: "Authorization") == "Bearer secret-key")
+        #expect(request.url?.host == "dashscope-intl.aliyuncs.com")
+        #expect(request.url?.path == "/api-ws/v1/realtime")
+        #expect(request.url?.query == "model=qwen3.8-omni-flash-realtime")
+        #expect(!(request.url?.absoluteString.contains("secret-key") ?? true))
+        #expect(wire.inputSampleRate == 16_000)
+        #expect(wire.outputSampleRate == 24_000)
+
+        let messages = try wire.setupMessages(for: Self.config(.qwen), resumptionHandle: nil).map(Self.json)
+        #expect(messages.count == 3)
+        let session = try #require(messages[0]["session"] as? [String: Any])
+        #expect(session["voice"] as? String == "Tina")
+        #expect(session["instructions"] as? String == "Be brief.")
+        #expect(session["input_audio_format"] as? String == "pcm")
+        #expect(session["modalities"] as? [String] == ["text", "audio"])
+        // Tools go alone, so a rejection can't drop the voice settings.
+        let tools = try #require((messages[1]["session"] as? [String: Any])?["tools"] as? [[String: Any]])
+        #expect(tools.map { $0["name"] as? String } == ["log_water", "get_app_state"])
+        let transcription = (messages[2]["session"] as? [String: Any])?["input_audio_transcription"] as? [String: Any]
+        #expect(transcription?["model"] as? String == "qwen3-asr-flash-realtime")
+
+        // Qwen takes images only after some audio.
+        #expect(wire.imageMessages(Data([1, 2, 3])).isEmpty)
+        _ = wire.audioMessage(Data([0, 1]))
+        let image = try Self.json(try #require(wire.imageMessages(Data([1, 2, 3])).first))
+        #expect(image["type"] as? String == "input_image_buffer.append")
+        #expect(image["image"] as? String == Data([1, 2, 3]).base64EncodedString())
+        #expect(wire.imageMessages(Data(count: QwenRealtimeWire.maxImageBytes + 1)).isEmpty)
+        #expect(LiveProvider.qwen.cameraFrames == .continuous)
+
+        let output = try Self.json(try #require(wire.toolResponseMessages([
+            LiveToolResponse(id: "call_1", name: "log_water", outputJSON: #"{"ok":true}"#),
+        ]).first))
+        let item = try #require(output["item"] as? [String: Any])
+        #expect(item["type"] as? String == "function_call_output")
+        #expect(item["call_id"] as? String == "call_1")
+        #expect(wire.needsResponseCreate)
+        #expect(wire.truncateMessage(itemID: "item-1", audioEndMs: 10) == nil)
+
+        #expect(wire.parse(#"{"type":"response.created","response":{"id":"r1"}}"#) == [.responseStarted])
+        #expect(wire.parse(#"{"type":"response.function_call_arguments.done","response_id":"r1","call_id":"call_2","name":"log_water","arguments":"{\"amount\":250,\"unit\":\"ml\"}"}"#).isEmpty)
+        #expect(wire.parse(#"{"type":"response.done","response":{"id":"r1","status":"completed"}}"#) == [
+            .toolCalls([LiveToolCall(id: "call_2", name: "log_water", argumentsJSON: #"{"amount":250,"unit":"ml"}"#)]),
+            .responseDone(hasToolCalls: true),
+        ])
+        let audio = wire.parse(#"{"type":"response.audio.delta","delta":"AAE="}"#)
+        #expect(audio == [.audio(Data([0, 1]), itemID: nil)])
+    }
+
     @Test func xaiDeclaresToolsAndTakesNoImages() throws {
         let wire = XAIVoiceWire()
         let request = wire.request(for: Self.config(.xai))
@@ -333,7 +387,7 @@ struct VoiceAssistantWireTests {
         session.close()
     }
 
-    @Test(arguments: [LiveProvider.openai, .xai])
+    @Test(arguments: [LiveProvider.openai, .xai, .qwen])
     func realtimeSessionsWaitForConfigurationBeforeSendingMicrophoneAudio(_ provider: LiveProvider) async throws {
         let socket = FakeLiveSocket()
         let events = EventRecorder()

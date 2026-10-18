@@ -355,6 +355,64 @@ class LiveWireTest {
         )
     }
 
+    // MARK: - Qwen
+
+    @Test
+    fun qwenKeepsTheKeyInAHeaderAndSendsToolsSeparately() {
+        val wire = QwenRealtimeWire()
+        val request = wire.request(config(LiveProvider.QWEN))
+        assertEquals("dashscope-intl.aliyuncs.com", request.url.host)
+        assertEquals("/api-ws/v1/realtime", request.url.encodedPath)
+        assertEquals("qwen3.8-omni-flash-realtime", request.url.queryParameter("model"))
+        assertEquals("Bearer test-key", request.header("Authorization"))
+        assertFalse(request.url.toString().contains("test-key"))
+        assertEquals(16_000, wire.inputSampleRate)
+        assertEquals(24_000, wire.outputSampleRate)
+
+        val messages = wire.setupMessages(config(LiveProvider.QWEN), null).map(::json)
+        assertEquals(3, messages.size)
+        val session = messages[0]["session"]!!.jsonObject
+        assertEquals("Tina", session["voice"]!!.jsonPrimitive.content)
+        assertEquals("pcm", session["input_audio_format"]!!.jsonPrimitive.content)
+        assertEquals(listOf("text", "audio"), session["modalities"]!!.jsonArray.map { it.jsonPrimitive.content })
+        assertEquals("semantic_vad", session["turn_detection"]!!.jsonObject["type"]!!.jsonPrimitive.content)
+        assertFalse(session.containsKey("tools"))
+        assertEquals(tools.size, messages[1]["session"]!!.jsonObject["tools"]!!.jsonArray.size)
+        assertEquals(
+            "qwen3-asr-flash-realtime",
+            messages[2]["session"]!!.jsonObject["input_audio_transcription"]!!.jsonObject["model"]!!.jsonPrimitive.content
+        )
+    }
+
+    @Test
+    fun qwenSeesTheCameraAndReadsCallsAndAudioTranscripts() {
+        val wire = QwenRealtimeWire()
+        // Qwen takes images only after some audio.
+        assertTrue(wire.imageMessages(byteArrayOf(1, 2, 3)).isEmpty())
+        wire.audioMessage(byteArrayOf(0, 1))
+        val image = json(wire.imageMessages(byteArrayOf(1, 2, 3)).single())
+        assertEquals("input_image_buffer.append", image["type"]!!.jsonPrimitive.content)
+        assertEquals(b64(byteArrayOf(1, 2, 3)), image["image"]!!.jsonPrimitive.content)
+        assertTrue(wire.imageMessages(ByteArray(QwenRealtimeWire.MAX_IMAGE_BYTES + 1)).isEmpty())
+        assertNull(wire.truncateMessage("i1", 100))
+        assertTrue(wire.toolOutputsNeedResponseCreate)
+
+        wire.parse("""{"type":"response.created","response":{"id":"r1"}}""")
+        wire.parse(
+            """{"type":"response.function_call_arguments.done","response_id":"r1","item_id":"i1","call_id":"q1","name":"log_water","arguments":"{\"amount\":250,\"unit\":\"ml\"}"}"""
+        )
+        val events = wire.parse("""{"type":"response.done","response":{"id":"r1","status":"completed"}}""")
+        val call = (events[0] as LiveEvent.ToolCalls).calls.single()
+        assertEquals("log_water", call.name)
+        assertEquals("250", call.arguments["amount"]!!.jsonPrimitive.content)
+        // Audio transcripts are the captions; text deltas would double them.
+        assertTrue(wire.parse("""{"type":"response.text.delta","delta":"Hi"}""").isEmpty())
+        assertEquals(
+            listOf(LiveEvent.AssistantText("Hi")),
+            wire.parse("""{"type":"response.audio_transcript.delta","delta":"Hi"}""")
+        )
+    }
+
     @Test
     fun wiresUseTheContractSampleRates() {
         assertEquals(16_000, GeminiLiveWire().inputSampleRate)
@@ -371,7 +429,7 @@ class LiveWireTest {
 
     @Test
     fun realtimeProvidersAcknowledgeTheSessionConfiguration() {
-        listOf(OpenAIRealtimeWire(), XAIVoiceWire()).forEach { wire ->
+        listOf(OpenAIRealtimeWire(), XAIVoiceWire(), QwenRealtimeWire()).forEach { wire ->
             assertTrue(wire.parse("""{"type":"session.created","session":{}}""").isEmpty())
             assertEquals(listOf(LiveEvent.Ready), wire.parse("""{"type":"session.updated","session":{}}"""))
         }

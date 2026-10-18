@@ -751,9 +751,9 @@ private struct VoiceAssistantAccessContent: View {
     private var message: String {
         switch reason {
         case .noProvider:
-            String(localized: "Talk to log meals, scan food and barcodes, and ask about your progress. The voice assistant runs on a Fud AI Plus or Pro plan, or on your own Gemini, OpenAI or xAI API key.")
+            String(localized: "Talk to log meals, scan food and barcodes, and ask about your progress. The voice assistant runs on a Fud AI Plus or Pro plan, or on your own Gemini, OpenAI, xAI or Qwen API key.")
         case .needsSubscription:
-            String(localized: "Fud AI voice is included with Plus and Pro. Subscribe, or add your own Gemini, OpenAI or xAI API key and choose it in Settings → Voice Assistant.")
+            String(localized: "Fud AI voice is included with Plus and Pro. Subscribe, or add your own Gemini, OpenAI, xAI or Qwen API key and choose it in Settings → Voice Assistant.")
         case .missingKey(let provider):
             String(localized: "Add your \(provider.displayName) API key in AI settings to talk through \(provider.displayName), or subscribe to Plus or Pro to use Fud AI voice.")
         }
@@ -770,7 +770,7 @@ private struct VoiceAssistantOutOfMinutesContent: View {
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
-                Text("Your plan's voice minutes for this month are used up. Buy credits to keep talking (4 credits a minute), or use your own Gemini, OpenAI or xAI key.")
+                Text("Your plan's voice minutes for this month are used up. Buy credits to keep talking (4 credits a minute), or use your own Gemini, OpenAI, xAI or Qwen key.")
                     .font(.system(.callout, design: .rounded))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

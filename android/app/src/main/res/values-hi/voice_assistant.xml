@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">समाप्त हुआ</string>
@@ -79,13 +80,13 @@
     <string name="voice_action_voice_settings">वॉइस असिस्टेंट</string>
     <string name="voice_action_open_settings">सेटिंग्स खोलें</string>
     <string name="voice_notice_setup_title">वॉइस असिस्टेंट</string>
-    <string name="voice_notice_setup_body">बोलकर भोजन लॉग करें, खाना और बारकोड स्कैन करें और अपनी प्रगति के बारे में पूछें। वॉइस असिस्टेंट Fud AI Plus या Pro प्लान पर, या आपकी अपनी Gemini, OpenAI या xAI API कुंजी पर चलता है।</string>
+    <string name="voice_notice_setup_body">बोलकर भोजन लॉग करें, खाना और बारकोड स्कैन करें और अपनी प्रगति के बारे में पूछें। वॉइस असिस्टेंट Fud AI Plus या Pro प्लान पर, या आपकी अपनी Gemini, OpenAI, xAI या Qwen API कुंजी पर चलता है।</string>
     <string name="voice_notice_missing_key_title">अपनी %1$s कुंजी जोड़ें</string>
     <string name="voice_notice_missing_key_body">वॉइस असिस्टेंट %1$s पर सेट है, जिसके लिए आपकी API कुंजी चाहिए। इसे AI प्रदाता में जोड़ें या वॉइस असिस्टेंट की सेटिंग में कोई दूसरा प्रदाता चुनें।</string>
     <string name="voice_notice_subscription_title">Fud AI वॉइस के लिए Plus या Pro प्लान चाहिए</string>
-    <string name="voice_notice_subscription_body">Fud AI की होस्ट की गई वॉइस सेवा Plus (महीने में 20 मिनट) और Pro (महीने में 100 मिनट) में शामिल है। आप अपनी Gemini, OpenAI या xAI कुंजी भी इस्तेमाल कर सकते हैं।</string>
+    <string name="voice_notice_subscription_body">Fud AI की होस्ट की गई वॉइस सेवा Plus (महीने में 20 मिनट) और Pro (महीने में 100 मिनट) में शामिल है। आप अपनी Gemini, OpenAI, xAI या Qwen कुंजी भी इस्तेमाल कर सकते हैं।</string>
     <string name="voice_notice_minutes_title">आपके वॉइस मिनट खत्म हो गए हैं</string>
-    <string name="voice_notice_minutes_body">इस महीने आपके प्लान के वॉइस मिनट खत्म हो गए हैं। बात जारी रखने के लिए क्रेडिट खरीदें (प्रति मिनट 4 क्रेडिट), या अपनी Gemini, OpenAI या xAI कुंजी इस्तेमाल करें।</string>
+    <string name="voice_notice_minutes_body">इस महीने आपके प्लान के वॉइस मिनट खत्म हो गए हैं। बात जारी रखने के लिए क्रेडिट खरीदें (प्रति मिनट 4 क्रेडिट), या अपनी Gemini, OpenAI, xAI या Qwen कुंजी इस्तेमाल करें।</string>
     <string name="voice_notice_limit_title">बातचीत की सीमा पूरी हो गई</string>
     <string name="voice_notice_limit_body">यह बातचीत 15 मिनट की सीमा तक पहुँच गई। जारी रखने के लिए नई बातचीत शुरू करें।</string>
     <string name="voice_notice_mic_title">माइक्रोफ़ोन की अनुमति चाहिए</string>
@@ -117,10 +118,10 @@
     <string name="voice_settings_add_key">AI प्रदाता में अपनी %1$s कुंजी जोड़ें</string>
     <string name="voice_settings_key_missing">कोई %1$s API कुंजी सहेजी नहीं गई</string>
     <string name="voice_settings_needs_plan">Fud AI वॉइस के लिए Plus या Pro प्लान चाहिए</string>
-    <string name="voice_settings_needs_setup">Plus या Pro की सदस्यता लें, या Gemini, OpenAI या xAI API कुंजी जोड़ें</string>
-    <string name="voice_settings_automatic_footer">स्वचालित, AI प्रदाता में चुने गए प्रदाता का उपयोग करता है जब वह Gemini, OpenAI या xAI हो और उसकी कुंजी सहेजी गई हो; वरना Plus या Pro प्लान के साथ Fud AI। आपकी अपनी कुंजियाँ वही हैं जो AI प्रदाता में सहेजी गई हैं।</string>
+    <string name="voice_settings_needs_setup">Plus या Pro की सदस्यता लें, या Gemini, OpenAI, xAI या Qwen API कुंजी जोड़ें</string>
+    <string name="voice_settings_automatic_footer">स्वचालित, AI प्रदाता में चुने गए प्रदाता का उपयोग करता है जब वह Gemini, OpenAI, xAI या Qwen हो और उसकी कुंजी सहेजी गई हो; वरना Plus या Pro प्लान के साथ Fud AI। आपकी अपनी कुंजियाँ वही हैं जो AI प्रदाता में सहेजी गई हैं।</string>
     <string name="voice_settings_auto_capture">फ़ोटो अपने-आप लेना</string>
-    <string name="voice_settings_auto_capture_footer">कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI इसे नहीं देख सकता।</string>
+    <string name="voice_settings_auto_capture_footer">कैमरा खुला होने पर असिस्टेंट खाना दिखते ही फ़ोटो ले लेता है। Gemini, Qwen और Fud AI कैमरा लगातार देखते हैं; OpenAI हर बार जब आप बोलते हैं; xAI इसे नहीं देख सकता।</string>
     <string name="voice_settings_confirm_saves">सहेजने से पहले पुष्टि</string>
     <string name="voice_settings_confirm_saves_footer">हर लॉग या बदलाव की मंज़ूरी के लिए एक कार्ड दिखाएँ। इसे बंद करने पर बदलाव तुरंत सेव होते हैं और 8 सेकंड तक वापस किए जा सकते हैं।</string>
     <string name="voice_settings_save_to_coach">बातचीत कोच में सहेजें</string>

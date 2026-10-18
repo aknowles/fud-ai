@@ -23,29 +23,34 @@ Worker (`web/`). Change it here first, then on every platform.
 | Gemini (own key) | Gemini Live WebSocket, key in `x-goog-api-key` header | User |
 | OpenAI (own key) | Realtime WebSocket, `Authorization: Bearer` | User |
 | xAI (own key) | Grok Voice realtime WebSocket, `Authorization: Bearer` | User |
+| Qwen (own key) | Qwen Omni Realtime WebSocket (`wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime`, international region), `Authorization: Bearer` | User |
 
 Settings offer **Automatic** (default): the selected own-key provider when its key
 is saved, otherwise Fud AI hosting when subscribed, otherwise an explanation of
-both options (subscribe, or add a Gemini/OpenAI/xAI key). Own keys reuse the
+both options (subscribe, or add a Gemini/OpenAI/xAI/Qwen key). Own keys reuse the
 keys already saved in AI provider settings; nothing new is stored.
 
 Built-in models (first is the default): Gemini `gemini-3.8-live`,
 `gemini-3.1-flash-live-preview`; OpenAI `gpt-realtime-2.1-mini`,
-`gpt-realtime-2.1`; xAI `grok-voice-latest`, `grok-voice-3.0`. Hosted sessions
+`gpt-realtime-2.1`; xAI `grok-voice-latest`, `grok-voice-3.0`; Qwen
+`qwen3.8-omni-flash-realtime`. Hosted sessions
 always use the Worker's model.
 
 Voices: Gemini Kore (default), Puck, Charon, Fenrir, Aoede, Leda, Orus, Zephyr,
 Sulafat, Achird, Despina, Gacrux; OpenAI marin (default), cedar, coral, sage,
-shimmer, ash, ballad, alloy, echo, verse; xAI ara (default), eve, rex, sal, leo.
+shimmer, ash, ballad, alloy, echo, verse; xAI ara (default), eve, rex, sal, leo;
+Qwen Tina (default), Cindy, Raymond, Katerina, Ryan, Mia, Jennifer, Aiden, Sohee,
+Lenn.
 
-Camera frames the model can see: Gemini and hosted `continuous` (one JPEG per
-second while the camera is open, ≤ 768 px long side); OpenAI `per_turn` (the
+Camera frames the model can see: Gemini, Qwen and hosted `continuous` (one JPEG
+per second while the camera is open, ≤ 768 px long side; Qwen drops frames over
+256 KB and takes them with `input_image_buffer.append` after audio has started); OpenAI `per_turn` (the
 latest frame with each user turn and before capture decisions); xAI `none`
 (the model asks the user to say when the food is in frame).
 
 ## Session
 
-- Audio: 16-bit mono PCM. Gemini/hosted: 16 kHz in, 24 kHz out. OpenAI/xAI:
+- Audio: 16-bit mono PCM. Gemini/hosted/Qwen: 16 kHz in, 24 kHz out. OpenAI/xAI:
   24 kHz both ways. Echo cancellation on (iOS voice processing, Android
   `VOICE_COMMUNICATION` + `AcousticEchoCanceler`). Speaking over the assistant
   stops its playback (OpenAI also gets `conversation.item.truncate`).
@@ -56,13 +61,16 @@ latest frame with each user turn and before capture decisions); xAI `none`
   as UTF-8 JSON.
 - Gemini sends `toolCall.functionCalls[{id,name,args}]` and accepts
   `toolResponse.functionResponses[{id,name,response}]`; it may send
-  `toolCallCancellation.ids`. OpenAI/xAI send
+  `toolCallCancellation.ids`. OpenAI/xAI/Qwen send
   `response.function_call_arguments.done {call_id,name,arguments}` and accept
   `conversation.item.create {type: function_call_output, call_id, output}`
   followed by `response.create`.
 - Tools are declared at setup: Gemini `tools: [{functionDeclarations}]`;
-  OpenAI/xAI `session.tools: [{type: "function", name, description,
-  parameters}]` with `tool_choice: "auto"`. The declared set is `tools.json`
+  OpenAI/xAI/Qwen `session.tools: [{type: "function", name, description,
+  parameters}]`, with `tool_choice: "auto"` for OpenAI/xAI. Qwen's tools go
+  in a second `session.update` and its input transcription
+  (`qwen3-asr-flash-realtime`) in a third; Qwen reads only audio-transcript
+  deltas as captions and drops camera frames until audio has been sent. The declared set is `tools.json`
   plus the Coach data tools; tools marked `"workout": true` and the Coach
   workout tools are left out when the workout diary is turned off.
 

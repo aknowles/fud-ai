@@ -157,6 +157,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_local_gemma">Gemma 4 E2B (Cihaz Üzerinde)</string>
     <string name="ai_provider_ollama">Ollama (Yerel)</string>
@@ -175,6 +176,7 @@
     <string name="ai_key_placeholder_deepinfra">…</string>
     <string name="ai_key_placeholder_mistral">…</string>
     <string name="ai_key_placeholder_deepseek">sk-…</string>
+    <string name="ai_key_placeholder_qwen">sk-…</string>
     <string name="ai_key_placeholder_cerebras">csk-…</string>
     <string name="ai_key_placeholder_local">Anahtar gerekmez</string>
     <string name="ai_key_placeholder_ollama">Anahtar gerekmez</string>

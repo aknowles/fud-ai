@@ -362,6 +362,7 @@ class ChatService(
                     put("tools", toolsArr)
                     put("tool_choice", "auto")
                     put(OpenAICompatibleClient.tokenLimitParameter(provider, model), maxTokens)
+                    OpenAICompatibleClient.applyProviderOptions(this, provider)
                     OpenAICompatibleClient.toolReasoningEffort(provider, model)?.let {
                         put("reasoning_effort", it)
                     }

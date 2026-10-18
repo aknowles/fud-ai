@@ -19,6 +19,7 @@ enum class AIProvider {
     @SerialName("DeepInfra") DEEP_INFRA,
     @SerialName("Mistral") MISTRAL,
     @SerialName("DeepSeek") DEEPSEEK,
+    @SerialName("Alibaba Qwen") QWEN,
     @SerialName("Cerebras") CEREBRAS,
     @SerialName("Gemma 4 E2B (On-Device)") LOCAL_GEMMA,
     @SerialName("Ollama (Local)") OLLAMA,
@@ -38,6 +39,7 @@ enum class AIProvider {
         DEEP_INFRA -> R.string.ai_provider_deepinfra
         MISTRAL -> R.string.ai_provider_mistral
         DEEPSEEK -> R.string.ai_provider_deepseek
+        QWEN -> R.string.ai_provider_qwen
         CEREBRAS -> R.string.ai_provider_cerebras
         LOCAL_GEMMA -> R.string.ai_provider_local_gemma
         OLLAMA -> R.string.ai_provider_ollama
@@ -57,6 +59,8 @@ enum class AIProvider {
         DEEP_INFRA -> "https://api.deepinfra.com/v1/openai"
         MISTRAL -> "https://api.mistral.ai/v1"
         DEEPSEEK -> "https://api.deepseek.com"
+        // Model Studio's public international (Singapore) endpoint.
+        QWEN -> "https://dashscope-intl.aliyuncs.com/compatible-mode/v1"
         CEREBRAS -> "https://api.cerebras.ai/v1"
         LOCAL_GEMMA -> ""
         OLLAMA -> "http://localhost:11434/v1"
@@ -151,6 +155,11 @@ enum class AIProvider {
             "mistral-large-2512",
             "ministral-14b-2512"
         )
+        QWEN -> listOf(
+            "qwen3.7-plus",
+            "qwen3.8-max",
+            "qwen3-vl-plus"
+        )
         LOCAL_GEMMA -> listOf("gemma-4-E2B-it")
         OLLAMA -> listOf(
             "qwen3-vl",
@@ -189,6 +198,7 @@ enum class AIProvider {
             "deepseek-ai/DeepSeek-V4-Pro"
         )
         DEEPSEEK -> listOf("deepseek-v4-flash", "deepseek-v4-pro")
+        QWEN -> listOf("qwen3.8-flash", "qwen3.7-plus", "qwen3.8-max")
         CEREBRAS -> listOf("gpt-oss-120b", "gemma-4-31b")
         OLLAMA -> listOf("qwen3.8", "gemma4", "llama3.2", "qwen3", "mistral-small3.2") + models
         CUSTOM_OPENAI -> emptyList()
@@ -230,7 +240,7 @@ enum class AIProvider {
         ANTHROPIC -> ApiFormat.ANTHROPIC
         LOCAL_GEMMA -> ApiFormat.LOCAL
         OPENAI, XAI, OPENROUTER, TOGETHER_AI, GROQ, HUGGING_FACE,
-        FIREWORKS, DEEP_INFRA, MISTRAL, DEEPSEEK, CEREBRAS, OLLAMA, CUSTOM_OPENAI -> ApiFormat.OPENAI_COMPATIBLE
+        FIREWORKS, DEEP_INFRA, MISTRAL, DEEPSEEK, QWEN, CEREBRAS, OLLAMA, CUSTOM_OPENAI -> ApiFormat.OPENAI_COMPATIBLE
     }
 
     /** Short name used in “Paste X API key” hints (not the full picker label). */
@@ -247,6 +257,7 @@ enum class AIProvider {
         DEEP_INFRA -> "DeepInfra"
         MISTRAL -> "Mistral"
         DEEPSEEK -> "DeepSeek"
+        QWEN -> "Qwen"
         CEREBRAS -> "Cerebras"
         CUSTOM_OPENAI -> "API"
         LOCAL_GEMMA, OLLAMA -> "API"
@@ -266,6 +277,7 @@ enum class AIProvider {
         DEEP_INFRA -> R.string.ai_key_placeholder_deepinfra
         MISTRAL -> R.string.ai_key_placeholder_mistral
         DEEPSEEK -> R.string.ai_key_placeholder_deepseek
+        QWEN -> R.string.ai_key_placeholder_qwen
         CEREBRAS -> R.string.ai_key_placeholder_cerebras
         LOCAL_GEMMA -> R.string.ai_key_placeholder_local
         OLLAMA -> R.string.ai_key_placeholder_ollama

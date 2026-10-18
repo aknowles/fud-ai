@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (ローカル)</string>
     <string name="ai_provider_custom">カスタム (OpenAI互換)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">DeepInfra APIキーを貼り付け</string>
     <string name="ai_key_placeholder_mistral">Mistral APIキーを貼り付け</string>
     <string name="ai_key_placeholder_deepseek">DeepSeek APIキーを貼り付け</string>
+    <string name="ai_key_placeholder_qwen">Qwen APIキーを貼り付け</string>
     <string name="ai_key_placeholder_cerebras">Cerebras APIキーを貼り付け</string>
     <string name="ai_key_placeholder_ollama">キーは不要</string>
     <string name="ai_key_placeholder_custom">APIキー（エンドポイントが不要なら任意の文字列）</string>

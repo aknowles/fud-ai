@@ -70,6 +70,7 @@ object OpenAICompatibleClient {
                         .put("model", model)
                         .put("messages", JSONArray().put(JSONObject().put("role", "user").put("content", content)))
                         .put(tokenLimitParameter(provider, model), maxTokens)
+                    applyProviderOptions(body, provider)
                     if (provider == AIProvider.OPENROUTER) {
                         body.put(
                             "reasoning",
@@ -130,6 +131,7 @@ object OpenAICompatibleClient {
             .put("model", model)
             .put("messages", messages)
             .put(tokenLimitParameter(provider, model), maxTokens)
+        applyProviderOptions(body, provider)
 
         val builder = Request.Builder()
             .url(url)
@@ -146,6 +148,18 @@ object OpenAICompatibleClient {
             throw AiError.Api("The AI response was truncated. Try a shorter question or a different model.")
         }
         return response.text ?: throw AiError.InvalidResponse
+    }
+
+    /**
+     * Qwen's hybrid models think by default, which slows replies and is refused for
+     * non-streaming requests, so their requests turn it off. Mirrors iOS.
+     */
+    fun providerOptions(provider: AIProvider): Map<String, Any> =
+        if (provider == AIProvider.QWEN) mapOf("enable_thinking" to false) else emptyMap()
+
+    fun applyProviderOptions(body: JSONObject, provider: AIProvider): JSONObject {
+        providerOptions(provider).forEach { (key, value) -> body.put(key, value) }
+        return body
     }
 
     fun tokenLimitParameter(provider: AIProvider, model: String): String {

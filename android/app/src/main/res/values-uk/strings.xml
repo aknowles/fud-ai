@@ -157,6 +157,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_local_gemma">Gemma 4 E2B (на пристрої)</string>
     <string name="ai_provider_ollama">Ollama (локально)</string>
@@ -175,6 +176,7 @@
     <string name="ai_key_placeholder_deepinfra">Вставте ключ API DeepInfra</string>
     <string name="ai_key_placeholder_mistral">Вставте ключ API Mistral</string>
     <string name="ai_key_placeholder_deepseek">Вставте ключ API DeepSeek</string>
+    <string name="ai_key_placeholder_qwen">Вставте ключ API Qwen</string>
     <string name="ai_key_placeholder_cerebras">Вставте ключ API Cerebras</string>
     <string name="ai_key_placeholder_local">Ключ API не потрібен</string>
     <string name="ai_key_placeholder_ollama">Ключ не потрібен</string>

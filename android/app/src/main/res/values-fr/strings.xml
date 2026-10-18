@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (Local)</string>
     <string name="ai_provider_custom">Personnalisé (compatible OpenAI)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">Collez la clé API DeepInfra</string>
     <string name="ai_key_placeholder_mistral">Collez la clé API Mistral</string>
     <string name="ai_key_placeholder_deepseek">Collez la clé API DeepSeek</string>
+    <string name="ai_key_placeholder_qwen">Collez la clé API Qwen</string>
     <string name="ai_key_placeholder_cerebras">Collez la clé API Cerebras</string>
     <string name="ai_key_placeholder_ollama">Aucune clé requise</string>
     <string name="ai_key_placeholder_custom">Clé API (ou n\'importe quoi si l\'endpoint n\'en a pas besoin)</string>

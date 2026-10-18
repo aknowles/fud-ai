@@ -13,6 +13,7 @@
     <string name="voice_provider_gemini">Google Gemini</string>
     <string name="voice_provider_openai">OpenAI</string>
     <string name="voice_provider_xai">xAI Grok</string>
+    <string name="voice_provider_qwen">Alibaba Qwen</string>
 
     <!-- Overlay -->
     <string name="voice_status_ended">終了</string>
@@ -78,13 +79,13 @@
     <string name="voice_action_voice_settings">音声アシスタント</string>
     <string name="voice_action_open_settings">設定を開く</string>
     <string name="voice_notice_setup_title">音声アシスタント</string>
-    <string name="voice_notice_setup_body">話しかけるだけで食事を記録し、食べ物やバーコードをスキャンし、進捗について質問できます。音声アシスタントはFud AI PlusまたはProプラン、またはご自身のGemini・OpenAI・xAIのAPIキーで動作します。</string>
+    <string name="voice_notice_setup_body">話しかけるだけで食事を記録し、食べ物やバーコードをスキャンし、進捗について質問できます。音声アシスタントはFud AI PlusまたはProプラン、またはご自身のGemini・OpenAI・xAI・QwenのAPIキーで動作します。</string>
     <string name="voice_notice_missing_key_title">%1$sのキーを追加</string>
     <string name="voice_notice_missing_key_body">音声アシスタントは%1$sに設定されており、APIキーが必要です。「AIプロバイダー」で追加するか、音声アシスタントの設定で別のプロバイダーを選んでください。</string>
     <string name="voice_notice_subscription_title">Fud AIの音声機能にはPlusまたはProプランが必要です</string>
-    <string name="voice_notice_subscription_body">Fud AIが提供する音声機能は、Plus（月20分）とPro（月100分）に含まれます。自分のGemini、OpenAI、xAIのキーも利用できます。</string>
+    <string name="voice_notice_subscription_body">Fud AIが提供する音声機能は、Plus（月20分）とPro（月100分）に含まれます。自分のGemini、OpenAI、xAI、Qwenのキーも利用できます。</string>
     <string name="voice_notice_minutes_title">音声の利用時間がなくなりました</string>
-    <string name="voice_notice_minutes_body">今月のプランの音声時間を使い切りました。会話を続けるにはクレジットを購入するか（1分あたり4クレジット）、ご自身のGemini・OpenAI・xAIのキーを使用してください。</string>
+    <string name="voice_notice_minutes_body">今月のプランの音声時間を使い切りました。会話を続けるにはクレジットを購入するか（1分あたり4クレジット）、ご自身のGemini・OpenAI・xAI・Qwenのキーを使用してください。</string>
     <string name="voice_notice_limit_title">会話の上限に達しました</string>
     <string name="voice_notice_limit_body">この会話は15分の上限に達しました。続けるには新しい会話を始めてください。</string>
     <string name="voice_notice_mic_title">マイクへのアクセスが必要です</string>
@@ -116,10 +117,10 @@
     <string name="voice_settings_add_key">「AIプロバイダー」で%1$sのキーを追加</string>
     <string name="voice_settings_key_missing">%1$sのAPIキーが保存されていません</string>
     <string name="voice_settings_needs_plan">Fud AIの音声機能にはPlusまたはProプランが必要です</string>
-    <string name="voice_settings_needs_setup">PlusかProに登録するか、Gemini・OpenAI・xAIのAPIキーを追加してください</string>
-    <string name="voice_settings_automatic_footer">「自動」は、AIプロバイダーで選択中のプロバイダーがGemini・OpenAI・xAIのいずれかでキーが保存されていればそれを使い、そうでなければPlusまたはProプランのFud AIを使います。自分のキーとはAIプロバイダーに保存したキーのことです。</string>
+    <string name="voice_settings_needs_setup">PlusかProに登録するか、Gemini・OpenAI・xAI・QwenのAPIキーを追加してください</string>
+    <string name="voice_settings_automatic_footer">「自動」は、AIプロバイダーで選択中のプロバイダーがGemini・OpenAI・xAI・Qwenのいずれかでキーが保存されていればそれを使い、そうでなければPlusまたはProプランのFud AIを使います。自分のキーとはAIプロバイダーに保存したキーのことです。</string>
     <string name="voice_settings_auto_capture">写真の自動撮影</string>
-    <string name="voice_settings_auto_capture_footer">カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。GeminiとFud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。</string>
+    <string name="voice_settings_auto_capture_footer">カメラが開いているとき、アシスタントは料理が見えた時点で撮影します。Gemini、Qwen、Fud AIはカメラを常に見ていて、OpenAIは話すたびに見ます。xAIは見ることができません。</string>
     <string name="voice_settings_confirm_saves">保存前の確認</string>
     <string name="voice_settings_confirm_saves_footer">記録や変更のたびに承認用のカードを表示します。オフの場合はすぐに保存され、8秒間は取り消せます。</string>
     <string name="voice_settings_save_to_coach">会話をコーチに保存</string>

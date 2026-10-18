@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama（本地）</string>
     <string name="ai_provider_custom">自定义（兼容 OpenAI）</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">粘贴 DeepInfra API 密钥</string>
     <string name="ai_key_placeholder_mistral">粘贴 Mistral API 密钥</string>
     <string name="ai_key_placeholder_deepseek">粘贴 DeepSeek API 密钥</string>
+    <string name="ai_key_placeholder_qwen">粘贴 Qwen API 密钥</string>
     <string name="ai_key_placeholder_cerebras">粘贴 Cerebras API 密钥</string>
     <string name="ai_key_placeholder_ollama">无需密钥</string>
     <string name="ai_key_placeholder_custom">API 密钥（如端点不需要可填任意内容）</string>

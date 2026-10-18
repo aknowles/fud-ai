@@ -155,6 +155,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_local_gemma">Gemma 4 E2B (On-Device)</string>
     <string name="ai_provider_ollama">Ollama (Local)</string>
@@ -173,6 +174,7 @@
     <string name="ai_key_placeholder_deepinfra">Paste DeepInfra API key</string>
     <string name="ai_key_placeholder_mistral">Paste Mistral API key</string>
     <string name="ai_key_placeholder_deepseek">Paste DeepSeek API key</string>
+    <string name="ai_key_placeholder_qwen">Paste Qwen API key</string>
     <string name="ai_key_placeholder_cerebras">Paste Cerebras API key</string>
     <string name="ai_key_placeholder_local">No key needed</string>
     <string name="ai_key_placeholder_ollama">No key needed</string>

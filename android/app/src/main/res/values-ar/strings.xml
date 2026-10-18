@@ -189,6 +189,7 @@
     <string name="ai_provider_deepinfra">DeepInfra</string>
     <string name="ai_provider_mistral">Mistral</string>
     <string name="ai_provider_deepseek">DeepSeek</string>
+    <string name="ai_provider_qwen">Alibaba Qwen</string>
     <string name="ai_provider_cerebras">Cerebras</string>
     <string name="ai_provider_ollama">Ollama (محلي)</string>
     <string name="ai_provider_custom">مخصص (متوافق مع OpenAI)</string>
@@ -206,6 +207,7 @@
     <string name="ai_key_placeholder_deepinfra">الصق مفتاح DeepInfra API</string>
     <string name="ai_key_placeholder_mistral">الصق مفتاح Mistral API</string>
     <string name="ai_key_placeholder_deepseek">الصق مفتاح DeepSeek API</string>
+    <string name="ai_key_placeholder_qwen">الصق مفتاح Qwen API</string>
     <string name="ai_key_placeholder_cerebras">الصق مفتاح Cerebras API</string>
     <string name="ai_key_placeholder_ollama">لا حاجة لمفتاح</string>
     <string name="ai_key_placeholder_custom">مفتاح API (أو أي شيء إذا لم تكن نقطة النهاية بحاجة إلى مفتاح)</string>

@@ -14,6 +14,8 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
     case gemini
     case openai
     case xai
+    /// Alibaba's Qwen Omni Realtime (Model Studio, international region).
+    case qwen
 
     /// The provider's name for settings and messages.
     var displayName: String {
@@ -22,6 +24,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .gemini: "Gemini"
         case .openai: "OpenAI"
         case .xai: "xAI"
+        case .qwen: "Qwen"
         }
     }
 
@@ -33,6 +36,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .gemini: ["gemini-3.8-live", "gemini-3.1-flash-live-preview"]
         case .openai: ["gpt-realtime-2.1-mini", "gpt-realtime-2.1"]
         case .xai: ["grok-voice-latest", "grok-voice-3.0"]
+        case .qwen: ["qwen3.8-omni-flash-realtime"]
         }
     }
 
@@ -48,6 +52,8 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
             ["marin", "cedar", "coral", "sage", "shimmer", "ash", "ballad", "alloy", "echo", "verse"]
         case .xai:
             ["ara", "eve", "rex", "sal", "leo"]
+        case .qwen:
+            ["Tina", "Cindy", "Raymond", "Katerina", "Ryan", "Mia", "Jennifer", "Aiden", "Sohee", "Lenn"]
         }
     }
 
@@ -56,7 +62,7 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
     /// How camera frames reach the model while the assistant's camera is open.
     var cameraFrames: LiveCameraFrames {
         switch self {
-        case .hosted, .gemini: .continuous
+        case .hosted, .gemini, .qwen: .continuous
         case .openai: .perTurn
         case .xai: .none
         }
@@ -74,13 +80,14 @@ nonisolated enum LiveProvider: String, CaseIterable, Codable, Sendable {
         case .gemini: GeminiLiveWire()
         case .openai: OpenAIRealtimeWire()
         case .xai: XAIVoiceWire()
+        case .qwen: QwenRealtimeWire()
         }
     }
 }
 
 /// How camera frames reach the model (the contract's `camera_frames`).
 nonisolated enum LiveCameraFrames: String, Sendable {
-    /// One JPEG a second while the camera is open (Gemini and hosted).
+    /// One JPEG a second while the camera is open (Gemini, Qwen and hosted).
     case continuous
     /// The latest frame with each user turn (OpenAI).
     case perTurn = "per_turn"
@@ -672,6 +679,108 @@ nonisolated struct XAIVoiceWire: LiveWire {
 
     func parse(_ message: String) -> [LiveEvent] {
         events.parse(message)
+    }
+}
+
+// MARK: - Qwen Omni Realtime
+
+/// Alibaba Model Studio's Qwen Omni Realtime, an OpenAI Realtime dialect: the same
+/// audio, function-call and response events, 16 kHz input, and camera frames
+/// through `input_image_buffer.append`.
+nonisolated struct QwenRealtimeWire: LiveWire {
+    private let events = RealtimeLiveEvents()
+    private let audioGate = QwenAudioGate()
+    let inputSampleRate = 16_000.0
+    let outputSampleRate = 24_000.0
+    let waitsForSetupAcknowledgement = true
+    let needsResponseCreate = true
+
+    /// Qwen refuses camera frames larger than this.
+    static let maxImageBytes = 256 * 1024
+    /// Transcribes what the user says so captions and Coach get the user's words.
+    /// Model Studio fixes this model for Qwen Omni Realtime.
+    static let transcriptionModel = "qwen3-asr-flash-realtime"
+
+    func request(for config: LiveSessionConfig) -> URLRequest {
+        var components = URLComponents(string: "wss://dashscope-intl.aliyuncs.com/api-ws/v1/realtime")!
+        components.queryItems = [URLQueryItem(name: "model", value: config.model)]
+        var request = URLRequest(url: components.url!)
+        request.setValue("Bearer \(config.apiKey)", forHTTPHeaderField: "Authorization")
+        return request
+    }
+
+    func setupMessages(for config: LiveSessionConfig, resumptionHandle: String?) -> [String] {
+        let session: [String: Any] = [
+            "modalities": ["text", "audio"],
+            "voice": config.voice,
+            "instructions": config.instructions,
+            "input_audio_format": "pcm",
+            "output_audio_format": "pcm",
+            "turn_detection": ["type": "semantic_vad"],
+        ]
+        // Tools go in their own update, so a problem with them can't reject the
+        // voice and turn-taking settings.
+        var messages = [LiveJSON.string(["type": "session.update", "session": session])]
+        if !config.tools.isEmpty {
+            messages.append(LiveJSON.string(["type": "session.update", "session": [
+                "tools": config.tools.map(OpenAIRealtimeWire.functionTool),
+            ]]))
+        }
+        // Transcription goes alone too, so a problem with it can't drop the tools.
+        messages.append(LiveJSON.string(["type": "session.update", "session": [
+            "input_audio_transcription": ["model": Self.transcriptionModel],
+        ]]))
+        return messages
+    }
+
+    func audioMessage(_ pcm16: Data) -> String {
+        audioGate.audioSent()
+        return LiveJSON.string(["type": "input_audio_buffer.append", "audio": pcm16.base64EncodedString()])
+    }
+
+    /// Qwen takes images only after some audio and refuses frames over 256 KB;
+    /// both are skipped rather than sent.
+    func imageMessages(_ jpeg: Data) -> [String] {
+        guard audioGate.hasSentAudio, jpeg.count <= Self.maxImageBytes else { return [] }
+        return [LiveJSON.string(["type": "input_image_buffer.append", "image": jpeg.base64EncodedString()])]
+    }
+
+    func contextTextMessages(_ text: String) -> [String] {
+        OpenAIRealtimeWire.userTextItem(text)
+    }
+
+    func toolResponseMessages(_ responses: [LiveToolResponse]) -> [String] {
+        OpenAIRealtimeWire.functionCallOutputs(responses)
+    }
+
+    func responseCreateMessage() -> String? {
+        LiveJSON.string(["type": "response.create"])
+    }
+
+    func truncateMessage(itemID: String, audioEndMs: Int) -> String? {
+        nil
+    }
+
+    /// Audio replies carry their words as audio transcripts; reading only those keeps
+    /// captions from doubling if text deltas arrive too.
+    func parse(_ message: String) -> [LiveEvent] {
+        let type = LiveJSON.object(message)?["type"] as? String
+        if type == "response.text.delta" || type == "response.output_text.delta" { return [] }
+        return events.parse(message)
+    }
+}
+
+/// Whether a Qwen session has sent microphone audio yet; images must come after it.
+nonisolated final class QwenAudioGate: @unchecked Sendable {
+    private let lock = NSLock()
+    private var sent = false
+
+    func audioSent() {
+        lock.withLock { sent = true }
+    }
+
+    var hasSentAudio: Bool {
+        lock.withLock { sent }
     }
 }
 

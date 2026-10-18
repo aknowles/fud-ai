@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.add
 import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
@@ -138,6 +139,7 @@ interface LiveWire {
             LiveProvider.GEMINI -> GeminiLiveWire()
             LiveProvider.OPENAI -> OpenAIRealtimeWire()
             LiveProvider.XAI -> XAIVoiceWire()
+            LiveProvider.QWEN -> QwenRealtimeWire()
         }
     }
 }
@@ -617,6 +619,74 @@ class XAIVoiceWire : OpenAIRealtimeWire() {
     }
 
     override fun imageMessages(jpeg: ByteArray): List<String> = emptyList()
+}
+
+// MARK: - Qwen Omni Realtime
+
+/**
+ * Alibaba Model Studio's Qwen Omni Realtime, an OpenAI Realtime dialect: the same audio,
+ * function-call and response events, 16 kHz input, and camera frames through
+ * `input_image_buffer.append`. Mirrors iOS QwenRealtimeWire.
+ */
+class QwenRealtimeWire : OpenAIRealtimeWire() {
+    override val provider: LiveProvider = LiveProvider.QWEN
+    override val endpoint: String = "https://dashscope-intl.aliyuncs.com/api-ws/v1/realtime"
+
+    // Audio replies carry their words as audio transcripts; reading only those keeps
+    // captions from doubling if text deltas arrive too.
+    override val transcriptDeltaTypes: Set<String> = setOf(
+        "response.output_audio_transcript.delta",
+        "response.audio_transcript.delta"
+    )
+
+    override fun setupMessages(config: LiveSessionConfig, resumptionHandle: String?): List<String> {
+        val session = buildJsonObject {
+            putJsonArray("modalities") { add("text"); add("audio") }
+            put("voice", config.voice)
+            put("instructions", config.instructions)
+            put("input_audio_format", "pcm")
+            put("output_audio_format", "pcm")
+            putJsonObject("turn_detection") { put("type", "semantic_vad") }
+        }
+        // Tools go in their own update, so a problem with them can't reject the voice
+        // and turn-taking settings.
+        val messages = mutableListOf(sessionUpdate(session))
+        if (config.tools.isNotEmpty()) {
+            messages += sessionUpdate(buildJsonObject { put("tools", VoiceToolCatalog.realtimeTools(config.tools)) })
+        }
+        // Transcription goes alone too, so a problem with it can't drop the tools.
+        messages += sessionUpdate(buildJsonObject {
+            putJsonObject("input_audio_transcription") { put("model", TRANSCRIPTION_MODEL) }
+        })
+        return messages
+    }
+
+    @Volatile
+    private var hasSentAudio = false
+
+    override fun audioMessage(pcm16: ByteArray): String {
+        hasSentAudio = true
+        return super.audioMessage(pcm16)
+    }
+
+    /** Qwen takes images only after some audio and refuses frames over 256 KB; both are skipped. */
+    override fun imageMessages(jpeg: ByteArray): List<String> {
+        if (!hasSentAudio || jpeg.size > MAX_IMAGE_BYTES) return emptyList()
+        return listOf(buildJsonObject {
+            put("type", "input_image_buffer.append")
+            put("image", base64(jpeg))
+        }.toString())
+    }
+
+    override fun truncateMessage(itemId: String, audioEndMs: Int): String? = null
+
+    companion object {
+        /** Qwen refuses camera frames larger than this. */
+        const val MAX_IMAGE_BYTES = 256 * 1024
+
+        /** Transcribes what the user says; Model Studio fixes this model for Qwen Omni Realtime. */
+        const val TRANSCRIPTION_MODEL = "qwen3-asr-flash-realtime"
+    }
 }
 
 // MARK: - JSON helpers

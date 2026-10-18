@@ -108,7 +108,7 @@ struct VoiceAssistantSettingsView: View {
         } header: {
             Text("Provider")
         } footer: {
-            Text("Automatic uses the provider selected in AI Providers when it's Gemini, OpenAI or xAI and its key is saved; otherwise Fud AI with a Plus or Pro plan. Own keys are the ones saved in AI Providers.")
+            Text("Automatic uses the provider selected in AI Providers when it's Gemini, OpenAI, xAI or Qwen and its key is saved; otherwise Fud AI with a Plus or Pro plan. Own keys are the ones saved in AI Providers.")
         }
         .listRowBackground(AppColors.appCard)
     }
@@ -148,7 +148,7 @@ struct VoiceAssistantSettingsView: View {
                 subscribeButton
             case .noProvider:
                 Label {
-                    Text("Subscribe to Plus or Pro, or add a Gemini, OpenAI or xAI API key")
+                    Text("Subscribe to Plus or Pro, or add a Gemini, OpenAI, xAI or Qwen API key")
                 } icon: {
                     Image(systemName: "exclamationmark.circle")
                         .foregroundStyle(.orange)
@@ -312,7 +312,7 @@ struct VoiceAssistantSettingsView: View {
         Section {
             toggleRow(
                 title: "Auto-capture Photos",
-                detail: "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.",
+                detail: "When the camera is open, the assistant takes the photo as soon as it sees the food. Gemini, Qwen and Fud AI see the camera continuously; OpenAI each time you speak; xAI can't see it.",
                 systemImage: "camera.viewfinder",
                 isOn: $autoCapture,
                 identifier: "settings.voiceAssistant.autoCapture"

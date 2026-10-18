@@ -20,7 +20,9 @@ enum class LiveProvider(val storageValue: String) {
     HOSTED("hosted"),
     GEMINI("gemini"),
     OPENAI("openai"),
-    XAI("xai");
+    XAI("xai"),
+    /** Alibaba's Qwen Omni Realtime (Model Studio, international region). */
+    QWEN("qwen");
 
     /** Built-in models, default first. Hosted sessions always use the Worker's model. */
     val models: List<String>
@@ -29,6 +31,7 @@ enum class LiveProvider(val storageValue: String) {
             GEMINI -> listOf("gemini-3.8-live", "gemini-3.1-flash-live-preview")
             OPENAI -> listOf("gpt-realtime-2.1-mini", "gpt-realtime-2.1")
             XAI -> listOf("grok-voice-latest", "grok-voice-3.0")
+            QWEN -> listOf("qwen3.8-omni-flash-realtime")
         }
 
     val defaultModel: String get() = models.first()
@@ -42,19 +45,20 @@ enum class LiveProvider(val storageValue: String) {
             )
             OPENAI -> listOf("marin", "cedar", "coral", "sage", "shimmer", "ash", "ballad", "alloy", "echo", "verse")
             XAI -> listOf("ara", "eve", "rex", "sal", "leo")
+            QWEN -> listOf("Tina", "Cindy", "Raymond", "Katerina", "Ryan", "Mia", "Jennifer", "Aiden", "Sohee", "Lenn")
         }
 
     val defaultVoice: String get() = voices.first()
 
     val cameraFrames: CameraFrames
         get() = when (this) {
-            HOSTED, GEMINI -> CameraFrames.CONTINUOUS
+            HOSTED, GEMINI, QWEN -> CameraFrames.CONTINUOUS
             OPENAI -> CameraFrames.PER_TURN
             XAI -> CameraFrames.NONE
         }
 
-    /** 16-bit mono PCM rates: Gemini and hosted take 16 kHz and answer at 24 kHz. */
-    val inputSampleRate: Int get() = if (this == HOSTED || this == GEMINI) 16_000 else 24_000
+    /** 16-bit mono PCM rates: Gemini, Qwen and hosted take 16 kHz and answer at 24 kHz. */
+    val inputSampleRate: Int get() = if (this == HOSTED || this == GEMINI || this == QWEN) 16_000 else 24_000
     val outputSampleRate: Int get() = 24_000
 
     /** The AI-provider key this backend reuses; hosted needs none. */
@@ -64,6 +68,7 @@ enum class LiveProvider(val storageValue: String) {
             GEMINI -> AIProvider.GEMINI
             OPENAI -> AIProvider.OPENAI
             XAI -> AIProvider.XAI
+            QWEN -> AIProvider.QWEN
         }
 
     val usesOwnKey: Boolean get() = this != HOSTED
@@ -78,7 +83,7 @@ enum class LiveProvider(val storageValue: String) {
         /** Sent in the hosted setup for completeness; the Worker replaces it. */
         const val HOSTED_MODEL = "gemini-3.8-live"
 
-        val ownKeyProviders: List<LiveProvider> = listOf(GEMINI, OPENAI, XAI)
+        val ownKeyProviders: List<LiveProvider> = listOf(GEMINI, OPENAI, XAI, QWEN)
 
         fun fromStorage(raw: String?): LiveProvider? = entries.firstOrNull { it.storageValue == raw }
 
@@ -96,7 +101,8 @@ enum class VoiceProviderChoice(val storageValue: String, val provider: LiveProvi
     HOSTED("hosted", LiveProvider.HOSTED),
     GEMINI("gemini", LiveProvider.GEMINI),
     OPENAI("openai", LiveProvider.OPENAI),
-    XAI("xai", LiveProvider.XAI);
+    XAI("xai", LiveProvider.XAI),
+    QWEN("qwen", LiveProvider.QWEN);
 
     companion object {
         fun fromStorage(raw: String?): VoiceProviderChoice = entries.firstOrNull { it.storageValue == raw } ?: AUTOMATIC
@@ -128,7 +134,7 @@ object VoiceProviderResolver {
     ): VoiceAccess = when (choice) {
         VoiceProviderChoice.HOSTED ->
             if (hostedEntitled) VoiceAccess.Ready(LiveProvider.HOSTED) else VoiceAccess.NeedsSubscription
-        VoiceProviderChoice.GEMINI, VoiceProviderChoice.OPENAI, VoiceProviderChoice.XAI -> {
+        VoiceProviderChoice.GEMINI, VoiceProviderChoice.OPENAI, VoiceProviderChoice.XAI, VoiceProviderChoice.QWEN -> {
             val provider = choice.provider!!
             if (hasKey(provider)) VoiceAccess.Ready(provider) else VoiceAccess.MissingKey(provider)
         }
