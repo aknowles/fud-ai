@@ -800,6 +800,7 @@ class FakeAsc:
         self.iaps = iaps or []
         self.build_reads = 0
         self.calls: list[tuple[str, str]] = []
+        self.created_sets: list[str] = []
 
     def get(self, path: str) -> dict:
         self.calls.append(("GET", path))
@@ -823,9 +824,12 @@ class FakeAsc:
         if path == "/appStoreVersionLocalizations/LOC1/appScreenshotSets":
             if self.live_shots is None:
                 return {"data": []}
-            return {"data": [{"id": "SET1", "attributes": {"screenshotDisplayType": "APP_IPHONE_67"}}]}
-        if path == "/appScreenshotSets/SET1/appScreenshots":
-            return {"data": [{"id": f"SHOT{i}", "attributes": shot} for i, shot in enumerate(self.live_shots or [])]}
+            return {"data": [{"id": f"SET-{display}", "attributes": {"screenshotDisplayType": display}}
+                             for _, display, _ in asc_release.SCREENSHOT_SETS]}
+        if path.startswith("/appScreenshotSets/") and path.endswith("/appScreenshots"):
+            # Every live set holds live_shots; sets created by this run start empty.
+            live = self.live_shots if path.startswith("/appScreenshotSets/SET-") else []
+            return {"data": [{"id": f"SHOT{i}", "attributes": shot} for i, shot in enumerate(live or [])]}
         if path == f"/apps/{APP}/subscriptionGroups?limit=200":
             return {"data": []}
         if path == f"/apps/{APP}/inAppPurchasesV2?limit=200":
@@ -834,6 +838,10 @@ class FakeAsc:
 
     def post(self, path: str, body: dict) -> dict:
         self.calls.append(("POST", path))
+        if path == "/appScreenshotSets":
+            display = body["data"]["attributes"]["screenshotDisplayType"]
+            self.created_sets.append(display)
+            return {"data": {"id": f"NEW-{display}"}}
         return {"data": {"id": "ITEM"}}
 
     def patch(self, path: str, body: dict) -> dict:
@@ -1207,8 +1215,9 @@ class MetadataRerunTests(unittest.TestCase):
         (loc / "description.txt").write_text("Track food with AI\n")
         (loc / "whats_new.txt").write_text("Fixes.\n")
         self.shots = self.root / "shots"
-        self.shots.mkdir()
-        (self.shots / "01-home.png").write_bytes(self.PNG)
+        for folder, _, _ in asc_release.SCREENSHOT_SETS:
+            (self.shots / folder).mkdir(parents=True)
+            (self.shots / folder / "01-home.png").write_bytes(self.PNG)
         self.same_text = {"description": "Track food with AI", "whatsNew": "Fixes."}
         self.same_shots = [{"fileName": "01-home.png", "fileSize": len(self.PNG),
                             "sourceFileChecksum": hashlib.md5(self.PNG).hexdigest()}]
@@ -1272,6 +1281,29 @@ class MetadataRerunTests(unittest.TestCase):
         code, _ = self.run_main(fake, {**self.LISTING, "UPLOAD_SCREENSHOTS": "true"})
         self.assertEqual(code, 0)
         self.assertEqual(writes(fake), [])
+
+    def test_editable_version_uploads_every_set_with_its_display_type(self) -> None:
+        fake = FakeAsc()
+        uploads = []
+        with mock.patch.object(asc_release, "upload_screenshot_file",
+                               lambda client, set_id, path: uploads.append((set_id, path.parent.name))):
+            code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true"})
+        self.assertEqual(code, 0)
+        displays = ["APP_IPHONE_67", "APP_IPAD_PRO_3GEN_129", "APP_IPHONE_DUO"]
+        self.assertEqual(fake.created_sets, displays)
+        self.assertEqual(uploads, [("NEW-APP_IPHONE_67", "6.7"),
+                                   ("NEW-APP_IPAD_PRO_3GEN_129", "ipad-13"),
+                                   ("NEW-APP_IPHONE_DUO", "iphone-duo")])
+
+    def test_a_set_without_screenshots_fails_before_any_call(self) -> None:
+        for folder, _, _ in asc_release.SCREENSHOT_SETS:
+            with self.subTest(folder=folder):
+                (self.shots / folder / "01-home.png").unlink()
+                fake = FakeAsc()
+                code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true"})
+                self.assertEqual(code, 1)
+                self.assertEqual(fake.calls, [])
+                (self.shots / folder / "01-home.png").write_bytes(self.PNG)
 
     def test_other_states_still_refuse_metadata(self) -> None:
         for state in ("IN_REVIEW", "READY_FOR_SALE"):
