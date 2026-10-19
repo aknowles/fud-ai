@@ -364,26 +364,35 @@ h1, h2, h3 { margin: 0; }
 .tour__device { display: none; }
 
 @media (min-width: 960px) {
-  .js .tour__grid {
+  .js-tour .tour__grid {
     grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
     gap: 64px;
   }
-  .js .step {
+  .js-tour .step {
     min-height: 78vh;
     display: flex;
     flex-direction: column;
     justify-content: center;
   }
-  .js .step + .step { margin-top: 0; }
-  .js .step__shot { display: none; }
-  .js .tour__device {
+  .js-tour .step + .step { margin-top: 0; }
+  /* The pinned phone shows these; keep them for screen readers. */
+  .js-tour .step__shot {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: 0;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+  .js-tour .tour__device {
     display: block;
     position: sticky;
     top: calc(var(--head-h) + 6vh);
     height: calc(100vh - var(--head-h) - 12vh);
     align-self: start;
   }
-  .js .tour__device .phone {
+  .js-tour .tour__device .phone {
     height: 100%;
     max-height: 720px;
     width: auto;
@@ -627,8 +636,11 @@ h1, h2, h3 { margin: 0; }
   .brand__name { font-size: 1.3125rem; }
   .extras__list { grid-template-columns: minmax(0, 1fr); }
   .site-foot__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .store { height: 56px; padding: 0 18px 0 14px; }
-  .store__text { font-size: 1.1875rem; }
+  .stores { gap: 10px; }
+  .store { height: 54px; gap: 9px; padding: 0 14px 0 12px; border-radius: 14px; }
+  .store svg { width: 24px; height: 24px; }
+  .store__text { font-size: 1.0625rem; }
+  .store__text small { font-size: 0.71875rem; }
   .faq__answer { padding-right: 0; }
 }
 
