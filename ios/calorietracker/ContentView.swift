@@ -158,6 +158,17 @@ struct ContentView: View {
             .task {
                 attachVoiceAssistant()
                 consumePendingLaunchRoutes()
+                #if DEBUG && targetEnvironment(simulator)
+                if let scene = ScreenshotMode.scene {
+                    ScreenshotMode.seed(
+                        food: foodStore, weight: weightStore, bodyFat: bodyFatStore, water: waterStore,
+                        fasting: fastingStore, chat: chatStore, strength: strengthWorkoutStore, profile: profileStore
+                    )
+                    try? await Task.sleep(for: .milliseconds(600))
+                    ScreenshotMode.show(scene, navigator: assistantNavigator, voiceAssistant: voiceAssistant)
+                    return
+                }
+                #endif
                 await refreshAppUpdateState()
                 await runPostUpdatePromptsIfNeeded()
             }
@@ -1386,6 +1397,15 @@ private var dailyStepsTaskKey: String {
         return calendar.date(from: components) ?? day
     }
 
+    /// ScreenshotMode's nutrition scene: the View More sheet, once Home has loaded.
+    private func openScreenshotNutritionIfRequested() async {
+        #if DEBUG && targetEnvironment(simulator)
+        guard ScreenshotMode.scene == .nutrition else { return }
+        try? await Task.sleep(for: .seconds(1.2))
+        showNutritionDetail = true
+        #endif
+    }
+
     private func logWater(_ milliliters: Int) {
         _ = waterStore.add(milliliters: milliliters, on: logDateForSelectedDay)
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -2283,6 +2303,7 @@ private var dailyStepsTaskKey: String {
             .sheet(isPresented: $showNutritionDetail) {
                 NutritionDetailView(date: selectedDate, homeTopNutrientsRaw: $homeTopNutrientsRaw)
             }
+            .task { await openScreenshotNutritionIfRequested() }
             .sheet(isPresented: $showCustomWaterLog) {
                 WaterCustomAmountSheet(unit: waterUnit, onAdd: logWater)
             }
