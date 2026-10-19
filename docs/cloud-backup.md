@@ -1,6 +1,6 @@
 # Optional iCloud / Google Drive backup
 
-Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on.
+Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on, or taps Restore on the onboarding Welcome back screen ("Used Fud AI before?"). The app never checks iCloud or Drive by itself at install.
 
 ## iOS
 
