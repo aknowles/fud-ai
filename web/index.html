@@ -291,6 +291,7 @@
     <div class="orb intro" id="orb" style="--d:220">
       <canvas aria-hidden="true"></canvas>
       <div class="orb__fallback" aria-hidden="true"></div>
+      <button class="pause pause--orb" type="button" aria-pressed="false" aria-label="Pause the demo" data-pause="hero"><svg class="pause__off" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="6" width="3.2" height="12" rx="1"/><rect x="13.8" y="6" width="3.2" height="12" rx="1"/></svg><svg class="pause__on" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 6.2v11.6a.8.8 0 0 0 1.2.7l9.2-5.8a.8.8 0 0 0 0-1.4L9.7 5.5a.8.8 0 0 0-1.2.7z"/></svg></button>
     </div>
     <div class="live intro" style="--d:420" aria-hidden="true">
       <p class="live__status" id="live-status"></p>
@@ -415,6 +416,7 @@
         </div>
     </div>
   </div>
+  <div class="wrap marquee__controls"><button class="pause pause--marquee" type="button" aria-pressed="false" aria-label="Pause the screenshots" data-pause="marquee"><svg class="pause__off" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="6" width="3.2" height="12" rx="1"/><rect x="13.8" y="6" width="3.2" height="12" rx="1"/></svg><svg class="pause__on" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 6.2v11.6a.8.8 0 0 0 1.2.7l9.2-5.8a.8.8 0 0 0 0-1.4L9.7 5.5a.8.8 0 0 0-1.2.7z"/></svg></button></div>
 </section>
 
 <section class="section byok" id="privacy" aria-labelledby="byok-title">
@@ -637,6 +639,19 @@
     var coarse = window.matchMedia("(pointer: coarse)").matches;
     var small = window.innerWidth < 721;
     var wait = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
+    // Pause buttons for everything that moves by itself (WCAG 2.2.2).
+    var paused = { hero: false, marquee: false };
+    var onPause = {};
+    document.querySelectorAll("[data-pause]").forEach(function (btn) {
+      var key = btn.getAttribute("data-pause");
+      var label = btn.getAttribute("aria-label");
+      btn.addEventListener("click", function () {
+        paused[key] = !paused[key];
+        btn.setAttribute("aria-pressed", String(paused[key]));
+        btn.setAttribute("aria-label", paused[key] ? label.replace("Pause", "Play") : label);
+        if (onPause[key]) onPause[key](paused[key]);
+      });
+    });
 
     // Platform: the visitor's store leads, and the header button goes straight there.
     var ua = navigator.userAgent;
@@ -774,8 +789,12 @@
           if (rate !== rateTo) requestAnimationFrame(easeRate); else easing = false;
         };
         var setRate = function (r) { rateTo = r; if (!easing) { easing = true; requestAnimationFrame(easeRate); } };
+        var resume = function () { if (!paused.marquee && !marquee.contains(document.activeElement)) setRate(1); };
         marquee.addEventListener("pointerenter", function () { setRate(0); });
-        marquee.addEventListener("pointerleave", function () { setRate(1); });
+        marquee.addEventListener("pointerleave", resume);
+        marquee.addEventListener("focusin", function () { setRate(0); });
+        marquee.addEventListener("focusout", function () { setTimeout(resume, 0); });
+        onPause.marquee = function (on) { if (on) setRate(0); else resume(); };
         if (hasIO) new IntersectionObserver(function (e) { if (e[0].isIntersecting) drift.play(); else drift.pause(); }).observe(marquee);
       }
     }
@@ -892,7 +911,7 @@
         gl.drawArrays(gl.TRIANGLES, 0, 3);
       };
       var frame = function (now) {
-        if (!st.visible || document.hidden) { st.running = false; return; }
+        if (!st.visible || document.hidden || st.paused) { st.running = false; return; }
         var dt = st.last ? Math.min(0.05, (now - st.last) / 1000) : 0;
         st.last = now;
         st.clock += dt;
@@ -908,7 +927,7 @@
         if (st.onFrame) st.onFrame(st);
         requestAnimationFrame(frame);
       };
-      st.start = function () { if (!st.running && st.visible && !document.hidden) { st.running = true; st.last = 0; requestAnimationFrame(frame); } };
+      st.start = function () { if (!st.running && st.visible && !document.hidden && !st.paused) { st.running = true; st.last = 0; requestAnimationFrame(frame); } };
       st.kick = function () {
         st.levelTarget = 0.5 + Math.random() * 0.4;
         setTimeout(function () { st.levelTarget = 0.1; }, 70);
@@ -924,6 +943,7 @@
     var heroOrb = makeOrb(document.getElementById("orb"));
     var finalOrb = makeOrb(document.querySelector(".orb--final"));
     var glow = document.querySelector(".hero__glow");
+    onPause.hero = function (on) { if (heroOrb) { heroOrb.paused = on; heroOrb.start(); } };
     if (heroOrb && !calm) {
       heroOrb.onFrame = function (s) { if (glow) glow.style.setProperty("--level", s.level.toFixed(3)); };
       window.addEventListener("pointermove", function (e) {
@@ -955,9 +975,18 @@
         { said: "I just had a protein shake.", reply: "Added to snacks: 180" + NB + "calories with 30" + NB + "grams of protein.", name: "Protein shake", macros: "Snack · 30P · 6C · 3F", kcal: "180" + NB + "kcal" }
       ];
       var name = document.getElementById("live-name"), macros = document.getElementById("live-macros"), kcal = document.getElementById("live-kcal");
-      var words = function (text) {
-        return text.split(" ").map(function (w) { return '<span class="w">' + w.replace(/&/g, "&amp;") + "</span>"; }).join(" ");
+      // Build word spans with DOM nodes, never HTML strings.
+      var setWords = function (el, text) {
+        el.replaceChildren();
+        text.split(" ").forEach(function (w, i) {
+          if (i) el.appendChild(document.createTextNode(" "));
+          var span = document.createElement("span");
+          span.className = "w";
+          span.textContent = w;
+          el.appendChild(span);
+        });
       };
+      var cloneKids = function (el) { return Array.prototype.map.call(el.childNodes, function (n) { return n.cloneNode(true); }); };
       var setStatus = function (text) { status.textContent = text; };
 
       // Reserve the tallest demo's height so nothing below the hero moves.
@@ -965,28 +994,29 @@
       var fit = function () {
         if (window.innerWidth === lastW) return;
         lastW = window.innerWidth;
-        var keep = [said.innerHTML, reply.innerHTML, name.textContent, macros.textContent, kcal.textContent];
+        var keep = [cloneKids(said), cloneKids(reply), name.textContent, macros.textContent, kcal.textContent];
         live.style.minHeight = "";
         var max = 0;
         demos.forEach(function (d) {
           said.textContent = d.said; reply.textContent = d.reply; name.textContent = d.name; macros.textContent = d.macros; kcal.textContent = d.kcal;
           max = Math.max(max, live.offsetHeight);
         });
-        said.innerHTML = keep[0]; reply.innerHTML = keep[1]; name.textContent = keep[2]; macros.textContent = keep[3]; kcal.textContent = keep[4];
+        said.replaceChildren.apply(said, keep[0]); reply.replaceChildren.apply(reply, keep[1]);
+        name.textContent = keep[2]; macros.textContent = keep[3]; kcal.textContent = keep[4];
         live.style.minHeight = max + "px";
       };
 
       var heroVisible = function () {
         if (!heroOrb) return Promise.resolve();
         return new Promise(function (res) {
-          (function check() { if (heroOrb.visible && !document.hidden) res(); else setTimeout(check, 400); })();
+          (function check() { if (heroOrb.visible && !document.hidden && !paused.hero) res(); else setTimeout(check, 400); })();
         });
       };
       var orbSet = function (mode, level) { if (heroOrb) { heroOrb.mode = mode; if (level != null) heroOrb.levelTarget = level; } };
       var kick = function () { if (heroOrb) heroOrb.kick(); };
 
       // The first meal is already on the page; let it be read, then keep going.
-      reply.innerHTML = words(reply.textContent);
+      setWords(reply, reply.textContent);
       said.querySelectorAll(".w").forEach(function (w) { w.classList.add("on"); });
       reply.querySelectorAll(".w").forEach(function (w) { w.classList.add("on"); });
       card.classList.add("on");
@@ -1006,8 +1036,8 @@
           card.classList.add("is-pending");
           card.classList.remove("is-ticking");
           await wait(450);
-          said.innerHTML = words(d.said);
-          reply.innerHTML = words(d.reply);
+          setWords(said, d.said);
+          setWords(reply, d.reply);
           setStatus("Listening…");
           orbSet("listening", 0.1);
           var sw = said.querySelectorAll(".w");

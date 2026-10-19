@@ -316,6 +316,35 @@ p, h1, h2, h3, figure, dl, dd { margin: 0; }
   pointer-events: none;
 }
 
+/* ---------- Pause controls ---------- */
+
+.pause {
+  display: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--label);
+  background: rgba(44, 44, 46, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  box-shadow: inset 0 0 0 1px var(--hairline-2);
+  transition: background-color 0.2s, scale 0.1s var(--ease);
+}
+.pause svg { width: 18px; height: 18px; }
+.pause .pause__on, .pause[aria-pressed="true"] .pause__off { display: none; }
+.pause[aria-pressed="true"] .pause__on { display: block; }
+@media (hover: hover) { .pause:hover { background-color: rgba(72, 72, 74, 0.85); } }
+.pause:active { scale: 0.94; }
+.js .pause { display: grid; }
+.pause--orb { position: absolute; right: 2%; bottom: 6%; z-index: 2; }
+.marquee__controls { display: flex; justify-content: center; margin-top: 18px; }
+@media (max-width: 720px), (hover: none), (prefers-reduced-motion: reduce) { .marquee__controls { display: none; } }
+@media (prefers-reduced-motion: reduce) { .pause--orb { display: none; } }
+
 /* ---------- Hero ---------- */
 
 .hero {
@@ -1014,6 +1043,10 @@ p, h1, h2, h3, figure, dl, dd { margin: 0; }
 .page-end .final { padding-block: clamp(72px, 10vw, 136px); }
 
 /* ---------- Responsive ---------- */
+
+@media (min-width: 721px) and (max-width: 959px) {
+  .bento { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 
 @media (max-width: 959px) {
   .coach__grid, .byok__grid { grid-template-columns: minmax(0, 1fr); }
