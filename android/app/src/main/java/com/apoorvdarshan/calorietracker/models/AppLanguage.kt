@@ -37,12 +37,28 @@ object AppLanguage {
         }
     }
 
+    /** Languages the app's strings ship in: [supportedTags] plus Turkish, which has strings
+     *  but no picker entry yet. */
+    val translatedTags: List<String> = (supportedTags + "tr").distinct()
+
     /** Maps a stored / system language tag onto one of [supportedTags], or null for system default. */
-    fun matchSupported(languageTag: String?): String? {
+    fun matchSupported(languageTag: String?): String? = match(languageTag, supportedTags)
+
+    /**
+     * The language the app's strings appear in: the in-app choice, else the first device
+     * language the app is translated into, else English (the default resources). A device
+     * set to Finnish sees English, so this returns "en", not "fi".
+     */
+    fun shownTag(appChoice: String?, deviceTags: List<String>): String =
+        match(appChoice, translatedTags)
+            ?: deviceTags.firstNotNullOfOrNull { match(it, translatedTags) }
+            ?: "en"
+
+    private fun match(languageTag: String?, tags: List<String>): String? {
         if (languageTag.isNullOrBlank()) return null
-        supportedTags.firstOrNull { it.equals(languageTag, ignoreCase = true) }?.let { return it }
+        tags.firstOrNull { it.equals(languageTag, ignoreCase = true) }?.let { return it }
         val got = Locale.forLanguageTag(languageTag)
-        return supportedTags.firstOrNull { tag ->
+        return tags.firstOrNull { tag ->
             val wanted = Locale.forLanguageTag(tag)
             wanted.language.equals(got.language, ignoreCase = true) &&
                 (wanted.country.isEmpty() || wanted.country.equals(got.country, ignoreCase = true))

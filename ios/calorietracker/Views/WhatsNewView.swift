@@ -86,9 +86,9 @@ enum WhatsNewAccessCheck {
 
 // MARK: - Sound
 
-/// The demo starts with sound, following the Ring/Silent switch like other autoplaying
-/// video. Muted playback must not stop the user's music; the sound button plays it even
-/// on silent, taking over like any video.
+/// The demo starts with sound, following the Ring/Silent switch and mixing with other
+/// audio like other autoplaying video, so opening it never stops the user's music. The
+/// sound button plays it even on silent, taking over like any video.
 enum WhatsNewAudio {
     enum Sound {
         case muted
@@ -109,7 +109,8 @@ enum WhatsNewAudio {
             case .muted:
                 try session.setCategory(.ambient)
             case .followingSilentSwitch:
-                try session.setCategory(.soloAmbient)
+                // Ambient follows the switch and mixes, so silent autoplay never stops music.
+                try session.setCategory(.ambient)
                 try session.setActive(true)
             case .on:
                 try session.setCategory(.playback, mode: .moviePlayback)

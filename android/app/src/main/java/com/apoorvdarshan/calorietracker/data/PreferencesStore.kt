@@ -1529,21 +1529,7 @@ class PreferencesStore(
 
     // -- Voice assistant --------------------------------------------------
     /** Settings → Voice Assistant, read together so a session starts from one snapshot. */
-    val voiceAssistantPreferences: Flow<VoiceAssistantPreferences> = ds.data.map { prefs ->
-        VoiceAssistantPreferences(
-            choice = VoiceProviderChoice.fromStorage(prefs[Keys.VOICE_PROVIDER]),
-            models = LiveProvider.entries.associateWith { provider ->
-                provider.supportedModelOrDefault(prefs[Keys.voiceModel(provider)])
-            },
-            voices = LiveProvider.entries.associateWith { provider ->
-                provider.supportedVoiceOrDefault(prefs[Keys.voiceVoice(provider)])
-            },
-            language = prefs[Keys.VOICE_LANGUAGE] ?: VoiceAssistantPreferences.LANGUAGE_APP,
-            autoCapture = prefs[Keys.VOICE_AUTO_CAPTURE] ?: true,
-            confirmSaves = prefs[Keys.VOICE_CONFIRM_SAVES] ?: true,
-            saveToCoach = prefs[Keys.VOICE_SAVE_TO_COACH] ?: true
-        )
-    }
+    val voiceAssistantPreferences: Flow<VoiceAssistantPreferences> = ds.data.map { readVoiceAssistantPreferences(it) }
 
     suspend fun setVoiceAssistantProvider(choice: VoiceProviderChoice) {
         ds.edit { it[Keys.VOICE_PROVIDER] = choice.storageValue }
@@ -1724,6 +1710,21 @@ class PreferencesStore(
     }
 
     companion object {
+        /** Settings → Voice Assistant from saved preferences, with each default for a missing key. */
+        internal fun readVoiceAssistantPreferences(prefs: Preferences) = VoiceAssistantPreferences(
+            choice = VoiceProviderChoice.fromStorage(prefs[Keys.VOICE_PROVIDER]),
+            models = LiveProvider.entries.associateWith { provider ->
+                provider.supportedModelOrDefault(prefs[Keys.voiceModel(provider)])
+            },
+            voices = LiveProvider.entries.associateWith { provider ->
+                provider.supportedVoiceOrDefault(prefs[Keys.voiceVoice(provider)])
+            },
+            language = prefs[Keys.VOICE_LANGUAGE] ?: VoiceAssistantPreferences.LANGUAGE_APP,
+            autoCapture = prefs[Keys.VOICE_AUTO_CAPTURE] ?: true,
+            confirmSaves = prefs[Keys.VOICE_CONFIRM_SAVES] ?: true,
+            saveToCoach = prefs[Keys.VOICE_SAVE_TO_COACH] ?: true
+        )
+
         private const val TAG = "PreferencesStore"
         private const val CUSTOM_BASE_URL_PREFIX = "customBaseURL_"
         private const val FALLBACK_BASE_URL_PREFIX = "fallbackCustomBaseURL_"

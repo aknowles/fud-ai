@@ -3,8 +3,10 @@ package com.apoorvdarshan.calorietracker.services.voice
 import android.net.Uri
 import android.os.SystemClock
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import com.apoorvdarshan.calorietracker.AppContainer
 import com.apoorvdarshan.calorietracker.data.VoiceAssistantPreferences
+import com.apoorvdarshan.calorietracker.models.AppLanguage
 import com.apoorvdarshan.calorietracker.models.ChatMessage
 import com.apoorvdarshan.calorietracker.services.ai.CoachContext
 import com.apoorvdarshan.calorietracker.ui.home.ContentUriBytes
@@ -34,7 +36,6 @@ import kotlinx.serialization.json.JsonObject
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
-import java.util.Locale
 import java.util.concurrent.atomic.AtomicLong
 
 enum class VoicePhase { IDLE, PREPARING, CONNECTING, LIVE }
@@ -1022,10 +1023,7 @@ class VoiceAssistantController(private val container: AppContainer) : VoiceUiBri
 
     private fun replyLanguage(setting: String): String? = when (setting) {
         VoiceAssistantPreferences.LANGUAGE_AUTOMATIC -> null
-        VoiceAssistantPreferences.LANGUAGE_APP, "" -> {
-            val locale = AppCompatDelegate.getApplicationLocales()[0] ?: Locale.getDefault()
-            VoiceInstructions.languageName(locale.toLanguageTag())
-        }
+        VoiceAssistantPreferences.LANGUAGE_APP, "" -> VoiceInstructions.languageName(shownAppLanguage())
         else -> VoiceInstructions.languageName(setting)
     }
 
@@ -1058,4 +1056,13 @@ class VoiceAssistantController(private val container: AppContainer) : VoiceUiBri
             return "…" + tail.substringAfter(' ', tail)
         }
     }
+}
+
+/** The language the app's own strings are shown in, which App Language replies match. */
+internal fun shownAppLanguage(): String {
+    val device = LocaleListCompat.getAdjustedDefault()
+    return AppLanguage.shownTag(
+        AppCompatDelegate.getApplicationLocales()[0]?.toLanguageTag(),
+        (0 until device.size()).mapNotNull { device[it]?.toLanguageTag() }
+    )
 }
