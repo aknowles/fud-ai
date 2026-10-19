@@ -5,11 +5,14 @@ import {
   deriveIssueTitle,
   DISCORD_INTERACTIONS_PATH,
   FEATURE_ISSUE_LABEL,
+  formatWait,
   handleDiscordInteractionsRequest,
   IOS_BUG_CHANNEL_ID,
   labelsForBugPlatform,
   labelsForFeatureRequest,
   parseStructuredIssue,
+  recentReports,
+  reportCooldownSeconds,
   resolveBugPlatform,
   resolveFeaturePlatform,
   verifyDiscordSignature,
@@ -65,7 +68,8 @@ async function signedRequest(
 }
 
 function env(publicKeyHex: string, extra: Record<string, string> = {}) {
-  const state = new Map<string, { value: string; expiresAt: number; metadata: { owner: string } | undefined }>();
+  type Metadata = { owner: string; reports?: number[] };
+  const state = new Map<string, { value: string; expiresAt: number; metadata: Metadata | undefined }>();
   return {
     DISCORD_PUBLIC_KEY: publicKeyHex,
     DISCORD_APPLICATION_ID: APP_ID,
@@ -82,7 +86,7 @@ function env(publicKeyHex: string, extra: Record<string, string> = {}) {
         const entry = state.get(key);
         return entry && entry.expiresAt > Date.now() ? entry.value : null;
       },
-      async put(key: string, value: string, options: { expirationTtl: number; metadata?: { owner: string } }): Promise<void> {
+      async put(key: string, value: string, options: { expirationTtl: number; metadata?: Metadata }): Promise<void> {
         state.set(key, { value, metadata: options.metadata, expiresAt: Date.now() + options.expirationTtl * 1000 });
       },
     },
@@ -807,12 +811,108 @@ describe("Discord command reservations", () => {
     const h = await setup();
     await (await h.send("bug")).flush();
     await (await h.send("feature", "second", { channel_id: "different" })).flush();
-    expect(h.replies().at(-1)).toContain("five minutes");
+    expect(h.replies().at(-1)).toContain("10 minutes");
     expect(h.aiCalls()).toHaveLength(1);
     await (await h.send("ask", "question")).flush();
     await (await h.send("feature", "other-user", { member: { user: { id: "user-2" } } })).flush();
     await (await h.send("feature", "other-server", { guild_id: "server-2" })).flush();
     expect(h.aiCalls()).toHaveLength(4);
+  });
+
+  it("doubles the report wait for each report in a streak, up to a day", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const writes = vi.spyOn(h.bindings.DISCORD_STATE, "put");
+    const minute = 60_000;
+    const sent: number[] = [];
+    // Report again the moment each wait ends: 10, 20, 40, 80, 160, 320, 640 and 1280 minutes, then the cap.
+    for (const wait of [10, 20, 40, 80, 160, 320, 640, 1280, 1440, 1440, 1440, 1440, 1440, 1440]) {
+      sent.push(clock);
+      await (await h.send(sent.length % 2 ? "bug" : "feature", `report-${sent.length}`)).flush();
+      expect(h.aiCalls()).toHaveLength(sent.length);
+      clock += minute;
+      await (await h.send("bug", `early-${sent.length}`)).flush();
+      expect(h.replies().at(-1)).toContain(`another report in ${formatWait((wait - 1) * minute)}`);
+      expect(h.aiCalls()).toHaveLength(sent.length);
+      clock += (wait - 1) * minute + 1;
+    }
+    // Only the latest 12 report times are kept.
+    const cooldowns = writes.mock.calls.filter(([key]) => key.includes(":cooldown:"));
+    expect(cooldowns.at(-1)?.[2].metadata?.reports).toEqual(sent.slice(-12));
+  });
+
+  it("stores each report's streak in KV, so another isolate escalates the next wait", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const state = h.bindings.DISCORD_STATE;
+    const writes = vi.spyOn(state, "put");
+    const lastCooldown = () => writes.mock.calls.filter(([key]) => key.includes(":cooldown:")).at(-1)?.slice(1);
+    const first = clock;
+    await (await h.send("bug", "first")).flush();
+    expect(lastCooldown()).toEqual([
+      String(first + 10 * 60_000),
+      { expirationTtl: 172_800, metadata: { owner: expect.any(String), reports: [first] } },
+    ]);
+    clock += 10 * 60_000 + 1;
+    const second = clock;
+    // Fresh bindings simulate other isolates, which only see what KV stored.
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("feature", "second")).flush();
+    expect(h.aiCalls()).toHaveLength(2);
+    expect(lastCooldown()).toEqual([
+      String(second + 20 * 60_000),
+      { expirationTtl: 172_800, metadata: { owner: expect.any(String), reports: [first, second] } },
+    ]);
+    clock += 60_000;
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("bug", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 19 minutes");
+  });
+
+  it("starts over after two days without a report", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    clock += 10 * 60_000 + 1;
+    await (await h.send("feature", "second")).flush();
+    clock += 48 * 60 * 60_000 + 1;
+    await (await h.send("bug", "next-day")).flush();
+    expect(h.aiCalls()).toHaveLength(3);
+    clock += 60_000;
+    await (await h.send("bug", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 9 minutes");
+  });
+
+  it.each([0, 16, 21])("does not count a report rolled back %i minutes before the retry", async (minutes) => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    clock += 10 * 60_000 + 1;
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    const writes = vi.spyOn(state, "put").mockImplementation(async (key, value, options) => {
+      if (key.includes(":interaction:")) throw new Error("write failed");
+      await put(key, value, options);
+    });
+    await (await h.send("feature", "failed")).flush();
+    expect(h.replies().at(-1)).toContain("unavailable");
+    // The failed attempt's cooldown record lives two days, so its cancellation must too.
+    const marker = writes.mock.calls.find(([key]) => key.startsWith("fuddy:aborted:"));
+    expect(marker?.[2].expirationTtl).toBe(172_800);
+    writes.mockRestore();
+    // At 16 minutes the failed attempt's record still holds a 20-minute wait; at 21 only its history.
+    clock += minutes * 60_000;
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("feature", "retry")).flush();
+    expect(h.aiCalls()).toHaveLength(2);
+    clock += 60_000;
+    await (await h.send("bug", "early")).flush();
+    // Two real reports, so 20 minutes, not the 40 a counted failure would give.
+    expect(h.replies().at(-1)).toContain("another report in 19 minutes");
   });
 
   it("reserves locally before concurrent KV reads complete", async () => {
@@ -829,6 +929,104 @@ describe("Discord command reservations", () => {
     expect(h.replies().at(-1)).toContain("wait a minute");
     unblock();
     await first.flush();
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("tells a concurrent report that the previous one is still being sent", async () => {
+    const h = await setup();
+    const state = h.bindings.DISCORD_STATE;
+    const get = state.get.bind(state);
+    let unblock!: () => void;
+    const blocked = new Promise<void>((resolve) => { unblock = resolve; });
+    const reads = vi.spyOn(state, "get").mockImplementation(async (key) => { await blocked; return get(key); });
+    const first = await h.send("bug");
+    await vi.waitFor(() => expect(reads).toHaveBeenCalledTimes(1));
+    await (await h.send("feature", "second")).flush();
+    expect(h.replies().at(-1)).toContain("Your previous report is still being sent.");
+    unblock();
+    await first.flush();
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("lifts a cooldown it read from KV once that attempt's cancellation lands", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    let unblock!: () => void;
+    const blocked = new Promise<void>((resolve) => { unblock = resolve; });
+    const writes = vi.spyOn(state, "put").mockImplementation(async (key, value, options) => {
+      const marker = key.startsWith("fuddy:aborted:");
+      if (marker) await blocked;
+      await put(key, value, options);
+      if (!marker) throw new Error("acknowledgement lost");
+    });
+    const first = await h.send("bug", "first");
+    await vi.waitFor(() => expect(h.replies().at(-1)).toContain("unavailable"));
+    writes.mockRestore();
+    // Another isolate reads the failed attempt's record before its cancellation lands.
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("feature", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 10 minutes");
+    unblock();
+    await first.flush();
+    clock += 60_001;
+    await (await h.send("feature", "after-rollback")).flush();
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("keeps a cooldown it read from KV when a later read misses it", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    const isolate = { ...h.bindings.DISCORD_STATE };
+    h.bindings.DISCORD_STATE = isolate;
+    clock += 60_000;
+    await (await h.send("feature", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 9 minutes");
+    // An eventually consistent read that misses the record must not end the wait early.
+    isolate.getWithMetadata = async () => ({ value: null, metadata: null });
+    clock += 60_001;
+    await (await h.send("feature", "stale-read")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 8 minutes");
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("tells a report sent while the previous one is still saving that it is still being sent", async () => {
+    const h = await setup();
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    let unblock!: () => void;
+    const blocked = new Promise<void>((resolve) => { unblock = resolve; });
+    const writes = vi.spyOn(state, "put").mockImplementation(async (...args) => { await blocked; await put(...args); });
+    const first = await h.send("bug");
+    await vi.waitFor(() => expect(writes).toHaveBeenCalled());
+    await (await h.send("feature", "second")).flush();
+    expect(h.replies().at(-1)).toContain("Your previous report is still being sent.");
+    unblock();
+    await first.flush();
+    expect(h.aiCalls()).toHaveLength(1);
+    await (await h.send("feature", "third")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 10 minutes");
+  });
+
+  it("retries a cancellation that fails to save", async () => {
+    const h = await setup();
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    let cancellationFailures = 1;
+    const writes = vi.spyOn(state, "put").mockImplementation(async (key, value, options) => {
+      if (key.includes(":interaction:")) throw new Error("write failed");
+      if (key.startsWith("fuddy:aborted:") && cancellationFailures-- > 0) throw new Error("cancellation failed");
+      await put(key, value, options);
+    });
+    await (await h.send("bug", "failed")).flush();
+    expect(writes.mock.calls.filter(([key]) => key.startsWith("fuddy:aborted:"))).toHaveLength(2);
+    writes.mockRestore();
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("bug", "retry")).flush();
     expect(h.aiCalls()).toHaveLength(1);
   });
 
@@ -958,5 +1156,36 @@ describe("Discord command reservations", () => {
     h.bindings.DISCORD_STATE = { ...state };
     await (await h.send()).flush();
     expect(h.aiCalls()).toHaveLength(1);
+  });
+});
+
+describe("report cooldown helpers", () => {
+  it("doubles from 10 minutes and caps at a day", () => {
+    expect([1, 2, 3, 4, 8, 9, 20].map(reportCooldownSeconds)).toEqual([600, 1200, 2400, 4800, 76_800, 86_400, 86_400]);
+    expect(reportCooldownSeconds(0)).toBe(600);
+  });
+
+  it("keeps the current streak of valid report times and drops an aborted attempt's own entry", () => {
+    const now = 1_800_000_000_000;
+    const day = 86_400_000;
+    // Two days between the first two reports ends that streak.
+    const metadata = { owner: "o", reports: [now - 3 * day, now - day + 1, "x", Number.NaN, now + 5, now - 1_000] };
+    expect(recentReports(metadata, false, now)).toEqual([now - day + 1, now - 1_000]);
+    expect(recentReports({ owner: "o", reports: [now - 5 * day, now - 4 * day] }, false, now)).toEqual([]);
+    expect(recentReports({ owner: "o", reports: [now - 3 * day, now - 1.5 * day, now - 1_000] }, false, now))
+      .toEqual([now - 3 * day, now - 1.5 * day, now - 1_000]);
+    expect(recentReports({ owner: "o", reports: [now - 2_000, now - 1_000] }, true, now)).toEqual([now - 2_000]);
+    expect(recentReports({ owner: "o" }, false, now)).toEqual([]);
+    expect(recentReports(null, false, now)).toEqual([]);
+    const long = Array.from({ length: 30 }, (_, i) => now - 30_000 + i * 1_000);
+    expect(recentReports({ owner: "o", reports: long }, false, now)).toHaveLength(12);
+  });
+
+  it("formats waits in minutes and hours", () => {
+    expect(formatWait(1)).toBe("1 minute");
+    expect(formatWait(9 * 60_000)).toBe("9 minutes");
+    expect(formatWait(60 * 60_000)).toBe("1 hour");
+    expect(formatWait(80 * 60_000)).toBe("1 hour 20 minutes");
+    expect(formatWait(1_279 * 60_000)).toBe("21 hours 19 minutes");
   });
 });
