@@ -4,13 +4,14 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#FF375F">
+  <meta name="theme-color" content="#000000">
   <title>Page not found · Fud AI</title>
   <link rel="icon" href="/assets/fud-icon-192.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400..700&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,800&display=swap">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap">
   <style>
+    html { background: #000; color-scheme: dark; }
     body {
       margin: 0;
       min-height: 100svh;
@@ -18,39 +19,21 @@
       place-items: center;
       padding: 24px 16px;
       box-sizing: border-box;
-      background: #ff375f;
-      color: #000;
-      font-family: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
-      font-size: 1.125rem;
+      background: radial-gradient(60% 50% at 50% 40%, rgba(255, 55, 95, 0.22), transparent 70%), #000;
+      color: #fff;
+      font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+      font-size: 1.0625rem;
       line-height: 1.55;
+      text-align: center;
       -webkit-font-smoothing: antialiased;
     }
     main { width: min(100%, 34rem); }
-    .icon { width: 64px; height: 64px; padding: 10px; border-radius: 18px; background: #fff; box-sizing: border-box; }
-    h1 {
-      margin: 28px 0 12px;
-      font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-      font-weight: 800;
-      font-stretch: 90%;
-      font-size: clamp(2.75rem, 2rem + 4vw, 4.5rem);
-      line-height: 0.98;
-      letter-spacing: -0.03em;
-    }
-    p { margin: 0; max-width: 26em; }
-    a.home {
-      display: inline-flex;
-      align-items: center;
-      min-height: 48px;
-      margin-top: 28px;
-      padding: 0 22px;
-      border-radius: 999px;
-      background: #000;
-      color: #fff;
-      font-weight: 700;
-      text-decoration: none;
-    }
-    a.home:hover { background: #2b2b2b; }
-    a:focus-visible { outline: 3px solid #000; outline-offset: 3px; }
+    .icon { width: 64px; height: 64px; margin: 0 auto; padding: 10px; border-radius: 18px; background: #fff; box-sizing: border-box; box-shadow: 0 0 60px rgba(255, 55, 95, 0.6); }
+    h1 { margin: 28px 0 12px; font-weight: 600; font-size: clamp(2.75rem, 2rem + 4vw, 4.5rem); line-height: 0.98; letter-spacing: -0.045em; }
+    p { margin: 0 auto; max-width: 26em; color: rgba(235, 235, 245, 0.66); }
+    a.home { display: inline-flex; align-items: center; min-height: 44px; margin-top: 28px; padding: 0 20px; border-radius: 999px; background: #fff; color: #000; font-weight: 600; text-decoration: none; }
+    a.home:hover { box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.14); }
+    a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
   </style>
 </head>
 <body>
