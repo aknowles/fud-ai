@@ -35,6 +35,16 @@ if [ -z "$UDID" ]; then
 fi
 echo "Simulator $UDID"
 
+# Always leave the simulator as we found it, including after a failed build or capture.
+cleanup() {
+  status=$?
+  xcrun simctl terminate "$UDID" "$BUNDLE" >/dev/null 2>&1 || true
+  xcrun simctl status_bar "$UDID" clear >/dev/null 2>&1 || true
+  xcrun simctl shutdown "$UDID" >/dev/null 2>&1 || true
+  exit $status
+}
+trap cleanup EXIT INT TERM
+
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b >/dev/null
 xcrun simctl ui "$UDID" appearance dark
@@ -62,17 +72,18 @@ sleep 12
 
 for pair in "${SCENES[@]}"; do
   scene="${pair%%:*}"; file="${pair##*:}"
+  captured=0
   for attempt in 1 2 3; do
     launch "$scene"
     sleep "${SCREENSHOT_WAIT:-8}"
     xcrun simctl io "$UDID" screenshot --type=png "$OUT/$file.png" >/dev/null 2>&1
     # A frame caught mid-launch is nearly all black and compresses to almost nothing.
-    [ "$(stat -f %z "$OUT/$file.png")" -gt 150000 ] && break
+    if [ "$(stat -f %z "$OUT/$file.png")" -gt 150000 ]; then captured=1; break; fi
     echo "retrying $file (blank frame)"
   done
+  if [ "$captured" -ne 1 ]; then
+    echo "error: $file stayed blank after 3 attempts" >&2
+    exit 1
+  fi
   echo "captured $file"
 done
-
-xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
-xcrun simctl status_bar "$UDID" clear
-xcrun simctl shutdown "$UDID"

@@ -18,8 +18,13 @@ enum ScreenshotMode {
         case voiceSettings
     }
 
+    /// Also requires --ui-testing-reset, so the demo data only ever lands in a freshly
+    /// wiped Debug data domain and can't replace a developer's own simulator data.
     static var isEnabled: Bool {
-        SimulatorTestEnvironment.isRunningTests && CommandLine.arguments.contains("--screenshot-demo")
+        let arguments = CommandLine.arguments
+        return SimulatorTestEnvironment.isRunningTests
+            && arguments.contains("--screenshot-demo")
+            && arguments.contains("--ui-testing-reset")
     }
 
     /// From the launch argument `-screenshotScene <name>`.
