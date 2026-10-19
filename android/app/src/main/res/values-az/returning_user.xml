@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Health Connect-də hələ idxal ediləcək heç nə yoxdur.</string>
     <string name="returning_health_nothing_new">Ehtiyat nüsxənizdə Health Connect-dəki hər şey artıq var idi.</string>
     <string name="returning_health_denied">Health Connect heç bir məlumat paylaşmadı. Onu sonra Parametrlər bölməsində qoşa bilərsiniz.</string>
+    <string name="returning_health_read_failed">Health Connect-dən bütün məlumatları oxumaq alınmadı. Yenidən cəhd edin.</string>
     <string name="returning_health_imported_both">İdxal edildi: %1$s və %2$s.</string>
     <string name="returning_health_imported_one">İdxal edildi: %1$s.</string>
     <string name="returning_health_imported_other">Health Connect məlumatlarınız idxal edildi.</string>

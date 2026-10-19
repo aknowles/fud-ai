@@ -653,11 +653,12 @@ struct ReturningUserView: View {
             // The restore marked the meal import done, but Health can hold
             // meals and readings saved after the backup.
             if restored { ReturningUser.reopenHealthImports() }
-            if let result = await importFromHealth() {
+            switch await importFromHealth() {
+            case .success(let result):
                 steps[.health] = .done(result.summary)
                 if !finishedSetup { onHealthImported(result) }
-            } else {
-                steps[.health] = .failed(String(localized: "Couldn't connect to Apple Health. You can try again later in Settings."))
+            case .failure(let failure):
+                steps[.health] = .failed(failure.message)
             }
         }
 
@@ -683,9 +684,16 @@ struct ReturningUserView: View {
         )
     }
 
-    /// Nil when Apple Health couldn't be reached.
-    private func importFromHealth() async -> ReturningUser.HealthImport? {
-        guard await healthKitManager.requestAuthorization() else { return nil }
+    private struct HealthImportFailure: Error {
+        let message: String
+    }
+
+    private func importFromHealth() async -> Result<ReturningUser.HealthImport, HealthImportFailure> {
+        guard await healthKitManager.requestAuthorization() else {
+            return .failure(HealthImportFailure(
+                message: String(localized: "Couldn't connect to Apple Health. You can try again later in Settings.")
+            ))
+        }
         // The same switch onboarding's Apple Health step sets; it keeps Health in sync afterwards.
         UserDefaults.standard.set(true, forKey: "healthKitEnabled")
 
@@ -714,6 +722,14 @@ struct ReturningUserView: View {
             ),
         ]
         for task in imports { await task?.value }
+        // A failed read would otherwise look like an empty import. Imports are
+        // deduplicated, so Try again is safe. Workout burns aren't checked: they
+        // sync again every time the app opens.
+        guard healthKitManager.finishedHistoryImports else {
+            return .failure(HealthImportFailure(
+                message: String(localized: "Couldn't read everything from Apple Health. Try again.")
+            ))
+        }
         let added = ReturningUser.HealthImportCounts.added(from: before, to: storeCounts)
 
         let latest = await healthKitManager.fetchLatestBodyMeasurements()
@@ -726,7 +742,7 @@ struct ReturningUserView: View {
         )
         let summary = ReturningUser.importSummary(added)
             ?? String(localized: "Nothing to import from Apple Health yet.")
-        return ReturningUser.HealthImport(summary: summary, prefill: prefill)
+        return .success(ReturningUser.HealthImport(summary: summary, prefill: prefill))
     }
 }
 

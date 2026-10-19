@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">لا يوجد ما يمكن استيراده من Health Connect بعد.</string>
     <string name="returning_health_nothing_new">كانت نسختك الاحتياطية تحتوي بالفعل على كل ما في Health Connect.</string>
     <string name="returning_health_denied">لم يشارك Health Connect أي بيانات. يمكنك ربطه لاحقًا من الإعدادات.</string>
+    <string name="returning_health_read_failed">تعذّرت قراءة كل البيانات من Health Connect. حاول مرة أخرى.</string>
     <string name="returning_health_imported_both">تم استيراد %1$s و%2$s.</string>
     <string name="returning_health_imported_one">تم استيراد %1$s.</string>
     <string name="returning_health_imported_other">تم استيراد بيانات Health Connect.</string>

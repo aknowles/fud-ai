@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Health Connect में अभी इंपोर्ट करने के लिए कुछ नहीं है।</string>
     <string name="returning_health_nothing_new">आपके बैकअप में Health Connect की हर चीज़ पहले से थी।</string>
     <string name="returning_health_denied">Health Connect ने कोई डेटा साझा नहीं किया। आप इसे बाद में सेटिंग्स में कनेक्ट कर सकते हैं।</string>
+    <string name="returning_health_read_failed">Health Connect से सारा डेटा नहीं पढ़ा जा सका। फिर से कोशिश करें।</string>
     <string name="returning_health_imported_both">इंपोर्ट किया गया: %1$s और %2$s।</string>
     <string name="returning_health_imported_one">इंपोर्ट किया गया: %1$s।</string>
     <string name="returning_health_imported_other">आपका Health Connect डेटा इंपोर्ट हो गया।</string>

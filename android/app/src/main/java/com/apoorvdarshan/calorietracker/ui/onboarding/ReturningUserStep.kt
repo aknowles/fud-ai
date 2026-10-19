@@ -690,5 +690,6 @@ private fun returningMessageText(message: ReturningMessage): String = stringReso
         ReturningMessage.SETUP_MISSING -> R.string.returning_drive_setup_missing
         ReturningMessage.HEALTH_DENIED -> R.string.returning_health_denied
         ReturningMessage.HEALTH_UNAVAILABLE -> R.string.onboarding_health_unavailable
+        ReturningMessage.HEALTH_READ_FAILED -> R.string.returning_health_read_failed
     }
 )

@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Aún no hay nada que importar desde Health Connect.</string>
     <string name="returning_health_nothing_new">Tu copia de seguridad ya tenía todo lo de Health Connect.</string>
     <string name="returning_health_denied">Health Connect no compartió ningún dato. Puedes conectarlo más tarde en Ajustes.</string>
+    <string name="returning_health_read_failed">No se pudo leer todo desde Health Connect. Inténtalo de nuevo.</string>
     <string name="returning_health_imported_both">Importación completada: %1$s y %2$s.</string>
     <string name="returning_health_imported_one">Importación completada: %1$s.</string>
     <string name="returning_health_imported_other">Se importaron tus datos de Health Connect.</string>

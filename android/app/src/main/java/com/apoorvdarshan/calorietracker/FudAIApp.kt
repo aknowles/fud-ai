@@ -436,10 +436,22 @@ class AppContainer(app: FudAIApp) {
 
     /** [syncHealthConnectReads] for a caller that shows what was imported: when another sync
      *  is already running (it returns at once then), waits for that one to finish instead. */
-    suspend fun syncHealthConnectReadsAndWait() {
+    suspend fun syncHealthConnectReadsAndWait(): Boolean {
         while (healthReadSyncInFlight) delay(100)
         syncHealthConnectReads()
         while (healthReadSyncInFlight) delay(100)
+        return healthReadsCompleted()
+    }
+
+    /** Whether the steps a failed Health Connect read leaves undone are done: the one-shot
+     *  meal restore and the weigh-in/body-fat changes token, for the types this phone can
+     *  read. The sync itself doesn't report failures; it skips these so a later sync retries. */
+    private suspend fun healthReadsCompleted(): Boolean {
+        if (!prefs.healthConnectEnabled.first() || !health.isAvailable()) return false
+        val caps = health.capabilities()
+        if (caps.nutritionRead && !prefs.healthFoodRestoreDone.first()) return false
+        if ((caps.weightRead || caps.bodyFatRead) && prefs.healthChangesToken.first() == null) return false
+        return true
     }
 
     /**
@@ -584,33 +596,35 @@ class AppContainer(app: FudAIApp) {
      * the regular sync's per-day reconcile, which keeps a restored session unless Health
      * Connect holds a newer edit of that same session.
      */
-    suspend fun importHealthConnectAddingOnly() {
-        if (!prefs.healthConnectEnabled.first() || !health.isAvailable()) return
+    suspend fun importHealthConnectAddingOnly(): Boolean {
+        if (!prefs.healthConnectEnabled.first() || !health.isAvailable()) return false
         while (healthReadSyncInFlight) delay(100)
         healthReadSyncInFlight = true
         try {
             val caps = health.capabilities()
             val now = Instant.now()
+            var readEverything = true
             if (caps.nutritionRead) {
                 // Ids already in the restored log are skipped.
-                health.readNutrition(now.minus(Duration.ofDays(730)), now)
-                    ?.let { foodRepository.restoreFromHealthConnect(it) }
+                val records = health.readNutrition(now.minus(Duration.ofDays(730)), now)
+                if (records != null) foodRepository.restoreFromHealthConnect(records) else readEverything = false
             }
             if (caps.weightRead || caps.bodyFatRead) {
                 val from = now.minus(Duration.ofDays(HEALTH_BODY_BACKFILL_DAYS))
-                var readEverything = true
+                var readBodyReadings = true
                 if (caps.weightRead) {
                     val weights = health.readWeights(from, now)
-                    if (weights != null) weightRepository.addMissingExternalWeights(weights) else readEverything = false
+                    if (weights != null) weightRepository.addMissingExternalWeights(weights) else readBodyReadings = false
                 }
                 if (caps.bodyFatRead) {
                     val bodyFats = health.readBodyFats(from, now)
-                    if (bodyFats != null) bodyFatRepository.addMissingExternalBodyFats(bodyFats) else readEverything = false
+                    if (bodyFats != null) bodyFatRepository.addMissingExternalBodyFats(bodyFats) else readBodyReadings = false
                 }
-                if (readEverything) seedBodyReadingsChangesToken(caps)
+                if (readBodyReadings) seedBodyReadingsChangesToken(caps) else readEverything = false
             }
             // Other apps' workouts are never in a backup; this only adds read-only copies.
             importedHealthWorkoutRepository.synchronize()
+            return readEverything
         } finally {
             healthReadSyncInFlight = false
         }

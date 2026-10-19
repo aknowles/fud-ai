@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Încă nu există nimic de importat din Health Connect.</string>
     <string name="returning_health_nothing_new">Backupul tău avea deja tot ce era în Health Connect.</string>
     <string name="returning_health_denied">Health Connect nu a partajat date. Îl poți conecta mai târziu din Setări.</string>
+    <string name="returning_health_read_failed">Nu s-a putut citi tot din Health Connect. Încearcă din nou.</string>
     <string name="returning_health_imported_both">Importat: %1$s și %2$s.</string>
     <string name="returning_health_imported_one">Importat: %1$s.</string>
     <string name="returning_health_imported_other">Datele tale din Health Connect au fost importate.</string>

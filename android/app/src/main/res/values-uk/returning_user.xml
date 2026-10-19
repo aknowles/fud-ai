@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">У Health Connect поки нічого імпортувати.</string>
     <string name="returning_health_nothing_new">У резервній копії вже було все з Health Connect.</string>
     <string name="returning_health_denied">Health Connect не надав жодних даних. Підключити його можна пізніше в налаштуваннях.</string>
+    <string name="returning_health_read_failed">Не вдалося прочитати всі дані з Health Connect. Спробуйте ще раз.</string>
     <string name="returning_health_imported_both">Імпортовано: %1$s і %2$s.</string>
     <string name="returning_health_imported_one">Імпортовано: %1$s.</string>
     <string name="returning_health_imported_other">Дані з Health Connect імпортовано.</string>

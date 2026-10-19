@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">아직 Health Connect에서 가져올 데이터가 없습니다.</string>
     <string name="returning_health_nothing_new">백업에 Health Connect의 모든 데이터가 이미 있었습니다.</string>
     <string name="returning_health_denied">Health Connect에서 공유된 데이터가 없습니다. 나중에 설정에서 연결할 수 있습니다.</string>
+    <string name="returning_health_read_failed">Health Connect에서 모든 데이터를 읽지 못했어요. 다시 시도하세요.</string>
     <string name="returning_health_imported_both">가져온 항목: %1$s, %2$s</string>
     <string name="returning_health_imported_one">가져온 항목: %1$s</string>
     <string name="returning_health_imported_other">Health Connect 데이터를 가져왔습니다.</string>

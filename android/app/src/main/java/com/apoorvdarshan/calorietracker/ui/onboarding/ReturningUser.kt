@@ -34,7 +34,8 @@ enum class ReturningMessage {
     NEEDS_NEWER_APP,
     SETUP_MISSING,
     HEALTH_DENIED,
-    HEALTH_UNAVAILABLE
+    HEALTH_UNAVAILABLE,
+    HEALTH_READ_FAILED
 }
 
 /** Which Health Connect import summary to show. */

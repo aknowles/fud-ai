@@ -31,6 +31,7 @@
     <string name="returning_health_nothing">Nothing to import from Health Connect yet.</string>
     <string name="returning_health_nothing_new">Your backup already had everything from Health Connect.</string>
     <string name="returning_health_denied">Health Connect didn\'t share any data. You can connect it later in Settings.</string>
+    <string name="returning_health_read_failed">Couldn\'t read everything from Health Connect. Try again.</string>
     <!-- %1$s and %2$s are returning_health_meals and returning_health_weigh_ins. -->
     <string name="returning_health_imported_both">Imported %1$s and %2$s.</string>
     <string name="returning_health_imported_one">Imported %1$s.</string>

@@ -475,12 +475,12 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
             prefs.migrateMatchingSpeechProviderIfNeeded()
             AndroidAppIconManager.apply(container.appContext, AppThemeColor.fromKey(prefs.appThemeColor.first()))
             runCatching { container.rescheduleReminders() }
-            val hasSetup = container.profileRepository.current() != null
-            if (hasSetup) {
-                if (!prefs.hasCompletedOnboarding.first()) prefs.setOnboardingCompleted(true)
-            } else {
-                // Home can't open without a profile (the splash would wait for one forever),
-                // so the short setup finishes over the restored data.
+            // A backup taken mid-setup can hold a profile without a finished onboarding, and
+            // Home can't open without a profile (the splash would wait for one forever). Only
+            // both together skip setup; otherwise the short setup finishes over the restored data.
+            val hasSetup = container.profileRepository.current() != null &&
+                prefs.hasCompletedOnboarding.first()
+            if (!hasSetup) {
                 prefs.setOnboardingCompleted(false)
                 val heightMetric = prefs.heightUnit.first() == "cm"
                 val weightMetric = prefs.weightUnit.first() == "kg"
@@ -539,9 +539,18 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
             // stores came from Health Connect, including what Settings' own reconcile already
             // brought in this session (imports are deduplicated, so running again is safe).
             val before = if (afterRestore) healthRecordCounts() else HealthRecordCounts()
-            runCatching {
+            val imported = runCatching {
                 if (afterRestore) container.importHealthConnectAddingOnly()
                 else container.syncHealthConnectReadsAndWait()
+            }
+            imported.exceptionOrNull()?.let { if (it is CancellationException) throw it }
+            if (imported.getOrNull() != true) {
+                // A failed read or write: say so and offer Try again instead of a summary
+                // built from whatever made it in. Imports are deduplicated, so a retry is safe.
+                _returning.update {
+                    it.finished(ReturningSource.HEALTH, ReturningStepStatus.FAILED, ReturningMessage.HEALTH_READ_FAILED)
+                }
+                return@launch
             }
             val added = healthRecordCounts() - before
             if (!_returning.value.restoredSetup) {

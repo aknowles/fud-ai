@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Health Connect 中暂时没有可导入的数据。</string>
     <string name="returning_health_nothing_new">你的备份已包含 Health Connect 中的所有数据。</string>
     <string name="returning_health_denied">Health Connect 未共享任何数据。你可以稍后在设置中连接。</string>
+    <string name="returning_health_read_failed">无法从 Health Connect 读取全部数据。请重试。</string>
     <string name="returning_health_imported_both">已导入 %1$s和%2$s。</string>
     <string name="returning_health_imported_one">已导入 %1$s。</string>
     <string name="returning_health_imported_other">已导入你的 Health Connect 数据。</string>

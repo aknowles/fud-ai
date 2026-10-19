@@ -202,7 +202,7 @@ struct LocalizationCatalogTests {
         "iCloud restores first, then Apple Health adds only what's missing. Nothing gets overwritten.",
         "Bringing your data back…", "You're all set. Everything is back where you left it.",
         "A short setup and you're in.", "Nothing came back this time. Try again or start fresh.",
-        "Open Fud AI", "Try again",
+        "Open Fud AI", "Try again", "Couldn't read everything from Apple Health. Try again.",
         "This backup doesn't include a finished setup, so let's finish it now.",
         "No iCloud backup found for this Apple ID.", "Couldn't reach iCloud. Check your connection and try again.",
         "Couldn't connect to Apple Health. You can try again later in Settings.",

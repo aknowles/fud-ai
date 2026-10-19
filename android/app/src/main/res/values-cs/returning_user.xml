@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">V Health Connect zatím není co importovat.</string>
     <string name="returning_health_nothing_new">Tvoje záloha už obsahovala vše z Health Connect.</string>
     <string name="returning_health_denied">Health Connect nesdílel žádná data. Připojit ho můžeš později v Nastavení.</string>
+    <string name="returning_health_read_failed">Z Health Connect se nepodařilo načíst všechno. Zkus to znovu.</string>
     <string name="returning_health_imported_both">Importováno: %1$s a %2$s.</string>
     <string name="returning_health_imported_one">Importováno: %1$s.</string>
     <string name="returning_health_imported_other">Data z Health Connect byla importována.</string>

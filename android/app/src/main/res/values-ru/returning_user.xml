@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">В Health Connect пока нечего импортировать.</string>
     <string name="returning_health_nothing_new">В резервной копии уже было всё из Health Connect.</string>
     <string name="returning_health_denied">Health Connect не предоставил данные. Подключить его можно позже в настройках.</string>
+    <string name="returning_health_read_failed">Не удалось прочитать все данные из Health Connect. Попробуйте ещё раз.</string>
     <string name="returning_health_imported_both">Импортировано: %1$s и %2$s.</string>
     <string name="returning_health_imported_one">Импортировано: %1$s.</string>
     <string name="returning_health_imported_other">Данные из Health Connect импортированы.</string>

@@ -1413,6 +1413,16 @@ class HealthKitManager {
     private let foodRecoveryDoneKey = "healthKitFoodRecoveryDone"
     private var isRecoveringFood = false
 
+    /// Whether the one-shot meal, weight and body-fat history imports finished. They
+    /// don't report failures: each stamps its marker only after its Health reads succeed,
+    /// so a failed read leaves this false.
+    var finishedHistoryImports: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: foodRecoveryDoneKey)
+            && defaults.integer(forKey: weightBackfillVersionKey) >= typesVersion
+            && defaults.integer(forKey: bodyFatBackfillVersionKey) >= typesVersion
+    }
+
     /// Rebuilds the local food log from the nutrition samples this app previously
     /// wrote to HealthKit — the restore path after a reinstall, phone reset, or
     /// new phone, where Health data survives (via iCloud) but the app container

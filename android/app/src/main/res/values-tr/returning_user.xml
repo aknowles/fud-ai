@@ -29,6 +29,7 @@
     <string name="returning_health_nothing">Health Connect\'te henüz içe aktarılacak bir şey yok.</string>
     <string name="returning_health_nothing_new">Yedeğinizde Health Connect\'teki her şey zaten vardı.</string>
     <string name="returning_health_denied">Health Connect hiçbir veri paylaşmadı. Daha sonra Ayarlar\'dan bağlayabilirsiniz.</string>
+    <string name="returning_health_read_failed">Health Connect\'teki verilerin tümü okunamadı. Tekrar deneyin.</string>
     <string name="returning_health_imported_both">İçe aktarıldı: %1$s ve %2$s.</string>
     <string name="returning_health_imported_one">İçe aktarıldı: %1$s.</string>
     <string name="returning_health_imported_other">Health Connect verileriniz içe aktarıldı.</string>
