@@ -1,6 +1,6 @@
 # Optional iCloud / Google Drive backup
 
-Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on.
+Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on, or taps Restore from iCloud on onboarding's welcome-back screen (iOS). That screen first fetches only the `current` record's hash field, never the asset, then restores after the user confirms; like any restore, this turns backup on. Delete All Data turns backup off, so the emptied phone never uploads over the iCloud copy.
 
 ## iOS
 

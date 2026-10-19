@@ -32,8 +32,20 @@ final class CloudBackupService {
     var hasCloudBackup = false
     var errorMessage: String?
 
+    /// What a light presence check found, without downloading the backup.
+    enum ProbeResult: Equatable {
+        /// A backup exists; the date is when it was last saved (nil if CloudKit didn't say).
+        case found(Date?)
+        case notFound
+        /// iCloud couldn't be asked. The message is ready to show.
+        case couldNotCheck(String)
+    }
+
     private let defaults: UserDefaults
     private var container: CKContainer { CKContainer.default() }
+    /// Bumped by Delete All Data so a backup already in flight can't turn
+    /// backup back on, or record a last-backup time, for the wiped phone.
+    private var resetGeneration = 0
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -147,10 +159,97 @@ final class CloudBackupService {
         }
     }
 
+    /// Checks whether this Apple ID has a backup without downloading it: only
+    /// the small hash field of the "current" record is fetched, never the
+    /// asset. Unlike `refreshCloudPresence`, a failed check is reported as
+    /// such instead of looking like "no backup".
+    func probeForBackup() async -> ProbeResult {
+        let status: CKAccountStatus
+        do {
+            status = try await container.accountStatus()
+        } catch {
+            return Self.probeResult(forFailure: error)
+        }
+        if let unavailable = Self.probeResult(forAccountStatus: status) { return unavailable }
+        let id = CKRecord.ID(recordName: recordName)
+        let keys = [shaField]
+        let configuration = CKOperation.Configuration()
+        configuration.qualityOfService = .userInitiated
+        configuration.timeoutIntervalForRequest = 20
+        do {
+            let results = try await container.privateCloudDatabase.configuredWith(configuration: configuration) { database in
+                try await database.records(for: [id], desiredKeys: keys)
+            }
+            return Self.probeResult(forFetch: results[id])
+        } catch {
+            return Self.probeResult(forFailure: error)
+        }
+    }
+
+    /// nil when the account is available and the record can be fetched.
+    static func probeResult(forAccountStatus status: CKAccountStatus) -> ProbeResult? {
+        guard status != .available else { return nil }
+        return .couldNotCheck(CloudBackupError.iCloudUnavailable.localizedDescription)
+    }
+
+    /// Maps the per-record result of the probe fetch; a missing entry means no record.
+    static func probeResult(forFetch result: Result<CKRecord, Error>?) -> ProbeResult {
+        switch result {
+        case .success(let record): return .found(record.modificationDate)
+        case .failure(let error): return probeResult(forFailure: error)
+        case nil: return .notFound
+        }
+    }
+
+    static func probeResult(forFailure error: Error) -> ProbeResult {
+        if let ckError = error as? CKError {
+            if ckError.code == .unknownItem { return .notFound }
+            if ckError.code == .partialFailure,
+               let partial = ckError.partialErrorsByItemID, !partial.isEmpty,
+               partial.values.allSatisfy({ ($0 as? CKError)?.code == .unknownItem }) {
+                return .notFound
+            }
+        }
+        return .couldNotCheck(userMessage(for: error))
+    }
+
+    /// Text for a failed iCloud check or restore. The app's own errors and a
+    /// signed-out account keep their specific message; anything else is
+    /// treated as a connection problem, with CloudKit's own text after it.
+    static func userMessage(for error: Error) -> String {
+        if let backupError = error as? CloudBackupError {
+            return backupError.localizedDescription
+        }
+        if let ckError = error as? CKError, ckError.code == .notAuthenticated {
+            return CloudBackupError.iCloudUnavailable.localizedDescription
+        }
+        let message = String(localized: "Couldn't reach iCloud. Check your connection and try again.")
+        let detail = error.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        return detail.isEmpty ? message : message + "\n" + detail
+    }
+
+    /// Delete All Data wipes UserDefaults, but this service kept `enabled` and
+    /// `lastAt` in memory, so the next background auto-backup could upload the
+    /// near-empty phone over the user's real iCloud backup. Backup stays off
+    /// until the user turns it on again.
+    func turnOffAfterDeleteAllData() {
+        resetGeneration += 1
+        enabled = false
+        lastAt = nil
+        hasCloudBackup = false
+        errorMessage = nil
+        defaults.removeObject(forKey: Self.lastAtKey)
+        defaults.removeObject(forKey: Self.lastHashKey)
+    }
+
     func backupNow(skipIfUnchanged: Bool = false) async throws {
         busy = true
         defer { busy = false }
+        let generation = resetGeneration
         try await checkAccount()
+        // Delete All Data ran while the account check was pending: the
+        // snapshot below would be the wiped phone.
+        guard generation == resetGeneration else { return }
         let values = snapshotValues()
         let photos = snapshotPhotos()
         let hash = CloudBackupArchive.contentHash(values: values, photoSizes: photos.mapValues(\.size))
@@ -158,6 +257,9 @@ final class CloudBackupService {
         let zip = try packToTemporaryFile(values: values, photos: photos)
         defer { removeTemporaryArchive(zip) }
         try await upload(zip: zip, hash: hash)
+        // The upload holds the data from before the wipe; just don't turn
+        // backup back on for the wiped phone.
+        guard generation == resetGeneration else { return }
         let now = ISO8601DateFormatter().string(from: Date())
         defaults.set(now, forKey: Self.lastAtKey)
         defaults.set(hash, forKey: Self.lastHashKey)

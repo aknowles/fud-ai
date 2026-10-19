@@ -192,6 +192,65 @@ struct LocalizationCatalogTests {
         }
     }
 
+    /// Every string on onboarding's welcome-back screen and the link to it.
+    static let returningUserKeys = [
+        "Used Fud AI before?", "Welcome back", "Bring your meals, weight, and workouts back, or start fresh.",
+        "Restore from iCloud",
+        "Your full backup: diary, photos, workouts, and settings, if you turned on iCloud Backup before.",
+        "Import from Apple Health",
+        "Meals, weight, body fat, and workout calories Fud AI saved to Health. You'll finish a short setup after.",
+        "Start fresh", "Checking iCloud…", "Restoring…", "Importing from Apple Health…",
+        "Restore your backup from %@?", "This backup doesn't include a finished setup, so let's finish it now.",
+        "No iCloud backup found for this Apple ID.", "Couldn't reach iCloud. Check your connection and try again.",
+        "Couldn't connect to Apple Health. You can try again later in Settings.",
+        "Imported %@.", "Nothing to import from Apple Health yet.", "Continue setup",
+    ]
+
+    /// The counted parts of the Apple Health import summary.
+    static let returningUserCountKeys = [
+        "%lld meals", "%lld weigh-ins", "%lld body-fat readings", "calories for %lld workouts",
+    ]
+
+    @Test func returningUserScreenIsTranslatedInEveryLanguage() throws {
+        let missing = "\u{0}missing"
+        for language in Self.appLanguages {
+            let bundle = try Self.languageBundle(language, in: .main)
+            for key in Self.returningUserKeys {
+                let translation = bundle.localizedString(forKey: key, value: missing, table: nil)
+                #expect(translation != missing, "\(language) is missing \(key)")
+                guard translation != missing else { continue }
+                #expect(
+                    Self.formatArguments(translation) == Self.formatArguments(key),
+                    "\(language) \(translation) does not match the arguments of \(key)"
+                )
+                if key.contains("Fud AI") {
+                    #expect(translation.contains("Fud AI"), "\(language) translated the app name in \(key)")
+                }
+            }
+            for key in Self.returningUserCountKeys {
+                #expect(Self.hasTranslation(key, in: bundle), "\(language) is missing \(key)")
+            }
+            let date = bundle.localizedString(forKey: "Restore your backup from %@?", value: nil, table: nil)
+            #expect(String(format: date, "Oct 19, 2026").contains("Oct 19, 2026"), "\(language): \(date)")
+        }
+    }
+
+    @Test func importSummaryCountsFollowPluralRules() throws {
+        #expect(try Self.format("%lld meals", "en", 1) == "1 meal")
+        #expect(try Self.format("%lld meals", "en", 120) == "120 meals")
+        #expect(try Self.format("%lld meals", "ru", 1) == "1 приём пищи")
+        #expect(try Self.format("%lld meals", "ru", 3) == "3 приёма пищи")
+        #expect(try Self.format("%lld meals", "ru", 120) == "120 приёмов пищи")
+        #expect(try Self.format("%lld weigh-ins", "en", 1) == "1 weigh-in")
+        #expect(try Self.format("%lld weigh-ins", "pl", 2) == "2 pomiary wagi")
+        #expect(try Self.format("%lld weigh-ins", "pl", 45) == "45 pomiarów wagi")
+        #expect(try Self.format("%lld body-fat readings", "uk", 21) == "21 вимір жиру")
+        #expect(try Self.format("%lld body-fat readings", "uk", 12) == "12 вимірів жиру")
+        #expect(try Self.format("calories for %lld workouts", "en", 1) == "calories for 1 workout")
+        #expect(try Self.format("calories for %lld workouts", "cs", 3) == "kalorie za 3 tréninky")
+        #expect(try Self.format("calories for %lld workouts", "de", 1) == "Kalorien von 1 Training")
+    }
+
     @Test func kilojouleDailySummaryAgreesWithTheRemainingCount() throws {
         let key = "You ate %lld of %lld kJ today. %lld remaining!"
         // кДж (kilojoule) is masculine where ккал is feminine.

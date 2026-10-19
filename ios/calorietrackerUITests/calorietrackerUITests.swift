@@ -103,6 +103,23 @@ final class calorietrackerUITests: XCTestCase {
     }
 
     @MainActor
+    func testReturningUserWelcomeBackCanStartFresh() throws {
+        // Restore and Import reach iCloud and Health, so this only checks the
+        // screen and its way into the normal setup.
+        let app = makeApp(onboarded: false, defaults: ["--ui-testing-returning"])
+        app.launch()
+
+        XCTAssertTrue(app.staticTexts["Welcome back"].waitForExistence(timeout: 15))
+        XCTAssertTrue(app.buttons["Restore from iCloud"].exists)
+        XCTAssertTrue(app.buttons["Import from Apple Health"].exists)
+        XCTAssertFalse(app.buttons["Get Started"].exists)
+        XCTAssertFalse(app.buttons["home.add"].exists)
+
+        app.buttons["Start fresh"].tap()
+        XCTAssertTrue(app.staticTexts["What's your gender?"].waitForExistence(timeout: 5))
+    }
+
+    @MainActor
     func testWorkoutSearchOpensExerciseDetails() throws {
         let app = makeApp()
         app.launchArguments += [
