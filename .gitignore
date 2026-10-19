@@ -32,3 +32,6 @@ ios/**/xcuserdata/
 # Stray compiler output at the repo root (e.g. `swiftc test.swift` -> ./test).
 # A Mach-O binary was once committed this way; keep it out.
 /test
+
+# Local screenshot captures (scripts/screenshots/capture-ios.sh default output)
+scripts/screenshots/out/
