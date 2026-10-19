@@ -50,6 +50,10 @@ ASC_SETS = (
     ),
 )
 
+# A frame that is not an accepted ASC size is fitted onto the set's first size only
+# when its shape is this close, so a frame from another device's set fails staging.
+ASC_ASPECT_TOLERANCE = 0.03
+
 # Google Play phone screenshots (portrait ~9:16)
 PLAY_MIN_SIDE = 320
 PLAY_MAX_SIDE = 3840
@@ -161,6 +165,26 @@ def validate_asc_png(path: Path, asc_set: AscSet, *, width: int, height: int) ->
         )
 
 
+def asc_frame_fits(asc_set: AscSet, width: int, height: int) -> bool:
+    if (width, height) in asc_set.accepted:
+        return True
+    if width <= 0 or height <= 0:
+        return False
+    target_w, target_h = asc_set.accepted[0]
+    return abs(width / height - target_w / target_h) <= ASC_ASPECT_TOLERANCE * target_w / target_h
+
+
+def check_asc_frames(asc_set: AscSet, pngs: list[Path]) -> None:
+    for path in pngs:
+        w, h = read_png_size(path)
+        if not asc_frame_fits(asc_set, w, h):
+            accepted = ", ".join(f"{aw}x{ah}" for aw, ah in asc_set.accepted)
+            fail(
+                f"{asc_set.source.name}/{path.name}: {w}x{h} is not shaped like an ASC "
+                f"{asc_set.label} screenshot ({accepted}); is it in the wrong folder?"
+            )
+
+
 def numbered_pngs(source: Path) -> list[Path]:
     if not source.is_dir():
         fail(f"screenshot source missing: {source.relative_to(ROOT)}")
@@ -190,6 +214,9 @@ def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
         skipped = ", ".join(p.name for p in play_pngs[PLAY_PHONE_MAX:])
         print(f"note: Play phone cap is {PLAY_PHONE_MAX}; not staging: {skipped}")
         play_pngs = play_pngs[:PLAY_PHONE_MAX]
+
+    for asc_set, pngs in ios_sets:
+        check_asc_frames(asc_set, pngs)
 
     will_upload = uploads_enabled()
     Image = try_import_pillow()

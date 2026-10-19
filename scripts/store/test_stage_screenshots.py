@@ -169,6 +169,32 @@ class StageTests(unittest.TestCase):
                     self.stage(dry_run=False, platform="ios")
                 self.assertEqual(self.names(self.ios_dest), ["01-staged.png"])
 
+    def test_a_frame_from_another_devices_set_fails_even_with_uploads_off(self):
+        self.write(self.ios_src, "01-a.png")
+        self.write_tablet_sets()
+        self.write(self.ipad_dest, "01-staged.png")
+        for source, size in ((self.ipad_src, (1290, 2796)), (self.duo_src, (2064, 2752))):
+            self.write_tablet_sets()
+            self.write(source, "02-misplaced.png", size=size)
+            with self.subTest(source=source.name):
+                for dry_run in (True, False):
+                    stderr = io.StringIO()
+                    with self.assertRaises(SystemExit), redirect_stderr(stderr):
+                        self.stage(dry_run=dry_run, platform="ios")
+                    self.assertIn("02-misplaced.png", stderr.getvalue())
+                self.assertEqual(self.names(self.ipad_dest), ["01-staged.png"])
+            (source / "02-misplaced.png").unlink()
+
+    def test_a_frame_shaped_like_its_set_is_still_staged(self):
+        # 6.9" iPhone frames have the 6.7" shape; staging fits them onto 1290x2796.
+        self.assertTrue(ss.asc_frame_fits(self.asc_sets[0], 1320, 2868))
+        self.write(self.ios_src, "01-a.png", size=(1320, 2868))
+        self.write_tablet_sets()
+
+        self.stage(dry_run=False, platform="ios")
+
+        self.assertEqual(self.names(self.ios_dest), ["01-a.png"])
+
     def test_upload_without_pillow_checks_each_sets_sizes(self):
         self.write(self.ios_src, "01-a.png")
         self.write_tablet_sets()
