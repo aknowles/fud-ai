@@ -31,6 +31,8 @@ struct WorkoutsView: View {
                     .transition(.opacity)
                 }
             }
+            .readableWidth()
+            .background(WorkoutBackground())
         }
         // Refresh static workout theme tokens without replacing this stack or
         // discarding its route and session-only timer state.

@@ -1922,6 +1922,8 @@ private var dailyStepsTaskKey: String {
             }
             .scrollContentBackground(.hidden)
             .background(AppColors.appBackground)
+            .readableWidth()
+            .background(AppColors.appBackground)
             .animation(.snappy, value: selectedDate)
             .task(id: dailyStepsTaskKey) {
                 await refreshDailySteps()
@@ -4503,6 +4505,7 @@ struct ProgressTabView: View {
                     WeeklyChallengeView()
                 }
             }
+            .readableWidth()
             .background(AppColors.appBackground)
             .navigationBarHidden(true)
             .task(id: foodRangeStatsTaskKey) {
@@ -5009,17 +5012,25 @@ struct ProfileView: View {
         Group {
             if let settingsCategory {
                 settingsList
+                    .readableWidth()
+                    .background(AppColors.appBackground)
                     .navigationTitle(Text(settingsCategory.title))
                     .navigationBarTitleDisplayMode(.inline)
                     .toolbar(.visible, for: .navigationBar)
             } else {
                 NavigationStack(path: $settingsPath) {
                     settingsHub
+                        .readableWidth()
+                        .background(AppColors.appBackground)
                         .navigationDestination(for: ProfileSettingsCategory.self) { category in
                             if category == .aiAccess {
                                 HostedAISettingsView()
+                                    .readableWidth()
+                                    .background(AppColors.appBackground)
                             } else if category == .voiceAssistant {
                                 VoiceAssistantSettingsView()
+                                    .readableWidth()
+                                    .background(AppColors.appBackground)
                             } else {
                                 ProfileView(
                                     updateState: $updateState,
