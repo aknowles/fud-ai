@@ -5,11 +5,14 @@ import {
   deriveIssueTitle,
   DISCORD_INTERACTIONS_PATH,
   FEATURE_ISSUE_LABEL,
+  formatWait,
   handleDiscordInteractionsRequest,
   IOS_BUG_CHANNEL_ID,
   labelsForBugPlatform,
   labelsForFeatureRequest,
   parseStructuredIssue,
+  recentReports,
+  reportCooldownSeconds,
   resolveBugPlatform,
   resolveFeaturePlatform,
   verifyDiscordSignature,
@@ -807,12 +810,71 @@ describe("Discord command reservations", () => {
     const h = await setup();
     await (await h.send("bug")).flush();
     await (await h.send("feature", "second", { channel_id: "different" })).flush();
-    expect(h.replies().at(-1)).toContain("five minutes");
+    expect(h.replies().at(-1)).toContain("10 minutes");
     expect(h.aiCalls()).toHaveLength(1);
     await (await h.send("ask", "question")).flush();
     await (await h.send("feature", "other-user", { member: { user: { id: "user-2" } } })).flush();
     await (await h.send("feature", "other-server", { guild_id: "server-2" })).flush();
     expect(h.aiCalls()).toHaveLength(4);
+  });
+
+  it("doubles the report wait for each report in a streak, up to a day", async () => {
+    const h = await setup();
+    const start = Date.now();
+    let clock = start;
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    const minute = 60_000;
+    let reports = 0;
+    // Report again the moment each wait ends: 10, 20, 40, 80, 160, 320, 640 and 1280 minutes, then the cap.
+    for (const wait of [10, 20, 40, 80, 160, 320, 640, 1280, 1440, 1440]) {
+      await (await h.send(reports % 2 ? "feature" : "bug", `report-${reports}`)).flush();
+      reports += 1;
+      expect(h.aiCalls()).toHaveLength(reports);
+      clock += minute;
+      await (await h.send("bug", `early-${reports}`)).flush();
+      expect(h.replies().at(-1)).toContain(`another report in ${formatWait((wait - 1) * minute)}`);
+      expect(h.aiCalls()).toHaveLength(reports);
+      clock += (wait - 1) * minute + 1;
+    }
+  });
+
+  it("starts over after two days without a report", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    clock += 10 * 60_000 + 1;
+    await (await h.send("feature", "second")).flush();
+    clock += 48 * 60 * 60_000 + 1;
+    await (await h.send("bug", "next-day")).flush();
+    expect(h.aiCalls()).toHaveLength(3);
+    clock += 60_000;
+    await (await h.send("bug", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 9 minutes");
+  });
+
+  it("does not count a report whose reservation was rolled back", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    clock += 10 * 60_000 + 1;
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    const writes = vi.spyOn(state, "put").mockImplementation(async (key, value, options) => {
+      if (key.includes(":interaction:")) throw new Error("write failed");
+      await put(key, value, options);
+    });
+    await (await h.send("feature", "failed")).flush();
+    expect(h.replies().at(-1)).toContain("unavailable");
+    writes.mockRestore();
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("feature", "retry")).flush();
+    expect(h.aiCalls()).toHaveLength(2);
+    clock += 60_000;
+    await (await h.send("bug", "early")).flush();
+    // Two real reports, so 20 minutes, not the 40 a counted failure would give.
+    expect(h.replies().at(-1)).toContain("another report in 19 minutes");
   });
 
   it("reserves locally before concurrent KV reads complete", async () => {
@@ -958,5 +1020,36 @@ describe("Discord command reservations", () => {
     h.bindings.DISCORD_STATE = { ...state };
     await (await h.send()).flush();
     expect(h.aiCalls()).toHaveLength(1);
+  });
+});
+
+describe("report cooldown helpers", () => {
+  it("doubles from 10 minutes and caps at a day", () => {
+    expect([1, 2, 3, 4, 8, 9, 20].map(reportCooldownSeconds)).toEqual([600, 1200, 2400, 4800, 76_800, 86_400, 86_400]);
+    expect(reportCooldownSeconds(0)).toBe(600);
+  });
+
+  it("keeps the current streak of valid report times and drops an aborted attempt's own entry", () => {
+    const now = 1_800_000_000_000;
+    const day = 86_400_000;
+    // Two days between the first two reports ends that streak.
+    const metadata = { owner: "o", reports: [now - 3 * day, now - day + 1, "x", Number.NaN, now + 5, now - 1_000] };
+    expect(recentReports(metadata, false, now)).toEqual([now - day + 1, now - 1_000]);
+    expect(recentReports({ owner: "o", reports: [now - 5 * day, now - 4 * day] }, false, now)).toEqual([]);
+    expect(recentReports({ owner: "o", reports: [now - 3 * day, now - 1.5 * day, now - 1_000] }, false, now))
+      .toEqual([now - 3 * day, now - 1.5 * day, now - 1_000]);
+    expect(recentReports({ owner: "o", reports: [now - 2_000, now - 1_000] }, true, now)).toEqual([now - 2_000]);
+    expect(recentReports({ owner: "o" }, false, now)).toEqual([]);
+    expect(recentReports(null, false, now)).toEqual([]);
+    const long = Array.from({ length: 30 }, (_, i) => now - 30_000 + i * 1_000);
+    expect(recentReports({ owner: "o", reports: long }, false, now)).toHaveLength(12);
+  });
+
+  it("formats waits in minutes and hours", () => {
+    expect(formatWait(1)).toBe("1 minute");
+    expect(formatWait(9 * 60_000)).toBe("9 minutes");
+    expect(formatWait(60 * 60_000)).toBe("1 hour");
+    expect(formatWait(80 * 60_000)).toBe("1 hour 20 minutes");
+    expect(formatWait(1_279 * 60_000)).toBe("21 hours 19 minutes");
   });
 });

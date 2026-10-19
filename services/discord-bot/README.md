@@ -17,13 +17,13 @@ Slash commands **`/ask`**, **`/bug`**, and **`/feature`** are handled by the mai
 ### Command cooldowns
 
 - **`/ask`: one question per minute per user.**
-- **`/bug` and `/feature`: one report per five minutes per user, shared between both commands.** A bug report also starts the feature-request cooldown, and vice versa.
+- **`/bug` and `/feature`: an escalating wait per user, shared between both commands.** The first report starts a 10-minute wait. Each further report in a streak doubles it (20, 40, 80 minutes…) up to 24 hours. Two days without a report ends the streak. A bug report also starts the feature-request wait, and vice versa, and the reply tells the user how long is left.
 - Cooldowns apply across channels within the same server, including admins. Direct messages use a separate scope for each user.
 - Only valid commands start a cooldown. Once a command is accepted, upstream AI/GitHub failures still consume the cooldown; blocked attempts do not extend the stored timer.
 - Blocked commands receive a wait message without calling Gemini or GitHub. If cooldown storage is unavailable, Fuddy asks users to try again later instead of processing an unmetered command.
 - Failed reads release provisional local reservations. Failed or timed-out writes trigger attempt-specific cancellation after all writes settle, including late writes; pending cleanup returns unavailable rather than a normal cooldown. Cleanup is best effort during KV outages and propagation delays, with KV TTLs as the final fallback. Pending local guards remain until write settlement and cancellation finish; they are not evicted to admit new commands. Cancellation writes an immutable per-attempt marker instead of deleting shared keys. Cooldown values stay numeric for older deployed readers, with ownership stored in KV metadata.
 - Storage warnings identify the failing stage and timeout/operation-failure category without logging raw errors or credentials.
-- KV stores hashed identifiers, random reservation ownership tokens, and expiry timestamps: 60 seconds for questions, 300 seconds for reports, and 15 minutes for interaction replay markers. No prompts, API keys, or interaction tokens are stored there. Private issue-closure routing also uses this namespace with the separate retention described below.
+- KV stores hashed identifiers, random reservation ownership tokens, and expiry timestamps: 60 seconds for questions and 15 minutes for interaction replay markers. A report's cooldown key lives two days. Its metadata carries the times of the user's last 12 reports, and nothing else about them, so the next wait can escalate. No prompts, API keys, or interaction tokens are stored there. Private issue-closure routing also uses this namespace with the separate retention described below.
 - Local reservations guard concurrent requests in one Worker instance. KV is eventually consistent, so cooldowns and replay protection across instances are best effort.
 
 ### One-time Discord portal steps

@@ -24,14 +24,68 @@ const MAX_QUESTION_CHARS = 1_500;
 const MAX_REPORT_CHARS = 4_000;
 const MAX_REPLY_CHARS = 1_800;
 const ASK_COOLDOWN_SECONDS = 60;
-const REPORT_COOLDOWN_SECONDS = 300;
+/** The first report's wait. Each further report in a streak doubles it. */
+const REPORT_COOLDOWN_SECONDS = 600;
+const REPORT_COOLDOWN_MAX_SECONDS = 86_400;
+/**
+ * Two days without a report ends a streak. Longer than the longest wait, so reporting
+ * again as soon as a capped wait ends keeps the cap instead of starting over.
+ */
+const REPORT_RESET_SECONDS = 172_800;
+/** Enough history to reach the cap; keeps the cooldown key's metadata small. */
+const REPORT_HISTORY_MAX = 12;
 const INTERACTION_RETENTION_SECONDS = 900;
+
+type StateMetadata = { owner: string; reports?: number[] };
 
 type DiscordState = {
   get(key: string): Promise<string | null>;
   getWithMetadata(key: string): Promise<{ value: string | null; metadata: unknown }>;
-  put(key: string, value: string, options: { expirationTtl: number; metadata?: { owner: string } }): Promise<void>;
+  put(key: string, value: string, options: { expirationTtl: number; metadata?: StateMetadata }): Promise<void>;
 };
+
+type Reservation =
+  | { status: "accepted" | "duplicate" | "unavailable" }
+  | { status: "cooldown"; until: number };
+
+/**
+ * The current streak from a cooldown key's metadata (report times in ms, oldest first):
+ * the latest reports that each came less than REPORT_RESET_SECONDS after the one
+ * before, the newest also less than that before now. An aborted attempt never happened,
+ * so its own entry, which it appended last, is dropped.
+ */
+export function recentReports(metadata: unknown, aborted: boolean, now: number): number[] {
+  const raw = metadata && typeof metadata === "object" && "reports" in metadata && Array.isArray(metadata.reports)
+    ? metadata.reports
+    : [];
+  const kept = (aborted ? raw.slice(0, -1) : raw)
+    .filter((at): at is number => typeof at === "number" && Number.isFinite(at) && at <= now)
+    .slice(-REPORT_HISTORY_MAX);
+  const streak: number[] = [];
+  let next = now;
+  for (let index = kept.length - 1; index >= 0; index -= 1) {
+    if (next - kept[index] >= REPORT_RESET_SECONDS * 1000) break;
+    streak.unshift(kept[index]);
+    next = kept[index];
+  }
+  return streak;
+}
+
+/** 10 minutes for the first report in a streak, doubling with each one after, up to a day. */
+export function reportCooldownSeconds(reportsInWindow: number): number {
+  const doublings = Math.max(0, reportsInWindow - 1);
+  return Math.min(REPORT_COOLDOWN_SECONDS * 2 ** doublings, REPORT_COOLDOWN_MAX_SECONDS);
+}
+
+/** "40 minutes", "1 hour 20 minutes", "21 hours". */
+export function formatWait(milliseconds: number): string {
+  const minutes = Math.max(1, Math.ceil(milliseconds / 60_000));
+  const unit = (count: number, name: string) => `${count} ${name}${count === 1 ? "" : "s"}`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  if (hours === 0) return unit(minutes, "minute");
+  return rest === 0 ? unit(hours, "hour") : `${unit(hours, "hour")} ${unit(rest, "minute")}`;
+}
 
 // Isolate-local reservations close concurrent-request races while KV persists across restarts.
 type LocalReservation = { until: number; unavailable?: boolean };
@@ -659,7 +713,7 @@ async function reserveCommand(
   applicationId: string,
   command: "ask" | "bug" | "feature",
   waitUntil: (promise: Promise<unknown>) => void,
-): Promise<"accepted" | "duplicate" | "cooldown" | "unavailable"> {
+): Promise<Reservation> {
   let stage: "hash" | "read" | "write" = "hash";
   let release: (() => void) | undefined;
   let rollback: (() => Promise<void>) | undefined;
@@ -667,6 +721,7 @@ async function reserveCommand(
     const userId = reporterFrom(interaction).id;
     const scope = interactionGuildId(interaction) || "dm";
     const bucket = command === "ask" ? "ask" : "report";
+    // Until the report history is read, assume the shortest report wait.
     const cooldown = command === "ask" ? ASK_COOLDOWN_SECONDS : REPORT_COOLDOWN_SECONDS;
     const [interactionHash, cooldownHash] = await Promise.all([
       digestKey(`${applicationId}:${interaction.id}`),
@@ -684,13 +739,14 @@ async function reserveCommand(
       if (reservation.until <= now) local.delete(key);
     }
     if (local.get(interactionKey)?.unavailable || local.get(cooldownKey)?.unavailable) {
-      return "unavailable";
+      return { status: "unavailable" };
     }
-    if ((local.get(interactionKey)?.until ?? 0) > now) return "duplicate";
-    if ((local.get(cooldownKey)?.until ?? 0) > now) return "cooldown";
+    if ((local.get(interactionKey)?.until ?? 0) > now) return { status: "duplicate" };
+    const localUntil = local.get(cooldownKey)?.until ?? 0;
+    if (localUntil > now) return { status: "cooldown", until: localUntil };
     while (local.size > 2_046) {
       const oldest = [...local].find(([, reservation]) => !reservation.unavailable)?.[0];
-      if (oldest === undefined) return "unavailable";
+      if (oldest === undefined) return { status: "unavailable" };
       local.delete(oldest);
     }
     // Reserve before the first KV await so simultaneous commands in this isolate cannot pass.
@@ -719,24 +775,38 @@ async function reserveCommand(
     ]));
     if (seen && !replayAborted) {
       local.delete(cooldownKey);
-      return "duplicate";
+      return { status: "duplicate" };
     }
     const storedUntil = Number(cooling.value);
     if (!cooldownAborted && storedUntil > Date.now()) {
       cooldownReservation.until = storedUntil;
-      return "cooldown";
+      return { status: "cooldown", until: storedUntil };
     }
-    const until = Date.now() + cooldown * 1000;
+    const reservedAt = Date.now();
+    // Reports carry their streak in the cooldown key's metadata, so people who report
+    // again as soon as they can wait twice as long each time.
+    const reports = bucket === "report"
+      ? [...recentReports(metadata, Boolean(cooldownAborted), reservedAt), reservedAt]
+      : undefined;
+    const wait = reports ? reportCooldownSeconds(reports.length) : cooldown;
+    const until = reservedAt + wait * 1000;
     cooldownReservation.until = until;
     const owner = crypto.randomUUID();
-    const records = [
-      { key: interactionKey, value: owner, ttl: INTERACTION_RETENTION_SECONDS },
-      { key: cooldownKey, value: String(until), ttl: cooldown },
+    const records: { key: string; value: string; ttl: number; metadata: StateMetadata }[] = [
+      { key: interactionKey, value: owner, ttl: INTERACTION_RETENTION_SECONDS, metadata: { owner } },
+      // A report's key outlives its wait so the streak can escalate the next one.
+      // The value stays the numeric expiry the deployed reader expects.
+      {
+        key: cooldownKey,
+        value: String(until),
+        ttl: reports ? REPORT_RESET_SECONDS : wait,
+        metadata: reports ? { owner, reports } : { owner },
+      },
     ];
     stage = "write";
     // Observe every write, including one that completes after our response deadline.
-    const writes = records.map(({ key, value, ttl }) =>
-      Promise.resolve().then(() => state.put(key, value, { expirationTtl: ttl, metadata: { owner } })));
+    const writes = records.map(({ key, value, ttl, metadata: recordMetadata }) =>
+      Promise.resolve().then(() => state.put(key, value, { expirationTtl: ttl, metadata: recordMetadata })));
     const settled = Promise.allSettled(writes);
     rollback = async () => {
       // Keep unresolved writes serialized locally; a late write must not overwrite
@@ -753,7 +823,7 @@ async function reserveCommand(
       }
     };
     await stateOperation(Promise.all(writes));
-    return "accepted";
+    return { status: "accepted" };
   } catch (error) {
     console.warn("discord_cooldown_state_unavailable", {
       stage,
@@ -768,7 +838,7 @@ async function reserveCommand(
     } else {
       release?.();
     }
-    return "unavailable";
+    return { status: "unavailable" };
   }
 }
 
@@ -795,15 +865,17 @@ function deferCommand(
   }
   ctx.waitUntil((async () => {
     const reservation = await reserveCommand(state, interaction, applicationId, command, (promise) => ctx.waitUntil(promise));
-    if (reservation === "duplicate") return;
-    if (reservation === "accepted") {
+    if (reservation.status === "duplicate") return;
+    if (reservation.status === "accepted") {
       await fulfill();
       return;
     }
-    const content = reservation === "cooldown"
+    const content = reservation.status === "cooldown"
       ? command === "ask"
         ? "Please wait a minute between questions."
-        : "Please wait five minutes between reports. /bug and /feature share this cooldown. Your reports become public GitHub issues."
+        : `You can send another report in ${formatWait(reservation.until - Date.now())}. /bug and /feature share this wait, `
+          + "which starts at 10 minutes, doubles with each report up to a day, and resets after two days without one. "
+          + "Your reports become public GitHub issues."
       : "Fuddy’s command service is temporarily unavailable. Please try again later.";
     await editInteractionReply(applicationId, interaction.token, content);
   })().catch(() => {
