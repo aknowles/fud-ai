@@ -50,7 +50,7 @@ Android Studio is needed for the SDK + bundled JDK, but you can do all your day-
 
 1. Fork the repo
 2. Clone your fork
-3. `cd web && python3 -m http.server 8000` (any static server works)
+3. `cd web && npx serve -l 8000` (pages link to clean URLs like `/privacy`, which `serve` maps to `privacy.html` the way the live site does)
 4. Open http://localhost:8000
 
 The site is plain HTML/CSS with a validation-only npm build step and no framework. It is deployed with Cloudflare Workers Static Assets from `web/` using `web/wrangler.toml`.

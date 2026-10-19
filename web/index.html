@@ -10,7 +10,7 @@
 <link rel="canonical" href="https://www.fud-ai.app/">
 <link rel="alternate" href="https://www.fud-ai.app/" hreflang="en">
 <link rel="alternate" href="https://www.fud-ai.app/" hreflang="x-default">
-<meta name="theme-color" content="#FF375F">
+<meta name="theme-color" content="#000000">
 <meta name="apple-itunes-app" content="app-id=6758935726">
 <!-- Open Graph (Facebook · WhatsApp · LinkedIn · iMessage · Discord · Slack) -->
 <meta property="og:type" content="website">
@@ -34,12 +34,13 @@
 <meta name="twitter:description" content="Free AI calorie tracker for iPhone and Android. Log meals by photo, voice, barcode or text with your own AI key, review nutrition, track fasts and workouts, and optionally sync Health data. Open source, no ads.">
 <meta name="twitter:image" content="https://www.fud-ai.app/assets/opengraph.jpg?v=20260722">
 <meta name="twitter:image:alt" content="Fud AI — free, open-source AI calorie and workout tracker for iOS and Android.">
-<link rel="icon" href="assets/calorie logo transparent.png">
-<link rel="preload" as="image" href="assets/screenshots/home.webp" type="image/webp" fetchpriority="high">
+<link rel="icon" href="assets/fud-app-icon-180.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/fud-app-icon-180.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-<link rel="stylesheet" href="styles.css?v=20260914">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@300..700&display=swap">
+<link rel="stylesheet" href="styles.css?v=20261019b">
+<script>if ("IntersectionObserver" in window) document.documentElement.classList.add("js");</script>
 <!-- Structured Data -->
 <script type="application/ld+json">
 {
@@ -82,7 +83,7 @@
   "author": { "@type": "Person", "name": "Apoorv Darshan" },
   "publisher": { "@type": "Person", "name": "Apoorv Darshan", "url": "https://apoorvdarshan.com/" },
   "license": "https://github.com/apoorvdarshan/fud-ai/blob/main/LICENSE",
-  "dateModified": "2026-08-07",
+  "dateModified": "2026-10-19",
   "url": "https://www.fud-ai.app/",
   "image": "https://www.fud-ai.app/assets/opengraph.jpg",
   "releaseNotes": "https://github.com/apoorvdarshan/fud-ai/releases",
@@ -102,7 +103,7 @@
     "https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker"
   ],
   "screenshot": "https://www.fud-ai.app/assets/screenshots/home.webp",
-  "softwareVersion": "iOS 7.1 build 38 / Android 7.1 versionCode 38",
+  "softwareVersion": "iOS 7.1.2 / Android 7.2",
   "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.6", "ratingCount": "16" }
 }
 </script>
@@ -134,7 +135,7 @@
   "name": "Fud AI — Free, Open-Source AI Calorie Tracker & Food Scanner",
   "description": "Fud AI is a free, open-source AI calorie tracker and food scanner for iPhone and Android. Log meals by photo, voice, barcode or text with your own AI key — no subscription, no ads, no account.",
   "inLanguage": "en",
-  "dateModified": "2026-09-14",
+  "dateModified": "2026-10-19",
   "isPartOf": { "@id": "https://www.fud-ai.app/#website" },
   "about": { "@id": "https://www.fud-ai.app/#software" },
   "primaryImageOfPage": {
@@ -152,18 +153,10 @@
   "mainEntity": [
     {
       "@type": "Question",
-      "name": "How do I get help on Discord?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Join the Fud AI Discord server at https://discord.gg/Py4VrFctP3, then use the /ask slash command from the Fud AI bot with your question. The bot replies in the channel."
-      }
-    },
-    {
-      "@type": "Question",
       "name": "What is Fud AI?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Fud AI is a free, open-source AI calorie tracker for iPhone and Android. Snap a photo, scan a barcode, speak, or type a meal and AI estimates the calories, macros, and nutrients. fud-ai.app is the official website."
+        "text": "A free, open-source AI calorie tracker for iPhone and Android. Snap a photo, scan a barcode, speak, or type a meal, and AI estimates the calories, macros, and nutrients. fud-ai.app is the official website."
       }
     },
     {
@@ -171,23 +164,15 @@
       "name": "Is Fud AI free?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Fud AI is fully free with no subscription — it's free with no ads, plus an optional Tip Jar on iOS. AI analysis uses your own free provider key (a Gemini key takes a minute to create)."
+        "text": "Yes. The app is free with no ads, and with your own AI key there’s no subscription: a free Gemini key takes about a minute to create. If you’d rather not manage a key, optional paid Plus/Pro plans run the AI for you. An optional Tip Jar on iOS and Android helps fund development."
       }
     },
     {
       "@type": "Question",
-      "name": "Is there a Fud AI APK for Android?",
+      "name": "Can I use Fud AI without an API key?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Fud AI for Android is installed from Google Play — no separate APK download is needed. The app is MIT-licensed open source, so you can also build it yourself from the GitHub repository."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Is Fud AI the same as the Fud app?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. Fud AI, Fud AI app, and Fud app refer to the same open-source calorie tracker for iPhone and Android."
+        "text": "Fud AI is free forever with Bring Your Own Key, and a free Gemini API key takes a minute to create. Manual entry, barcode lookup, Native iOS / Native Android speech, and Ollama local inference work without any hosted AI API key. On iPhone and Android, optional Plus/Pro hosted AI is available if you prefer not to manage keys."
       }
     },
     {
@@ -208,34 +193,10 @@
     },
     {
       "@type": "Question",
-      "name": "Can I use Fud AI without an API key?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Fud AI is free forever with Bring Your Own Key — a free Gemini API key takes a minute to create. Manual entry, barcode lookup, Native iOS / Native Android speech, and Ollama local inference work without any hosted AI API key. On iPhone, optional Plus/Pro hosted AI is available if you prefer not to manage keys."
-      }
-    },
-    {
-      "@type": "Question",
       "name": "Does Fud AI sync with Apple Health or Health Connect?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Fud AI supports Apple Health on iPhone and Health Connect on Android for body measurements, meal nutrition, and calculated workout calories when you explicitly enable sync. Energy Burn Goals can also use active/total energy for calorie target estimates. Fasting history remains local and is not synced."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "Can I log food with Siri on iPhone?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Yes. iOS Siri Shortcuts can log food, read today's calories, and log weight. On supported iPhones, Siri food-description analysis can use Apple Intelligence on-device as the final fallback after BYOK provider/fallback attempts fail. Phrase examples are under + > Describe Meal > Siri Phrases."
-      }
-    },
-    {
-      "@type": "Question",
-      "name": "How does Fud AI track intermittent fasting?",
-      "acceptedAnswer": {
-        "@type": "Answer",
-        "text": "Fasting tracking is disabled by default. After enabling it in Settings, choose a 1–168 hour goal and start, end, or cancel from the Home plus menu. The local timer survives app restarts, completed sessions are editable, and an optional local alert can fire at the goal. Fasting does not change nutrition totals or sync with Health."
+        "text": "Yes, when you turn it on. Fud AI supports Apple Health on iPhone and Health Connect on Android for body measurements, meal nutrition, and calculated workout calories. Energy Burn Goals can also use active or total energy for calorie target estimates. Fasting history stays local and isn’t synced."
       }
     },
     {
@@ -243,7 +204,47 @@
       "name": "Is Fud AI private and open source?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "Yes. Fud AI is MIT-licensed open source, has no account or Fud AI cloud-sync service, and uses local-first app storage. Operating-system backups and the AI, barcode, health, export, or sharing actions you initiate are described in the Privacy Policy."
+        "text": "Yes. Fud AI is MIT-licensed open source, has no account or Fud AI cloud-sync service, and stores your data on your device first. Operating-system backups and the AI, barcode, health, export, or sharing actions you start are described in the Privacy Policy."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does Fud AI track intermittent fasting?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Fasting tracking is off by default. After you turn it on in Settings, choose a 1–168 hour goal and start, end, or cancel a fast from the Home plus menu. The timer survives app restarts, finished fasts can be edited, and an optional local alert can fire at your goal. Fasting never changes your nutrition totals or syncs with Health."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Can I log food with Siri on iPhone?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Siri Shortcuts can log food, read today’s calories, and log weight. On supported iPhones, Siri food descriptions can use Apple Intelligence on-device as the final fallback after your own provider and fallback provider fail. Phrase examples are under + › Describe Meal › Siri Phrases."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I get help on Discord?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Join the Fud AI Discord server, then use the /ask slash command from the Fud AI bot with your question. The bot replies in the channel."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is there a Fud AI APK for Android?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Fud AI for Android installs from Google Play, so you don’t need a separate APK. It’s MIT-licensed open source, so you can also build it yourself from the GitHub repository."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is Fud AI the same as the Fud app?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Fud AI, Fud AI app, and Fud app all refer to the same open-source calorie tracker for iPhone and Android."
       }
     }
   ]
@@ -251,590 +252,837 @@
 </script>
 </head>
 <body>
+<a class="skip" href="#main">Skip to content</a>
 
-<!-- ========== NAVIGATION ========== -->
-<nav class="nav" id="nav">
-  <div class="container">
-    <a href="#" class="nav-brand">
-      <img src="assets/calorie logo transparent.png" alt="Fud AI Logo">
-      <span>Fud&nbsp;AI</span>
+<header class="site-head" id="site-head">
+  <div class="wrap site-head__row">
+    <a class="brand" href="/" aria-label="Fud AI home">
+      <span class="brand__icon"><img src="assets/fud-app-icon.webp" alt="" width="34" height="34"></span>
+      <span class="brand__name">Fud AI</span>
     </a>
-    <input type="checkbox" id="nav-toggle" class="nav-toggle" aria-hidden="true">
-    <label for="nav-toggle" class="hamburger" aria-label="Toggle menu">
-      <span></span><span></span><span></span>
-    </label>
-    <div class="nav-links">
-      <a href="#chapters">Features</a>
-      <a href="#process">Process</a>
-      <a href="#plates">Plates</a>
+    <nav class="site-nav" aria-label="Main">
+      <a href="#features">Features</a>
+      <a href="/privacy">Privacy</a>
       <a href="#faq">FAQ</a>
-      <a href="https://github.com/apoorvdarshan/fud-ai" target="_blank" rel="noopener">GitHub</a>
-      <a href="privacy.html">Privacy</a>
-      <a href="terms.html">Terms</a>
-    </div>
+      <a href="https://github.com/apoorvdarshan/fud-ai" rel="noopener">GitHub</a>
+    </nav>
+    <details class="menu">
+      <summary>Menu</summary>
+      <nav aria-label="Main">
+        <a href="#features">Features</a>
+        <a href="/privacy">Privacy</a>
+        <a href="#faq">FAQ</a>
+        <a href="/terms">Terms</a>
+        <a href="https://github.com/apoorvdarshan/fud-ai" rel="noopener">GitHub</a>
+        <a class="menu__get" href="#get" data-get-app>Get the app</a>
+      </nav>
+    </details>
+    <a class="button get-app" href="#get" data-get-app>Get the app</a>
   </div>
-</nav>
+</header>
 
-<!-- ========== HERO ========== -->
-<section class="hero" id="hero">
-  <div class="container">
-    <header class="hero-meta">
-      <span><span class="dot"></span> Issue 03 · 2026</span>
-      <span>Open Source · MIT</span>
-      <span>iOS 17.6+ · Android 8.0+</span>
-    </header>
+<main id="main">
 
-    <div class="hero-grid">
-      <div class="hero-text">
-        <h1 class="hero-title">Fud AI<br><em class="hero-title-line">AI calorie tracker</em>.</h1>
-
-        <p class="hero-lede">
-          The Fud app is a free, open-source AI calorie, fasting, and workout tracker for iPhone and Android. Snap a photo, scan a barcode, speak, or type a meal — AI logs calories, macros, and nutrients with your own key. Optionally track fasts with a persistent local timer, plan strength workouts, and sync supported data with Health.
-        </p>
-
-        <div class="cta-group">
-          <a href="https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726" class="app-store-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-            <span>Download on the App Store</span>
-          </a>
-          <a href="https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker" class="play-store-btn">
-            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.998.998 0 0 1-.61-.92V2.734c0-.39.222-.732.61-.92zM14.91 13.117l2.605 2.605-12.232 6.86 9.627-9.465zm3.978-3.205l2.74 1.535c.733.41.733 1.475 0 1.886l-2.741 1.536-2.969-2.969 2.97-2.988zM5.282 1.349l12.232 6.86-2.605 2.605L5.282 1.35z"/></svg>
-            <span>Download on Google Play</span>
-          </a>
-        </div>
-        <div class="cta-sub">
-          <a href="https://github.com/apoorvdarshan/fud-ai" target="_blank" rel="noopener" class="chip-btn chip-github" aria-label="Star on GitHub">
-            <i class="fa-brands fa-github"></i><span>Star · GitHub</span>
-          </a>
-          <a href="https://discord.gg/Py4VrFctP3" target="_blank" rel="noopener" class="chip-btn chip-discord" aria-label="Join Fud AI Discord and use /ask" title="Join the Fud AI Discord server — use /ask for help">
-            <i class="fa-brands fa-discord"></i><span>Discord · /ask</span>
-          </a>
-          <a href="https://www.producthunt.com/products/fud-ai" target="_blank" rel="noopener" class="chip-btn chip-ph" aria-label="Vote on Product Hunt">
-            <i class="fa-brands fa-product-hunt"></i><span>Vote · PH</span>
-          </a>
-          <a href="https://www.linkedin.com/company/fud-ai-app" target="_blank" rel="noopener" class="chip-btn chip-linkedin" aria-label="Follow on LinkedIn">
-            <i class="fa-brands fa-linkedin-in"></i><span>LinkedIn</span>
-          </a>
-          <a href="https://ko-fi.com/apoorvdarshan" target="_blank" rel="noopener" class="chip-btn chip-kofi" aria-label="Support on Ko-fi">
-            <i class="fa-solid fa-mug-hot"></i><span>Ko-fi</span>
-          </a>
-          <a href="https://x.com/apoorvdarshan" target="_blank" rel="noopener" class="chip-btn chip-x" aria-label="Follow on X">
-            <i class="fa-brands fa-x-twitter"></i><span>Follow</span>
-          </a>
-        </div>
+<section class="hero" id="hero" aria-labelledby="hero-title">
+  <div class="hero__glow" aria-hidden="true"></div>
+  <div class="wrap">
+    <h1 class="display hero__title intro" id="hero-title">Just say what you ate.</h1>
+    <p class="lede hero__sub intro" style="--d:120">Fud AI is the free, open-source AI calorie tracker for iPhone and Android.<br class="hero__br"> Snap a photo, scan a barcode, type, or talk, and it logs calories, macros, and 30+ nutrients.</p>
+    <div class="orb intro" id="orb" style="--d:220">
+      <canvas aria-hidden="true"></canvas>
+      <div class="orb__fallback" aria-hidden="true"></div>
+      <button class="pause pause--orb" type="button" aria-pressed="false" aria-label="Pause the demo" data-pause="hero"><svg class="pause__off" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="6" width="3.2" height="12" rx="1"/><rect x="13.8" y="6" width="3.2" height="12" rx="1"/></svg><svg class="pause__on" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 6.2v11.6a.8.8 0 0 0 1.2.7l9.2-5.8a.8.8 0 0 0 0-1.4L9.7 5.5a.8.8 0 0 0-1.2.7z"/></svg></button>
+    </div>
+    <div class="live intro" style="--d:420" aria-hidden="true">
+      <p class="live__status" id="live-status"></p>
+      <p class="live__said" id="live-said"><span class="w on">Log</span> <span class="w on">two</span> <span class="w on">eggs</span> <span class="w on">and</span> <span class="w on">a</span> <span class="w on">latte</span> <span class="w on">for</span> <span class="w on">breakfast.</span></p>
+      <p class="live__reply" id="live-reply">Done. Logged to breakfast: 290&nbsp;calories with 20&nbsp;grams of protein.</p>
+      <div class="live__card" id="live-card">
+        <span class="live__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3v8M5 3v5a2 2 0 0 0 4 0V3M7 11v10M17 21v-8h-3V8c0-2.8 1.3-5 3-5z"/></svg></span>
+        <span class="live__meal"><span class="live__name" id="live-name">Eggs &amp; latte</span><br><span class="live__macros" id="live-macros">Breakfast · 20P · 11C · 18F</span></span>
+        <span class="live__kcal"><span id="live-kcal">290&nbsp;kcal</span><small><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.3 2.4 2.4 4.6-4.9"/></svg>Logged</small></span>
       </div>
-
-      <aside class="hero-card">
-        <div class="hero-card-frame">
-          <div class="phone-frame">
-            <div class="phone-screen">
-              <img src="assets/screenshots/home.webp" alt="Fud AI Home dashboard with calorie ring, macro and water pillars, and the Live Voice orb" width="1206" height="2622" decoding="async" fetchpriority="high">
-            </div>
-          </div>
-          <span class="hero-barcode" aria-hidden="true"><span class="bars"></span><span class="code">FUD·ISSUE·03</span></span>
-          <svg class="hero-stamp" viewBox="0 0 128 128" aria-hidden="true">
-            <defs><path id="stamp-arc" d="M 64,14 a 50,50 0 1,1 -0.01,0"/></defs>
-            <circle cx="64" cy="64" r="62"/>
-            <text class="stamp-ring"><textPath href="#stamp-arc">OPEN SOURCE · FREE FOREVER ·</textPath></text>
-            <text class="stamp-core" x="64" y="75" text-anchor="middle">Fud</text>
-          </svg>
-        </div>
-      </aside>
+    </div>
+    <p class="visually-hidden">For example, say “Log two eggs and a latte for breakfast,” and Fud AI logs 290 calories with 20 grams of protein.</p>
+    <div class="hero__ctas intro" style="--d:560">
+      <div class="stores">
+        <a class="store store--light" href="https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><span class="store__text"><small>Download on the</small>App Store</span></a>
+        <a class="store store--light" href="https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.609 1.814L13.792 12 3.61 22.186a.998.998 0 0 1-.61-.92V2.734c0-.39.222-.732.61-.92zM14.91 13.117l2.605 2.605-12.232 6.86 9.627-9.465zm3.978-3.205l2.74 1.535c.733.41.733 1.475 0 1.886l-2.741 1.536-2.969-2.969 2.97-2.988zM5.282 1.349l12.232 6.86-2.605 2.605L5.282 1.35z"/></svg><span class="store__text"><small>Get it on</small>Google Play</span></a>
+      </div>
+      <ul class="hero__facts">
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>No subscription needed</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>No account, no ads</li>
+        <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>Open source</li>
+      </ul>
     </div>
   </div>
 </section>
 
-<!-- ========== EDITORIAL TICKER ========== -->
-<div class="ticker-section">
-  <div class="ticker">
-    <span class="ticker-item"><span class="ast">✦</span> AI Food Recognition</span>
-    <span class="ticker-item"><span class="ast">✦</span> Barcode Lookup</span>
-    <span class="ticker-item"><span class="ast">✦</span> Expanded Nutrients</span>
-    <span class="ticker-item"><span class="ast">✦</span> Voice Input · 6 STT Options</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS Siri Shortcuts</span>
-    <span class="ticker-item"><span class="ast">✦</span> Theme Colors · Matching Icons</span>
-    <span class="ticker-item"><span class="ast">✦</span> Apple Watch</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS Share Extension</span>
-    <span class="ticker-item"><span class="ast">✦</span> 13 LLM Providers</span>
-    <span class="ticker-item"><span class="ast">✦</span> AI Coach Chat</span>
-    <span class="ticker-item"><span class="ast">✦</span> Smart Serving Units</span>
-    <span class="ticker-item"><span class="ast">✦</span> Apple Health · Health Connect</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS 16 Languages</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS + Android</span>
-    <span class="ticker-item"><span class="ast">✦</span> Open Source · MIT</span>
-    <span class="ticker-item"><span class="ast">✦</span> Bring Your Own Key</span>
-    <span class="ticker-item"><span class="ast">✦</span> Workout Diary · 877 Exercises</span>
-    <span class="ticker-item"><span class="ast">✦</span> Optional Fasting Timer</span>
-    <!-- Duplicate set for seamless scroll -->
-    <span class="ticker-item"><span class="ast">✦</span> AI Food Recognition</span>
-    <span class="ticker-item"><span class="ast">✦</span> Expanded Nutrients</span>
-    <span class="ticker-item"><span class="ast">✦</span> Voice Input · 6 STT Options</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS Siri Shortcuts</span>
-    <span class="ticker-item"><span class="ast">✦</span> Theme Colors · Matching Icons</span>
-    <span class="ticker-item"><span class="ast">✦</span> Apple Watch</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS Share Extension</span>
-    <span class="ticker-item"><span class="ast">✦</span> 13 LLM Providers</span>
-    <span class="ticker-item"><span class="ast">✦</span> AI Coach Chat</span>
-    <span class="ticker-item"><span class="ast">✦</span> Smart Serving Units</span>
-    <span class="ticker-item"><span class="ast">✦</span> Apple Health · Health Connect</span>
-    <span class="ticker-item"><span class="ast">✦</span> 15 Languages</span>
-    <span class="ticker-item"><span class="ast">✦</span> iOS + Android</span>
-    <span class="ticker-item"><span class="ast">✦</span> Open Source · MIT</span>
-    <span class="ticker-item"><span class="ast">✦</span> Bring Your Own Key</span>
-    <span class="ticker-item"><span class="ast">✦</span> Workout Diary · 877 Exercises</span>
-    <span class="ticker-item"><span class="ast">✦</span> Optional Fasting Timer</span>
+<section class="section snap" id="features" aria-labelledby="snap-title">
+  <div class="wrap snap__grid">
+    <div class="snap__device reveal">
+      <div class="phone"><img src="assets/screenshots/food.webp" alt="Fud AI reviewing a photographed meal of Greek yogurt with blueberries and granola" width="1206" height="2622" loading="lazy" decoding="async"></div>
+    </div>
+    <div>
+      <h2 class="section-title reveal" id="snap-title">Snap a photo.<br> Get the whole label.</h2>
+      <p class="lede reveal" style="--d:100">Point your camera at a meal, or choose up to 10 photos of it. Fud AI estimates calories, macros, and the nutrients most apps skip, and you check every number before it’s logged.</p>
+      <dl class="readout" data-observe>
+          <div class="readout__row readout__row--big" style="--i:0"><dt>Greek yogurt bowl</dt><dd><span data-to="375">375</span><small>kcal</small></dd></div>
+          <div class="readout__row" style="--i:1"><dt>Protein</dt><dd><span data-to="17">17</span><small>g</small></dd></div>
+          <div class="readout__row" style="--i:2"><dt>Carbs</dt><dd><span data-to="52">52</span><small>g</small></dd></div>
+          <div class="readout__row" style="--i:3"><dt>Fat</dt><dd><span data-to="11">11</span><small>g</small></dd></div>
+          <div class="readout__row" style="--i:4"><dt>Fiber</dt><dd><span data-to="4">4</span><small>g</small></dd></div>
+          <div class="readout__row" style="--i:5"><dt>Sugar</dt><dd><span data-to="31">31</span><small>g</small></dd></div>
+          <div class="readout__row" style="--i:6"><dt>Calcium</dt><dd><span data-to="260">260</span><small>mg</small></dd></div>
+          <div class="readout__row" style="--i:7"><dt>Potassium</dt><dd><span data-to="420">420</span><small>mg</small></dd></div>
+      </dl>
+    </div>
   </div>
-</div>
+</section>
 
-<!-- ========== BY THE NUMBERS ========== -->
-<section class="stats-section">
-  <div class="container">
-    <span class="eyebrow"><span class="num">§ 01</span> &nbsp; By the Numbers</span>
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-number">30+</div>
-        <div class="stat-label">Nutrients tracked per meal</div>
+<section class="section left" aria-labelledby="left-title">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <h2 class="section-title reveal" id="left-title">Always know what’s left.</h2>
+      <p class="lede reveal" style="--d:100">The ring counts down today’s calories and the pillars track protein, carbs, fat, fiber, and water. Widgets put the same numbers on your Home Screen, Lock Screen, and Apple Watch.</p>
+    </div>
+    <div class="dash reveal" data-observe>
+      <div class="gauge">
+        <svg viewBox="0 0 320 245" aria-hidden="true"><g class="glow"><line class="tick fill" style="--i:0" x1="47.4" y1="225.0" x2="30.1" y2="235.0"/><line class="tick fill" style="--i:1" x1="42.1" y1="214.7" x2="23.9" y2="223.1"/><line class="tick fill" style="--i:2" x1="37.7" y1="204.0" x2="18.9" y2="210.8"/><line class="tick fill" style="--i:3" x1="34.2" y1="192.9" x2="14.9" y2="198.0"/><line class="tick fill" style="--i:4" x1="31.8" y1="181.6" x2="12.1" y2="184.9"/><line class="tick fill" style="--i:5" x1="30.4" y1="170.1" x2="10.5" y2="171.7"/><line class="tick fill" style="--i:6" x1="30.0" y1="158.6" x2="10.0" y2="158.3"/><line class="tick fill" style="--i:7" x1="30.7" y1="147.0" x2="10.8" y2="145.0"/><line class="tick fill" style="--i:8" x1="32.3" y1="135.5" x2="12.7" y2="131.8"/><line class="tick fill" style="--i:9" x1="35.0" y1="124.3" x2="15.8" y2="118.8"/><line class="tick fill" style="--i:10" x1="38.7" y1="113.3" x2="20.0" y2="106.1"/><line class="tick fill" style="--i:11" x1="43.3" y1="102.7" x2="25.4" y2="93.8"/><line class="tick fill" style="--i:12" x1="48.9" y1="92.5" x2="31.8" y2="82.1"/><line class="tick fill" style="--i:13" x1="55.3" y1="82.9" x2="39.2" y2="71.0"/><line class="tick fill" style="--i:14" x1="62.6" y1="73.9" x2="47.6" y2="60.6"/><line class="tick fill" style="--i:15" x1="70.7" y1="65.6" x2="56.9" y2="51.0"/><line class="tick fill" style="--i:16" x1="79.4" y1="58.0" x2="67.0" y2="42.3"/><line class="tick fill" style="--i:17" x1="88.8" y1="51.2" x2="77.9" y2="34.5"/><line class="tick fill" style="--i:18" x1="98.8" y1="45.3" x2="89.4" y2="27.7"/><line class="tick fill" style="--i:19" x1="109.2" y1="40.3" x2="101.4" y2="21.9"/><line class="tick fill" style="--i:20" x1="120.1" y1="36.3" x2="114.0" y2="17.2"/><line class="tick fill" style="--i:21" x1="131.3" y1="33.2" x2="126.9" y2="13.7"/><line class="tick fill" style="--i:22" x1="142.7" y1="31.2" x2="140.0" y2="11.3"/><line class="tick fill" style="--i:23" x1="154.2" y1="30.1" x2="153.3" y2="10.1"/><line class="tick fill" style="--i:24" x1="165.8" y1="30.1" x2="166.7" y2="10.1"/><line class="tick fill" style="--i:25" x1="177.3" y1="31.2" x2="180.0" y2="11.3"/><line class="tick fill" style="--i:26" x1="188.7" y1="33.2" x2="193.1" y2="13.7"/><line class="tick fill" style="--i:27" x1="199.9" y1="36.3" x2="206.0" y2="17.2"/><line class="tick fill" style="--i:28" x1="210.8" y1="40.3" x2="218.6" y2="21.9"/></g><line class="tick" style="--i:29" x1="221.2" y1="45.3" x2="230.6" y2="27.7"/><line class="tick" style="--i:30" x1="231.2" y1="51.2" x2="242.1" y2="34.5"/><line class="tick" style="--i:31" x1="240.6" y1="58.0" x2="253.0" y2="42.3"/><line class="tick" style="--i:32" x1="249.3" y1="65.6" x2="263.1" y2="51.0"/><line class="tick" style="--i:33" x1="257.4" y1="73.9" x2="272.4" y2="60.6"/><line class="tick" style="--i:34" x1="264.7" y1="82.9" x2="280.8" y2="71.0"/><line class="tick" style="--i:35" x1="271.1" y1="92.5" x2="288.2" y2="82.1"/><line class="tick" style="--i:36" x1="276.7" y1="102.7" x2="294.6" y2="93.8"/><line class="tick" style="--i:37" x1="281.3" y1="113.3" x2="300.0" y2="106.1"/><line class="tick" style="--i:38" x1="285.0" y1="124.3" x2="304.2" y2="118.8"/><line class="tick" style="--i:39" x1="287.7" y1="135.5" x2="307.3" y2="131.8"/><line class="tick" style="--i:40" x1="289.3" y1="147.0" x2="309.2" y2="145.0"/><line class="tick" style="--i:41" x1="290.0" y1="158.6" x2="310.0" y2="158.3"/><line class="tick" style="--i:42" x1="289.6" y1="170.1" x2="309.5" y2="171.7"/><line class="tick" style="--i:43" x1="288.2" y1="181.6" x2="307.9" y2="184.9"/><line class="tick" style="--i:44" x1="285.8" y1="192.9" x2="305.1" y2="198.0"/><line class="tick" style="--i:45" x1="282.3" y1="204.0" x2="301.1" y2="210.8"/><line class="tick" style="--i:46" x1="277.9" y1="214.7" x2="296.1" y2="223.1"/><line class="tick" style="--i:47" x1="272.6" y1="225.0" x2="289.9" y2="235.0"/></svg>
+        <div class="gauge__center">
+          <div class="gauge__label">Calories</div>
+          <div class="gauge__value" data-to="1149">1,149</div>
+          <div class="gauge__left"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2.5c1.2 3.2 4.8 5 4.8 9.6a4.8 4.8 0 0 1-9.6 0c0-1.9.8-3.3 1.8-4.3.2 1.6 1.1 2.5 2.1 2.5 0-3.4-.3-5.6.9-7.8z"/></svg>775 left</div>
+        </div>
       </div>
-      <div class="stat-card">
-        <div class="stat-number">13</div>
-        <div class="stat-label">AI providers supported</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">15</div>
-        <div class="stat-label">Languages, auto-localized</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number">Local</div>
-        <div class="stat-label">App storage by default</div>
+      <div class="pillars">
+        <div class="pillar"><span class="pillar__value" data-to="86">86</span><span class="pillar__track"><span class="pillar__fill" style="--p:61%;--i:0"></span></span><span class="pillar__name">Protein<small>55 g left</small></span></div>
+        <div class="pillar"><span class="pillar__value" data-to="97">97</span><span class="pillar__track"><span class="pillar__fill" style="--p:41%;--i:1"></span></span><span class="pillar__name">Carbs<small>137 g left</small></span></div>
+        <div class="pillar"><span class="pillar__value" data-to="46">46</span><span class="pillar__track"><span class="pillar__fill" style="--p:98%;--i:2"></span></span><span class="pillar__name">Fat<small>1 g left</small></span></div>
+        <div class="pillar"><span class="pillar__value" data-to="11">11</span><span class="pillar__track"><span class="pillar__fill" style="--p:37%;--i:3"></span></span><span class="pillar__name">Fiber<small>19 g left</small></span></div>
+        <div class="pillar"><span class="pillar__value" data-to="1750">1,750</span><span class="pillar__track"><span class="pillar__fill" style="--p:70%;--i:4"></span></span><span class="pillar__name">Water<small>750 ml left</small></span></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- ========== FEATURES — CHAPTERS ========== -->
-<section id="chapters">
-  <div class="container">
-    <header class="section-head">
-      <span class="eyebrow"><span class="num">§ 02</span> &nbsp; Chapters</span>
-      <h2>What it does, <em>chapter by chapter</em>.</h2>
-    </header>
-
-    <div class="chapters">
-
-      <article class="chapter">
-        <div class="chapter-num">01</div>
-        <header class="chapter-head">
-          <h3>Capture a meal.</h3>
-          <span class="chapter-tag">Multi-photo · Barcode · Note · Voice · Siri · Text · Manual</span>
-        </header>
-        <div class="chapter-body">
-          <p>Take or import up to 10 food photos for one combined analysis, add an optional note, share a food photo into Fud AI on iOS, scan a packaged-food barcode, speak your lunch hands-free, use Siri Shortcuts on iOS, type it, or enter macros manually when you already know them.</p>
-          <ul>
-            <li>Camera and Photos keep up to 10 images separate in one request, with a horizontal preview and optional meal note</li>
-            <li>Failed photo analysis keeps Retry and Cancel available so you do not have to rebuild the selection</li>
-            <li>iOS Share Extension opens shared food photos directly in the app's review flow</li>
-            <li>Barcode lookup on iOS and Android uses Open Food Facts when public packaged-food data is available</li>
-            <li>Voice input via 6 speech-to-text options with per-provider language selection</li>
-            <li>iOS Siri Shortcuts can log food, read today's calories, and log weight; phrase examples live in Settings</li>
-            <li>Smart serving units show slices, pieces, cups, ml, or similar units when the AI can infer them</li>
-            <li>Nutrition lock in Review Food lets you correct calories, macros, and detailed nutrients before logging</li>
-            <li>What if? in Review Food previews daily macro impact and can ask AI for a practical suggestion before logging</li>
-            <li>Text and manual fallbacks for quick logging</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">02</div>
-        <header class="chapter-head">
-          <h3>AI does the math.</h3>
-          <span class="chapter-tag">13 LLM providers</span>
-        </header>
-        <div class="chapter-body">
-          <p>Bring your own key and choose from current vision presets including Gemini 3.5 Flash-Lite and 3.6 Flash, GPT-5.4 Mini, Claude Sonnet 5, Grok 4.3, or models through OpenRouter, Together AI, Groq, Hugging Face, Fireworks, DeepInfra, Mistral, Ollama (local), and custom OpenAI-compatible endpoints. On supported iPhones, Apple Intelligence can handle eligible food descriptions on-device as the final fallback. Android Coach also supports camera or photo-library attachments.</p>
-          <ul>
-            <li>Open-weight vision models out of the box: Gemma, Qwen VL, Llama Vision, and other current provider presets</li>
-            <li>OpenRouter testable on $0 credits — the <code>openrouter/free</code> default routes to a free vision model so you can try the integration without funding the account</li>
-            <li><strong>Custom AI Instructions</strong> — optional Settings text appended to every AI request. Drop your region, diet, or brand context once instead of repeating it per meal ("I live in Germany, prefer ALDI/REWE brands" or "I'm on a bodybuilding cut")</li>
-            <li><strong>Fallback Provider</strong> — opt-in second provider that auto-retries when your primary fails on overload, rate limit, or network error. Pair a paid model with a free fallback for cheap reliability</li>
-            <li><strong>Apple Intelligence final fallback</strong> — supported iPhones can process text, voice-transcribed, and Siri food descriptions on-device only after BYOK provider/fallback attempts fail</li>
-            <li><strong>Fully free</strong> — no subscription, no ads; an optional iOS Tip Jar helps keep the project going</li>
-            <li>API keys stored in iOS Keychain (iOS) or EncryptedSharedPreferences with AES-256 (Android) — never transmitted to us</li>
-            <li>Switch providers and models anytime; transient overloads (503 / 429 / 529) auto-retry with backoff, and AI responses with surrounding prose or markdown fences are parsed reliably</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">03</div>
-        <header class="chapter-head">
-          <h3>Track expanded nutrients.</h3>
-          <span class="chapter-tag">Macros + micros</span>
-        </header>
-        <div class="chapter-body">
-          <p>Calories, protein, carbs, fat, sugar, fiber, saturated fat, trans fat, mono-unsaturated fat, poly-unsaturated fat, cholesterol, sodium, potassium, calcium, iron, magnesium, zinc, vitamins A/C/D/E/K/B12, folate, omega-3, and more when available — adjustable serving sizes and AI-suggested units recalculate every logged entry live, with decimal nutrition totals preserved where the source data is decimal.</p>
-          <ul>
-            <li>Personalized BMR + TDEE via Katch-McArdle / Mifflin-St Jeor</li>
-            <li>Auto daily targets, fully overridable, with per-macro pin / auto-balance</li>
-            <li>Six activity levels use work and training descriptions rather than step-count requirements</li>
-            <li>Activity Level shows protein g/kg by body weight, or an equivalent lean-mass multiplier when body fat is set</li>
-            <li>Expanded optional nutrient goals stay separate from calorie/protein/carbs/fat math</li>
-            <li>Adaptive Goals can apply a small weekly weight-trend correction</li>
-            <li>Home cards can show macros or selected detailed nutrients</li>
-            <li>Weight and body-fat ranges show average and net change summaries</li>
-            <li>Browse past days with the date strip; configure week start, Breakfast/Lunch/Dinner/Snack boundaries, and optional latest-first food log sorting</li>
-            <li>Optional water tracking stays off until enabled, then supports any practical goal, glass shortcuts, custom amounts, local reminders, and progress below calories</li>
-            <li>Optional fasting tracking stays off until enabled, then adds a persistent timer, a 1–168 hour goal, editable history, and an optional local goal alert without changing nutrition totals</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">04</div>
-        <header class="chapter-head">
-          <h3>Talk to your Coach.</h3>
-          <span class="chapter-tag">Multi-turn AI chat</span>
-        </header>
-        <div class="chapter-body">
-          <p>A dedicated tab where the AI can retrieve your profile, weight history, food log, workout history, explicitly logged fasting sessions, current date/timezone, and a thermodynamic forecast. Ask <em>"what's my expected weight in 30 days?"</em> or <em>"how did my completed fasts line up with training?"</em> and get answers grounded in your own data. Coach never infers a fast from a missing meal log.</p>
-          <ul>
-            <li>Memory persists locally across sessions</li>
-            <li>Goal-aware prompt chips for Lose / Gain / Maintain</li>
-            <li>Long-press any reply to copy</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">05</div>
-        <header class="chapter-head">
-          <h3>Glance from anywhere.</h3>
-          <span class="chapter-tag">Nutrition + Water · Home + Lock + Watch</span>
-        </header>
-        <div class="chapter-body">
-          <p>iOS has Fud AI in small, medium, and large sizes, a small Protein widget, and separate Lock Screen formats. Optional water tracking adds a distinct Water widget for Home or Lock Screen without changing the nutrition widgets. Apple Watch and complications show calories and macros. Android offers separate Calorie, Protein, Today, and Water Glance widgets. Each reads a small local snapshot and refreshes after relevant logs.</p>
-          <ul>
-            <li>Pink-gradient calorie ring with selected nutrient or macro progress at a glance</li>
-            <li>Circular, rectangular, and inline formats on iOS Lock Screen, including Water when enabled</li>
-            <li>Auto-roll over at midnight without opening the app</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">06</div>
-        <header class="chapter-head">
-          <h3>Sync with Apple Health &amp; Health Connect.</h3>
-          <span class="chapter-tag">Bidirectional · iOS + Android</span>
-        </header>
-        <div class="chapter-body">
-          <p>iOS writes meal nutrition, body measurements, and calculated workout calories to Apple Health, and reads authorized metrics back. Android syncs nutrition, weight, body fat, and calculated workout calories through Health Connect. Both can optionally use active/total energy for Energy Burn Goals. Fasting sessions remain local and are not synced. Integration is permission-controlled and optional.</p>
-          <ul>
-            <li>Background observers for real-time bi-sync</li>
-            <li>Energy-burn goal estimates keep protein, carbs, and fat editable</li>
-            <li>Calculated workout burns sync as active-energy summaries; workout plans and individual sets stay in Fud AI</li>
-            <li>UUID-tagged samples for safe per-entry deletion (no orphans)</li>
-            <li>Delete All Data is local-only — Apple Health / Health Connect data is never touched</li>
-            <li>Manage Access opens the platform permission controls so you can review or revoke health permissions</li>
-          </ul>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">07</div>
-        <header class="chapter-head">
-          <h3>Speaks eighteen languages.</h3>
-          <span class="chapter-tag">Auto-localized</span>
-        </header>
-        <div class="chapter-body">
-          <p>iOS and Android support Arabic, Azerbaijani, Chinese (Simplified), Czech, Dutch, English, French, German, Hindi, Italian, Japanese, Korean, Polish, Portuguese (Brazil), Romanian, Russian, Spanish, and Ukrainian. The app auto-selects by your phone's system language, and voice input can also be guided separately per STT provider. The in-app UI is fully localized in each supported language.</p>
-        </div>
-      </article>
-
-      <article class="chapter">
-        <div class="chapter-num">08</div>
-        <header class="chapter-head">
-          <h3>Make it yours.</h3>
-          <span class="chapter-tag">Theme colors + matching icons</span>
-        </header>
-        <div class="chapter-body">
-          <p>Choose Fud Pink, red, orange, green, mint, teal, blue, or purple in Settings. The accent color updates across tabs, buttons, rings, charts, and the iOS app icon / Android launcher icon.</p>
-        </div>
-      </article>
-
+<section class="section coach" aria-labelledby="coach-title">
+  <div class="wrap coach__grid">
+    <div class="section-head">
+      <h2 class="section-title reveal" id="coach-title">A coach that has read your log.</h2>
+      <p class="lede reveal" style="--d:100">Ask how your week went or what to eat for dinner. Coach answers from your own meals, weight trend, and workouts, so the advice fits the day you’re actually having.</p>
+    </div>
+    <div class="chat reveal" data-observe data-chat role="group" aria-label="Example conversation with Coach">
+      <div class="bubble bubble--me">How am I doing this week?</div>
+      <div class="typing" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="bubble">Nice week. You averaged 1,926&nbsp;kcal a day, right on your 1,924 target, and you logged every day. Your weight trend is down about 0.3&nbsp;kg.</div>
+      <div class="bubble bubble--me">What should I eat for dinner to hit my protein?</div>
+      <div class="typing" aria-hidden="true"><i></i><i></i><i></i></div>
+      <div class="bubble">You have 775&nbsp;kcal and 55&nbsp;g of protein left. Options that fit:<ul><li>Grilled salmon with rice and greens: about 560&nbsp;kcal, 44&nbsp;g protein</li><li>Chicken stir-fry with vegetables: about 520&nbsp;kcal, 46&nbsp;g protein</li></ul></div>
     </div>
   </div>
 </section>
 
-<!-- ========== HOW IT WORKS — PROCESS ========== -->
-<section id="process">
-  <div class="container">
-    <header class="section-head">
-      <span class="eyebrow"><span class="num">§ 03</span> &nbsp; Process</span>
-      <h2>From photo to log <em>in seconds</em>.</h2>
-    </header>
+<section class="section screens" aria-labelledby="screens-title">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <h2 class="section-title reveal" id="screens-title">Take a look inside.</h2>
+      <p class="lede reveal" style="--d:100">Live Voice, your day at a glance, every nutrient, weekly progress, Coach, workouts, and the keys you bring.</p>
+    </div>
+  </div>
+  <div class="marquee reveal" tabindex="0" role="region" aria-label="App screenshots">
+    <div class="marquee__track">
+        <div class="marquee__set">
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/live-voice.webp" alt="Fud AI Live Voice logging breakfast by voice, with an Undo button" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Live Voice<small>Talk to log</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/home.webp" alt="Fud AI Home with the calorie ring, macro and water pillars, and the day’s diary" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Home<small>What’s left today</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/food.webp" alt="Fud AI A logged meal with its photo, name, and serving size" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Food<small>Check before logging</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/nutrition.webp" alt="Fud AI Nutrition details with macros, water, and detailed nutrients against goals" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Nutrition<small>30+ nutrients</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/progress.webp" alt="Fud AI Progress with a weekly recap and a weight chart" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Progress<small>Weekly recap</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/coach.webp" alt="Fud AI Coach suggesting dinners that fit the calories and protein left" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Coach<small>Answers from your log</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/workouts.webp" alt="Fud AI A workout log with bench press, squat, and row sets" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Workouts<small>Sets, reps, and weight</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/ai-providers.webp" alt="Fud AI AI provider settings with your own keys" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>AI providers<small>Your own keys</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/voice-settings.webp" alt="Fud AI Live Voice settings for provider, reply language, and confirmation" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Voice<small>Confirm before saving</small></figcaption></figure>
+        </div>
+        <div class="marquee__set" aria-hidden="true">
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/live-voice.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Live Voice<small>Talk to log</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/home.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Home<small>What’s left today</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/food.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Food<small>Check before logging</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/nutrition.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Nutrition<small>30+ nutrients</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/progress.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Progress<small>Weekly recap</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/coach.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Coach<small>Answers from your log</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/workouts.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Workouts<small>Sets, reps, and weight</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/ai-providers.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>AI providers<small>Your own keys</small></figcaption></figure>
+          <figure class="shot"><div class="phone"><img src="assets/screenshots/voice-settings.webp" alt="" width="1206" height="2622" loading="lazy" decoding="async"></div><figcaption>Voice<small>Confirm before saving</small></figcaption></figure>
+        </div>
+    </div>
+  </div>
+  <div class="wrap marquee__controls"><button class="pause pause--marquee" type="button" aria-pressed="false" aria-label="Pause the screenshots" data-pause="marquee"><svg class="pause__off" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="6" width="3.2" height="12" rx="1"/><rect x="13.8" y="6" width="3.2" height="12" rx="1"/></svg><svg class="pause__on" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M8.5 6.2v11.6a.8.8 0 0 0 1.2.7l9.2-5.8a.8.8 0 0 0 0-1.4L9.7 5.5a.8.8 0 0 0-1.2.7z"/></svg></button></div>
+</section>
 
-    <div class="process">
-      <div></div>
-      <div class="process-list">
-        <div class="process-step">
-          <div class="process-num">Step 01</div>
-          <div class="process-text">
-            <h3><em>Capture</em></h3>
-            <p>Take or import up to 10 photos, add an optional note, share from another iOS app, scan a barcode, type, speak your food details, or use Siri Shortcuts on iOS.</p>
-          </div>
-        </div>
-        <div class="process-step">
-          <div class="process-num">Step 02</div>
-          <div class="process-text">
-            <h3><em>Analyze</em></h3>
-            <p>Your chosen AI provider identifies the food and estimates the full nutrition profile.</p>
-          </div>
-        </div>
-        <div class="process-step">
-          <div class="process-num">Step 03</div>
-          <div class="process-text">
-            <h3><em>Review</em></h3>
-            <p>Edit the name, unlock Nutrition if calories or nutrients need correction, adjust grams or a visible unit like slices/pieces/ml, preview What if? impact, then confirm meal type. You stay in control of every entry.</p>
-          </div>
-        </div>
-        <div class="process-step">
-          <div class="process-num">Step 04</div>
-          <div class="process-text">
-            <h3><em>Log</em></h3>
-            <p>Saved locally on your device. Nutrition, body metrics, and calculated workout burns sync to Apple Health or Health Connect only if enabled; fasting stays local and separate. Widgets and Apple Watch snapshots update from local data.</p>
-          </div>
-        </div>
-        <div class="process-step">
-          <div class="process-num">Step 05</div>
-          <div class="process-text">
-            <h3><em>Track</em></h3>
-            <p>Dashboard, decimal nutrition totals, progress summaries, charts, and Coach context update in real time across the app.</p>
-          </div>
-        </div>
+<section class="section byok" id="privacy" aria-labelledby="byok-title">
+  <div class="wrap byok__grid">
+    <div>
+      <h2 class="section-title reveal" id="byok-title">Bring your own AI.<br> Keep your data.</h2>
+      <p class="lede reveal" style="--d:100">With your own key, a meal goes from your phone straight to the AI provider you choose. Fud AI isn’t in the middle, so there’s nothing to charge you for.</p>
+      <ul class="promises">
+        <li class="reveal" style="--d:0"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="8" cy="15" r="4"/><path d="m10.9 12.1 8.6-8.6M16.5 6.5l2.5 2.5M14 9l2 2"/></svg><b>Your key stays on your phone</b><span>Kept in the iOS Keychain or Android’s encrypted storage, and never sent to us.</span></li>
+        <li class="reveal" style="--d:100"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6.5" y="2.5" width="11" height="19" rx="2.8"/><path d="M10.5 18.5h3"/></svg><b>Your log stays on your phone</b><span>No Fud AI account, no ads, and no in-app analytics.</span></li>
+        <li class="reveal" style="--d:200"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m8 8-4 4 4 4M16 8l4 4-4 4M13.5 5l-3 14"/></svg><b>The code is open</b><span>MIT licensed. Read it, report a bug, or build it yourself on <a class="prose-link" href="https://github.com/apoorvdarshan/fud-ai" rel="noopener">GitHub</a>.</span></li>
+      </ul>
+      <p class="byok__plans reveal">Rather not manage a key? Optional Plus and Pro plans run the AI for you on iPhone and Android. The <a href="/privacy">Privacy Policy</a> explains how those requests are handled.</p>
+    </div>
+    <div class="orbit reveal" aria-hidden="true">
+      <div class="orbit__ring orbit__ring--outer"><span style="--x:0.000;--y:-1.000">Gemini</span><span style="--x:0.782;--y:-0.623">OpenAI</span><span style="--x:0.975;--y:0.223">Claude</span><span style="--x:0.434;--y:0.901">Grok</span><span style="--x:-0.434;--y:0.901">Mistral</span><span style="--x:-0.975;--y:0.223">DeepSeek</span><span style="--x:-0.782;--y:-0.623">OpenRouter</span></div>
+      <div class="orbit__ring orbit__ring--inner"><span style="--x:0.434;--y:-0.901">Groq</span><span style="--x:0.975;--y:-0.223">Ollama</span><span style="--x:0.782;--y:0.623">Hugging Face</span><span style="--x:0.000;--y:1.000">Together AI</span><span style="--x:-0.782;--y:0.623">Fireworks</span><span style="--x:-0.975;--y:-0.223">DeepInfra</span><span style="--x:-0.434;--y:-0.901">Cerebras</span></div>
+      <span class="orbit__key"><img src="assets/fud-app-icon.webp" alt="" width="104" height="104"></span>
+    </div>
+    <p class="visually-hidden">Works with Gemini, OpenAI, Claude, Grok, Mistral, DeepSeek, OpenRouter, Groq, Ollama, Hugging Face, Together AI, Fireworks, DeepInfra, Cerebras, and your own OpenAI-compatible endpoint.</p>
+  </div>
+</section>
+
+<section class="section more" aria-labelledby="more-title">
+  <div class="wrap">
+    <div class="section-head section-head--center">
+      <h2 class="section-title reveal" id="more-title">Small things that add up.</h2>
+    </div>
+    <div class="bento" data-observe tabindex="0" role="region" aria-label="More features">
+      <article class="tile tile--wide reveal" style="--d:0">
+        <div class="tile__art" aria-hidden="true"><div class="barcode"><i style="--w:6px"></i><i style="--w:2px"></i><i style="--w:4px"></i><i style="--w:8px"></i><i style="--w:2px"></i><i style="--w:2px"></i><i style="--w:6px"></i><i style="--w:4px"></i><i style="--w:2px"></i><i style="--w:8px"></i><i style="--w:4px"></i><i style="--w:2px"></i><i style="--w:6px"></i><i style="--w:2px"></i><i style="--w:4px"></i><i style="--w:4px"></i><i style="--w:8px"></i><i style="--w:2px"></i><i style="--w:6px"></i><i style="--w:2px"></i><i style="--w:4px"></i><i style="--w:2px"></i><i style="--w:8px"></i><i style="--w:4px"></i><i style="--w:2px"></i><i style="--w:6px"></i></div></div>
+        <h3>Barcode scanning</h3>
+        <p>Packaged food, straight from the Open Food Facts database.</p>
+      </article>
+      <article class="tile reveal" style="--d:60">
+        <div class="tile__art" aria-hidden="true"><div class="hello"><span class="hello__list"><span>Hello</span><span>Hola</span><span>Bonjour</span><span>Hallo</span><span>नमस्ते</span><span>こんにちは</span><span>Привіт</span><span>Ciao</span><span>Hello</span></span></div></div>
+        <h3>18 languages</h3>
+        <p>Fud AI follows your phone’s language.</p>
+      </article>
+      <article class="tile reveal" style="--d:120">
+        <div class="tile__art" aria-hidden="true"><div class="swatches"><i style="--c:#ff375f"></i><i style="--c:#ff453a"></i><i style="--c:#ff9f0a"></i><i style="--c:#30d158"></i><i style="--c:#63e6e2"></i><i style="--c:#40c8e0"></i><i style="--c:#0a84ff"></i><i style="--c:#bf5af2"></i></div></div>
+        <h3>Your color</h3>
+        <p>Eight themes, and the app icon changes to match.</p>
+      </article>
+      <article class="tile reveal" style="--d:0">
+        <div class="tile__art" aria-hidden="true"><div class="water"><div class="glass"><div class="glass__water"></div></div><div class="water__label">1,750 / 2,500 ml</div></div></div>
+        <h3>Water</h3>
+        <p>An optional goal, one-tap glasses, and reminders.</p>
+      </article>
+      <article class="tile reveal" style="--d:60">
+        <div class="tile__art" aria-hidden="true"><div class="fast"><svg viewBox="0 0 116 116"><circle class="track" cx="58" cy="58" r="46"/><circle class="bar" cx="58" cy="58" r="46"/></svg><div class="fast__time">12:00<small>of 16 h</small></div></div></div>
+        <h3>Fasting</h3>
+        <p>An optional timer that keeps going when the app is closed.</p>
+      </article>
+      <article class="tile tile--wide reveal" style="--d:120">
+        <div class="tile__art" aria-hidden="true"><div class="widgets">
+          <div class="widget"><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="8" stroke-linecap="round" stroke-dasharray="188.5 251.3" transform="rotate(135 50 50)"/><circle class="widget__arc" cx="50" cy="50" r="40" fill="none" stroke="#ff375f" stroke-width="8" stroke-linecap="round" stroke-dasharray="113.1 251.3" transform="rotate(135 50 50)"/></svg><div class="widget__num">775<small>kcal left</small></div></div>
+          <div class="watch"><svg viewBox="0 0 60 60"><circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,255,255,.14)" stroke-width="6"/><circle cx="30" cy="30" r="24" fill="none" stroke="#ff375f" stroke-width="6" stroke-linecap="round" stroke-dasharray="90.5 150.8" transform="rotate(-90 30 30)"/></svg></div>
+        </div></div>
+        <h3>Widgets and Apple Watch</h3>
+        <p>Calories, protein, and water at a glance, without opening the app.</p>
+      </article>
+      <article class="tile tile--wide reveal" style="--d:0">
+        <div class="tile__art" aria-hidden="true"><div class="sync"><span class="sync__app sync__app--health"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 20.5s-7.5-4.6-7.5-10.4a4.3 4.3 0 0 1 7.5-2.8 4.3 4.3 0 0 1 7.5 2.8c0 5.8-7.5 10.4-7.5 10.4z"/></svg></span><span class="sync__line"></span><span class="sync__app sync__app--fud"><img src="assets/fud-app-icon.webp" alt="" width="64" height="64"></span></div></div>
+        <h3>Apple Health and Health Connect</h3>
+        <p>Sync nutrition, weight, and workouts, only if you turn it on.</p>
+      </article>
+      <article class="tile tile--wide-sm reveal" style="--d:60">
+        <div class="tile__art" aria-hidden="true"><div class="wave"><i style="--h:18px;--i:0"></i><i style="--h:34px;--i:1"></i><i style="--h:52px;--i:2"></i><i style="--h:30px;--i:3"></i><i style="--h:62px;--i:4"></i><i style="--h:44px;--i:5"></i><i style="--h:26px;--i:6"></i><i style="--h:56px;--i:7"></i><i style="--h:38px;--i:8"></i><i style="--h:22px;--i:9"></i><i style="--h:48px;--i:10"></i><i style="--h:30px;--i:11"></i><i style="--h:16px;--i:12"></i></div></div>
+        <h3>Siri and Share</h3>
+        <p>On iPhone, log by voice from anywhere, or share a food photo in.</p>
+      </article>
+      <article class="tile tile--wide-sm reveal" style="--d:120">
+        <div class="tile__art" aria-hidden="true"><div class="chips"><div class="chip"><b>Usual breakfast</b><span>410 kcal</span></div><div class="chip chip--what"><b>What if: burrito bowl</b><span>+640</span></div></div></div>
+        <h3>Saved meals and What if?</h3>
+        <p>Log your usual in one tap, or see how a meal changes your day first.</p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<section class="section faq" id="faq" aria-labelledby="faq-title">
+  <div class="wrap faq__grid">
+    <div class="faq__intro reveal">
+      <h2 class="section-title" id="faq-title">Questions</h2>
+      <p>Can’t find your answer? Join the <a href="https://discord.gg/Py4VrFctP3" rel="noopener">Fud AI Discord</a> and ask with /ask, or email <a href="mailto:apoorv@fud-ai.app">apoorv@fud-ai.app</a>.</p>
+    </div>
+    <div class="faq__list">
+      <details class="faq__item">
+        <summary>What is Fud AI?</summary>
+        <p class="faq__answer">A free, open-source AI calorie tracker for iPhone and Android. Snap a photo, scan a barcode, speak, or type a meal, and AI estimates the calories, macros, and nutrients. fud-ai.app is the official website.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Is Fud AI free?</summary>
+        <p class="faq__answer">Yes. The app is free with no ads, and with your own AI key there’s no subscription: a free Gemini key takes about a minute to create. If you’d rather not manage a key, optional paid Plus/Pro plans run the AI for you. An optional Tip Jar on iOS and Android helps fund development.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Can I use Fud AI without an API key?</summary>
+        <p class="faq__answer">Fud AI is free forever with Bring Your Own Key, and a free Gemini API key takes a minute to create. Manual entry, barcode lookup, Native iOS / Native Android speech, and Ollama local inference work without any hosted AI API key. On iPhone and Android, optional Plus/Pro hosted AI is available if you prefer not to manage keys.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Can Fud AI scan food from photos?</summary>
+        <p class="faq__answer">Yes. Fud AI can estimate nutrition from up to 10 camera or photo-library images analyzed together with an optional note, iOS Share Extension photos, text input, voice input, iOS Siri Shortcuts, saved meals, barcode lookup, and manual entries.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Does Fud AI track macros and other nutrients?</summary>
+        <p class="faq__answer">Yes. It tracks calories, protein, carbs, fat, sugar, fiber, saturated fat, trans fat, mono-unsaturated fat, poly-unsaturated fat, cholesterol, sodium, potassium, calcium, iron, magnesium, zinc, vitamins, folate, omega-3, and more when available.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Does Fud AI sync with Apple Health or Health Connect?</summary>
+        <p class="faq__answer">Yes, when you turn it on. Fud AI supports Apple Health on iPhone and Health Connect on Android for body measurements, meal nutrition, and calculated workout calories. Energy Burn Goals can also use active or total energy for calorie target estimates. Fasting history stays local and isn’t synced.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Is Fud AI private and open source?</summary>
+        <p class="faq__answer">Yes. Fud AI is MIT-licensed open source, has no account or Fud AI cloud-sync service, and stores your data on your device first. Operating-system backups and the AI, barcode, health, export, or sharing actions you start are described in the <a href="/privacy">Privacy Policy</a>.</p>
+      </details>
+      <details class="faq__item">
+        <summary>How does Fud AI track intermittent fasting?</summary>
+        <p class="faq__answer">Fasting tracking is off by default. After you turn it on in Settings, choose a 1–168 hour goal and start, end, or cancel a fast from the Home plus menu. The timer survives app restarts, finished fasts can be edited, and an optional local alert can fire at your goal. Fasting never changes your nutrition totals or syncs with Health.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Can I log food with Siri on iPhone?</summary>
+        <p class="faq__answer">Yes. Siri Shortcuts can log food, read today’s calories, and log weight. On supported iPhones, Siri food descriptions can use Apple Intelligence on-device as the final fallback after your own provider and fallback provider fail. Phrase examples are under + › Describe Meal › Siri Phrases.</p>
+      </details>
+      <details class="faq__item">
+        <summary>How do I get help on Discord?</summary>
+        <p class="faq__answer">Join the <a href="https://discord.gg/Py4VrFctP3" rel="noopener">Fud AI Discord server</a>, then use the /ask slash command from the Fud AI bot with your question. The bot replies in the channel.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Is there a Fud AI APK for Android?</summary>
+        <p class="faq__answer">Fud AI for Android installs from Google Play, so you don’t need a separate APK. It’s MIT-licensed open source, so you can also build it yourself from the GitHub repository.</p>
+      </details>
+      <details class="faq__item">
+        <summary>Is Fud AI the same as the Fud app?</summary>
+        <p class="faq__answer">Yes. Fud AI, Fud AI app, and Fud app all refer to the same open-source calorie tracker for iPhone and Android.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<section class="final" id="get" aria-labelledby="get-title">
+  <div class="wrap">
+    <div class="orb orb--final" aria-hidden="true"><canvas></canvas><div class="orb__fallback"></div></div>
+    <h2 class="display reveal" id="get-title">Start with your next meal.</h2>
+    <p class="lede reveal" style="--d:100">Free on iPhone and Android. Add a free Gemini key in about a minute, or start with barcodes and manual entry.</p>
+    <div class="reveal" style="--d:200">
+      <div class="stores">
+        <a class="store store--light" href="https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg><span class="store__text"><small>Download on the</small>App Store</span></a>
+        <a class="store store--light" href="https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3.609 1.814L13.792 12 3.61 22.186a.998.998 0 0 1-.61-.92V2.734c0-.39.222-.732.61-.92zM14.91 13.117l2.605 2.605-12.232 6.86 9.627-9.465zm3.978-3.205l2.74 1.535c.733.41.733 1.475 0 1.886l-2.741 1.536-2.969-2.969 2.97-2.988zM5.282 1.349l12.232 6.86-2.605 2.605L5.282 1.35z"/></svg><span class="store__text"><small>Get it on</small>Google Play</span></a>
       </div>
     </div>
+    <p class="final__needs">Needs iOS 17.6 or later, or Android 8.0 or later.</p>
+    <p class="final__star"><a href="https://github.com/apoorvdarshan/fud-ai" rel="noopener">Star Fud AI on GitHub<span class="count" data-stars hidden></span></a></p>
   </div>
 </section>
 
-<!-- ========== SCREENSHOTS — PLATES ========== -->
-<section class="plates-section" id="plates">
-  <div class="container">
-    <header class="section-head">
-      <span class="eyebrow"><span class="num">§ 04</span> &nbsp; Plates</span>
-      <h2>A few <em>plates</em> from the deck.</h2>
-    </header>
-  </div>
-  <div class="plates">
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/home.webp" alt="Fud AI Home dashboard with calorie ring, macro and water pillars, and the day's diary" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;01</span><span>Home · Dashboard</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/live-voice.webp" alt="Fud AI Live Voice logging breakfast by voice with an Undo card" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;02</span><span>Live Voice · Talk to Log</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/food.webp" alt="Fud AI food entry with photo, serving and nutrition" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;03</span><span>Food · Edit</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/nutrition.webp" alt="Fud AI nutrition details with macros, water and micronutrients" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;04</span><span>Nutrition · Details</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/progress.webp" alt="Fud AI progress tab with weekly recap and weight chart" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;05</span><span>Progress · Weekly Recap</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/coach.webp" alt="Fud AI Coach chat answering from logged data" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;06</span><span>Coach · AI Chat</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/workouts.webp" alt="Fud AI workout log with sets and reps" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;07</span><span>Workouts · Log</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/ai-providers.webp" alt="Fud AI provider settings with your own keys and on-device Gemma" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;08</span><span>AI Providers · Your Keys</span></figcaption>
-    </figure>
-    <figure class="plate">
-      <div class="phone-frame"><div class="phone-screen"><img src="assets/screenshots/voice-settings.webp" alt="Fud AI Voice Assistant settings" width="1206" height="2622" loading="lazy" decoding="async"></div></div>
-      <figcaption class="plate-caption"><span class="num">PLATE&nbsp;09</span><span>Voice Assistant · Settings</span></figcaption>
-    </figure>
-  </div>
-</section>
-
-<!-- ========== CTA ========== -->
-<section class="cta-section">
-  <div class="container">
-    <div class="cta-content">
-      <span class="eyebrow">Coda</span>
-      <h2>Start <em>tracking</em> today.</h2>
-      <p>Free, open source, privacy first. Bring your own AI key — no Fud AI account, Fud AI-operated cloud sync, subscription, or ads. Analyze up to 10 photos, scan barcodes, review nutrition, customize goals, optionally track water, and explicitly track fasts with a persistent local timer and editable history. Supported iPhones can use Apple Intelligence on-device as the final fallback for eligible food descriptions; Siri Shortcuts and Apple Watch support remain available on iOS.</p>
-      <div class="cta-group">
-        <a href="https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726" class="app-store-btn">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.8-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.83 1.51-2.95 1.42-.15-1.15.41-2.35 1.05-3.11z"/></svg>
-          <span>Download on the App Store</span>
+<footer class="site-foot">
+  <div class="wrap">
+    <div class="site-foot__grid">
+      <div class="site-foot__about">
+        <a class="brand" href="/" aria-label="Fud AI home">
+          <span class="brand__icon"><img src="assets/fud-app-icon.webp" alt="" width="34" height="34"></span>
+          <span class="brand__name">Fud AI</span>
         </a>
-        <a href="https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker" class="play-store-btn">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3.609 1.814L13.792 12 3.61 22.186a.998.998 0 0 1-.61-.92V2.734c0-.39.222-.732.61-.92zM14.91 13.117l2.605 2.605-12.232 6.86 9.627-9.465zm3.978-3.205l2.74 1.535c.733.41.733 1.475 0 1.886l-2.741 1.536-2.969-2.969 2.97-2.988zM5.282 1.349l12.232 6.86-2.605 2.605L5.282 1.35z"/></svg>
-          <span>Download on Google Play</span>
-        </a>
-      </div>
-      <div class="cta-sub">
-        <a href="https://github.com/apoorvdarshan/fud-ai" target="_blank" rel="noopener" class="chip-btn chip-github"><i class="fa-brands fa-github"></i><span>Star · GitHub</span></a>
-        <a href="https://discord.gg/Py4VrFctP3" target="_blank" rel="noopener" class="chip-btn chip-discord" title="Join the Fud AI Discord server — use /ask for help"><i class="fa-brands fa-discord"></i><span>Discord · /ask</span></a>
-        <a href="https://www.producthunt.com/products/fud-ai" target="_blank" rel="noopener" class="chip-btn chip-ph"><i class="fa-brands fa-product-hunt"></i><span>Vote · PH</span></a>
-        <a href="https://www.linkedin.com/company/fud-ai-app" target="_blank" rel="noopener" class="chip-btn chip-linkedin"><i class="fa-brands fa-linkedin-in"></i><span>LinkedIn</span></a>
-        <a href="https://ko-fi.com/apoorvdarshan" target="_blank" rel="noopener" class="chip-btn chip-kofi"><i class="fa-solid fa-mug-hot"></i><span>Ko-fi</span></a>
-        <a href="https://x.com/apoorvdarshan" target="_blank" rel="noopener" class="chip-btn chip-x"><i class="fa-brands fa-x-twitter"></i><span>Follow</span></a>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ========== FAQ ========== -->
-<section class="faq-section" id="faq">
-  <div class="container">
-    <header class="section-head">
-      <span class="eyebrow"><span class="num">§ 05</span> &nbsp; FAQ</span>
-      <h2>Fud AI app, <em>plainly answered</em>.</h2>
-    </header>
-    <div class="faq-grid">
-      <article class="faq-item">
-        <h3>How do I get help on Discord?</h3>
-        <p>Join the <a href="https://discord.gg/Py4VrFctP3" target="_blank" rel="noopener">Fud AI Discord server</a>, then use the <strong>/ask</strong> slash command (from the Fud AI bot) with your question. The bot replies in the channel — no need to @mention it.</p>
-      </article>
-      <article class="faq-item">
-        <h3>What is Fud AI?</h3>
-        <p>A free, open-source AI calorie tracker for iPhone and Android. Snap a photo, scan a barcode, speak, or type a meal — AI estimates the calories, macros, and nutrients. fud-ai.app is the official website.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Is Fud AI free?</h3>
-        <p>Yes — fully free, no subscription. It's free with no ads, plus an optional Tip Jar on iOS. AI analysis uses your own free provider key.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Is there a Fud AI APK for Android?</h3>
-        <p>Fud AI for Android is installed from Google Play — no separate APK download is needed. It's MIT-licensed open source, so you can also build it yourself from the GitHub repository.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Is Fud AI the Fud app?</h3>
-        <p>Yes. Fud AI, Fud AI app, Fud app, and AI Fud all point to the same open-source calorie tracker for iPhone and Android.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Can it work as an AI food scanner?</h3>
-        <p>Yes. Analyze up to 10 camera or photo-library images together with an optional note, use an iOS Share Extension photo, scan a barcode, speak, use Siri Shortcuts on iOS, type, reuse a saved meal, or enter nutrition manually.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Does it replace a macro tracker?</h3>
-        <p>It tracks calories, protein, carbs, and fat, plus detailed nutrients like fiber, sugar, fats, cholesterol, sodium, potassium, calcium, iron, magnesium, zinc, vitamins, folate, and omega-3 when available.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Can I use it without an API key?</h3>
-        <p>Fud AI is free forever with Bring Your Own Key — a free Gemini API key takes a minute to create. Manual entry, barcode lookup, Native iOS / Native Android speech, and Ollama local inference work without any hosted AI API key. On iPhone, optional Plus/Pro hosted AI is available if you prefer not to manage keys.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Does it sync with Health apps?</h3>
-        <p>Yes, only when you enable it. Fud AI supports Apple Health on iPhone and Health Connect on Android for authorized body measurements, meal nutrition, and calculated workout calories. Energy Burn Goals can use active/total energy for optional calorie-goal estimates. Fasting history remains local and is not synced.</p>
-      </article>
-      <article class="faq-item">
-        <h3>How does fasting tracking work?</h3>
-        <p>It is off by default. Enable Fasting Tracking in Settings, choose a 1–168 hour goal, then start, end, or cancel from Home → +. The timer survives app restarts, completed sessions are editable, and an optional local alert can fire at your goal. Fasting never changes calories or macros.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Can I log food with Siri on iPhone?</h3>
-        <p>Yes. Siri Shortcuts can log food, read today's calories, and log weight. On supported iPhones, Siri food-description analysis can use Apple Intelligence on-device as the final fallback after BYOK provider/fallback attempts fail. Phrase examples are under + → Describe Meal → Siri Phrases.</p>
-      </article>
-      <article class="faq-item">
-        <h3>Is it private and open source?</h3>
-        <p>Yes. There is no Fud AI account, Fud AI-operated cloud sync, in-app analytics, or behavioral tracking. Platform backup/device-transfer settings may still apply. It's free with no ads (plus an optional Tip Jar on iOS), and the MIT-licensed source is on GitHub.</p>
-      </article>
-    </div>
-  </div>
-</section>
-
-<!-- ========== FOOTER ========== -->
-<footer class="footer">
-  <div class="container">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a href="#" class="footer-brand-mark">
-          <img src="assets/calorie logo transparent.png" alt="Fud AI">
-          <span>Fud AI</span>
-        </a>
-        <p>An open-source iOS and Android calorie tracker that puts you in charge of the AI, the data, and the device. Designed and built by Apoorv Darshan.</p>
+        <p>A free, open-source calorie tracker for iPhone and Android, designed and built by Apoorv Darshan.</p>
         <p id="ownership">Fud AI is the sole proprietorship of Apoorv Darshan. <a href="https://verceltics.com/#ownership">Verceltics</a> is a software product developed and operated under Fud AI.</p>
-        <div class="footer-socials">
-          <a href="mailto:apoorv@fud-ai.app" aria-label="Email"><i class="fa-solid fa-envelope"></i></a>
-          <a href="https://github.com/apoorvdarshan/fud-ai" target="_blank" rel="noopener" aria-label="GitHub"><i class="fa-brands fa-github"></i></a>
-          <a href="https://discord.gg/Py4VrFctP3" target="_blank" rel="noopener" aria-label="Fud AI Discord — use /ask"><i class="fa-brands fa-discord"></i></a>
-          <a href="https://x.com/apoorvdarshan" target="_blank" rel="noopener" aria-label="X (Twitter)"><i class="fa-brands fa-x-twitter"></i></a>
-          <a href="https://www.linkedin.com/company/fud-ai-app" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a>
-          <a href="https://ko-fi.com/apoorvdarshan" target="_blank" rel="noopener" aria-label="Ko-fi"><i class="fa-solid fa-mug-hot"></i></a>
-          <a href="https://www.producthunt.com/products/fud-ai" target="_blank" rel="noopener" aria-label="Product Hunt"><i class="fa-brands fa-product-hunt"></i></a>
-        </div>
       </div>
-      <div class="footer-col">
-        <h4>Read</h4>
+      <div>
+        <h2>App</h2>
         <ul>
-          <li><a href="#chapters">Features</a></li>
-          <li><a href="#process">Process</a></li>
-          <li><a href="#plates">Screenshots</a></li>
-          <li><a href="#faq">FAQ</a></li>
-          <li><a href="/free-ai-calorie-tracker">Free AI Calorie Tracker</a></li>
-          <li><a href="/open-source-calorie-tracker">Open-Source Calorie Tracker</a></li>
-          <li><a href="/ai-food-scanner">AI Food Scanner</a></li>
+          <li><a href="/#features">Features</a></li>
+          <li><a href="/#faq">Questions</a></li>
+          <li><a href="/privacy">Privacy Policy</a></li>
+          <li><a href="/terms">Terms of Service</a></li>
+        </ul>
+      </div>
+      <div>
+        <h2>Guides</h2>
+        <ul>
+          <li><a href="/free-ai-calorie-tracker">Free AI calorie tracker</a></li>
+          <li><a href="/open-source-calorie-tracker">Open-source calorie tracker</a></li>
+          <li><a href="/ai-food-scanner">AI food scanner</a></li>
           <li><a href="/vs-cal-ai">Fud AI vs Cal AI</a></li>
         </ul>
       </div>
-      <div class="footer-col">
-        <h4>Build</h4>
+      <div>
+        <h2>Project</h2>
         <ul>
-          <li><a href="https://github.com/apoorvdarshan/fud-ai" target="_blank" rel="noopener">GitHub</a></li>
-          <li><a href="https://github.com/apoorvdarshan/fud-ai/issues/new?template=bug_report.yml" target="_blank" rel="noopener">Report Issue</a></li>
-          <li><a href="https://github.com/apoorvdarshan/fud-ai/issues/new?template=feature_request.yml" target="_blank" rel="noopener">Request Feature</a></li>
+          <li><a href="https://github.com/apoorvdarshan/fud-ai" rel="noopener">GitHub</a></li>
+          <li><a href="https://github.com/apoorvdarshan/fud-ai/issues/new?template=bug_report.yml" rel="noopener">Report a bug</a></li>
+          <li><a href="https://github.com/apoorvdarshan/fud-ai/issues/new?template=feature_request.yml" rel="noopener">Request a feature</a></li>
+          <li><a href="mailto:apoorv@fud-ai.app">apoorv@fud-ai.app</a></li>
         </ul>
       </div>
-      <div class="footer-col">
-        <h4>Legal</h4>
+      <div>
+        <h2>Community</h2>
         <ul>
-          <li><a href="privacy.html">Privacy Policy</a></li>
-          <li><a href="terms.html">Terms of Service</a></li>
-          <li><a href="sitemap.xml">Sitemap</a></li>
-          <li><a href="https://github.com/apoorvdarshan/fud-ai/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+          <li><a href="https://discord.gg/Py4VrFctP3" rel="noopener">Discord</a></li>
+          <li><a href="https://x.com/apoorvdarshan" rel="noopener">X</a></li>
+          <li><a href="https://www.linkedin.com/company/fud-ai-app" rel="noopener">LinkedIn</a></li>
+          <li><a href="https://www.producthunt.com/products/fud-ai" rel="noopener">Product Hunt</a></li>
+          <li><a href="https://ko-fi.com/apoorvdarshan" rel="noopener">Ko-fi</a></li>
         </ul>
       </div>
     </div>
-    <div class="footer-bottom">
-      <span>© 2026 Apoorv Darshan · Set in Fraunces &amp; Manrope</span>
-      <span>Volume 03 · No. 01</span>
+    <div class="site-foot__base">
+      <span>© 2026 Apoorv Darshan</span>
+      <span><a href="https://github.com/apoorvdarshan/fud-ai/blob/main/LICENSE" rel="noopener">MIT License</a> &nbsp; <a href="/sitemap.xml">Sitemap</a></span>
     </div>
   </div>
 </footer>
 
 <script>
-  // Nav: add scrolled border on scroll
-  const nav = document.getElementById('nav');
-  window.addEventListener('scroll', () => {
-    if (window.scrollY > 8) nav.classList.add('scrolled');
-    else nav.classList.remove('scrolled');
-  });
-  // Close mobile menu on link click
-  const navToggle = document.getElementById('nav-toggle');
-  document.querySelectorAll('.nav-links a').forEach(link => {
-    link.addEventListener('click', () => { if (navToggle) navToggle.checked = false; });
-  });
-  // Editorial scroll reveals — content stays visible if JS or IO is absent
-  if ('IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    const io = new IntersectionObserver((entries) => {
-      entries.forEach(e => {
-        if (e.isIntersecting) { e.target.classList.add('in-view'); io.unobserve(e.target); }
+  (function () {
+    var root = document.documentElement;
+    var calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    var hasIO = "IntersectionObserver" in window;
+    var coarse = window.matchMedia("(pointer: coarse)").matches;
+    var small = window.innerWidth < 721;
+    var wait = function (ms) { return new Promise(function (res) { setTimeout(res, ms); }); };
+    // Pause buttons for everything that moves by itself (WCAG 2.2.2).
+    var paused = { hero: false, marquee: false };
+    var onPause = {};
+    document.querySelectorAll("[data-pause]").forEach(function (btn) {
+      var key = btn.getAttribute("data-pause");
+      var label = btn.getAttribute("aria-label");
+      btn.addEventListener("click", function () {
+        paused[key] = !paused[key];
+        btn.setAttribute("aria-pressed", String(paused[key]));
+        btn.setAttribute("aria-label", paused[key] ? label.replace("Pause", "Play") : label);
+        if (onPause[key]) onPause[key](paused[key]);
       });
-    }, { rootMargin: '0px 0px -8% 0px', threshold: 0.06 });
-    document.querySelectorAll('.chapter, .process-step, .faq-item, .stat-card, .section-head, .cta-content')
-      .forEach(el => { el.classList.add('reveal'); io.observe(el); });
-  }
+    });
+
+    // Platform: the visitor's store leads, and the header button goes straight there.
+    var ua = navigator.userAgent;
+    var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+    var android = /Android/.test(ua);
+    var store = ios ? "https://apps.apple.com/us/app/fud-ai-calorie-tracker/id6758935726"
+      : android ? "https://play.google.com/store/apps/details?id=com.apoorvdarshan.calorietracker" : null;
+    if (ios) root.classList.add("is-ios"); else if (android) root.classList.add("is-android");
+    if (store) document.querySelectorAll("[data-get-app]").forEach(function (a) { a.href = store; });
+
+    // Header: glass once the page moves.
+    var head = document.getElementById("site-head");
+    function paintHead() { head.classList.toggle("is-stuck", window.scrollY > 8); }
+    paintHead();
+    window.addEventListener("scroll", paintHead, { passive: true });
+
+    // Live star count for the GitHub link (same-origin JSON the worker keeps fresh).
+    fetch("/star-history.json").then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (!d || !d.total) return;
+      document.querySelectorAll("[data-stars]").forEach(function (el) { el.textContent = new Intl.NumberFormat("en-US").format(d.total); el.hidden = false; });
+    }).catch(function () {});
+
+    var menu = document.querySelector(".menu");
+    if (menu) menu.addEventListener("click", function (e) { if (e.target.closest("a")) menu.removeAttribute("open"); });
+
+    // ---------- Numbers that count, in step with what they measure ----------
+    var fmt = new Intl.NumberFormat("en-US");
+    function countUp(el, delay, dur, onStep) {
+      var to = parseFloat(el.getAttribute("data-to"));
+      if (calm || !isFinite(to)) return;
+      el.textContent = "0";
+      setTimeout(function () {
+        var start = performance.now();
+        (function step(now) {
+          var t = Math.min(1, Math.max(0, (now - start) / dur));
+          var v = Math.round(to * (1 - Math.pow(1 - t, 5)));
+          el.textContent = fmt.format(v);
+          if (onStep) onStep(v);
+          if (t < 1) requestAnimationFrame(step);
+        })(start);
+      }, delay);
+    }
+
+    function enterReadout(el) {
+      el.querySelectorAll("[data-to]").forEach(function (n, i) { countUp(n, 150 + i * 70, 900); });
+    }
+    function enterDash(el) {
+      var ticks = el.querySelectorAll(".tick.fill");
+      var value = el.querySelector(".gauge__value");
+      var total = parseFloat(value.getAttribute("data-to"));
+      countUp(value, 300, 1400, function (v) {
+        ticks.forEach(function (t, k) { if (v >= (k + 1) / ticks.length * total) t.classList.add("on"); });
+      });
+      el.querySelectorAll(".pillar__value").forEach(function (n, i) { countUp(n, 750 + i * 110, 1200); });
+    }
+
+    // ---------- Reveals ----------
+    function reveal(el) {
+      el.classList.add("is-in");
+      el.addEventListener("transitionend", function () { el.classList.add("is-done"); }, { once: true });
+      if (el.classList.contains("readout")) enterReadout(el);
+      if (el.classList.contains("dash")) enterDash(el);
+    }
+    if (hasIO) {
+      var io = new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) { if (e.isIntersecting) { reveal(e.target); io.unobserve(e.target); } });
+      }, { rootMargin: small ? "0px 0px -4% 0px" : "0px 0px -12% 0px", threshold: small ? 0.01 : 0.15 });
+      document.querySelectorAll(".reveal, [data-observe]").forEach(function (el) { io.observe(el); });
+    } else {
+      document.querySelectorAll(".reveal, [data-observe]").forEach(function (el) { el.classList.add("is-in"); });
+    }
+
+    // ---------- Coach: the conversation plays out once, at its final size ----------
+    var chat = document.querySelector("[data-chat]");
+    if (chat && hasIO && !calm) {
+      var fitChat = function () {
+        chat.style.minHeight = "";
+        chat.classList.add("measure");
+        chat.style.minHeight = chat.offsetHeight + "px";
+        chat.classList.remove("measure");
+      };
+      fitChat();
+      window.addEventListener("resize", fitChat, { passive: true });
+      var chatIO = new IntersectionObserver(function (entries) {
+        if (!entries[0].isIntersecting) return;
+        chatIO.disconnect();
+        var items = chat.children;
+        [[0, 1, 600], [1, 1, 1150], [1, 0, 2350], [2, 1, 2350], [3, 1, 3450], [4, 1, 4050], [4, 0, 5450], [5, 1, 5450]].forEach(function (s) {
+          setTimeout(function () { items[s[0]].classList.toggle("shown", !!s[1]); }, s[2]);
+        });
+      }, { threshold: 0.6 });
+      chatIO.observe(chat);
+    }
+
+    // ---------- Bento: small loops run only while you can see them ----------
+    var bento = document.querySelector(".bento");
+    if (bento && hasIO) {
+      new IntersectionObserver(function (entries) { bento.classList.toggle("is-live", entries[0].isIntersecting); }).observe(bento);
+    }
+    document.querySelectorAll(".tile").forEach(function (t) {
+      t.addEventListener("pointermove", function (e) {
+        var r = t.getBoundingClientRect();
+        t.style.setProperty("--mx", (e.clientX - r.left) + "px");
+        t.style.setProperty("--my", (e.clientY - r.top) + "px");
+      });
+    });
+
+    // ---------- Photo phone: turns toward you as it passes (CSS does this where it can) ----------
+    var device = document.querySelector(".snap__device");
+    if (device && !calm && !(window.CSS && CSS.supports("animation-timeline: view()"))) {
+      var ticking = false;
+      var tilt = function () {
+        ticking = false;
+        var r = device.getBoundingClientRect();
+        if (r.bottom < 0 || r.top > innerHeight) return;
+        var p = Math.min(1, Math.max(0, 1 - (r.top + r.height / 2) / innerHeight));
+        device.style.setProperty("--ry", (-8 + 12 * p).toFixed(2) + "deg");
+        device.style.setProperty("--rx", (3 - 4 * p).toFixed(2) + "deg");
+      };
+      window.addEventListener("scroll", function () { if (!ticking) { ticking = true; requestAnimationFrame(tilt); } }, { passive: true });
+      tilt();
+    }
+
+    // ---------- Screens: ease to a stop under the pointer, rest when off screen ----------
+    var track = document.querySelector(".marquee__track");
+    var marquee = document.querySelector(".marquee");
+    if (track && marquee && track.getAnimations) {
+      var drift = track.getAnimations()[0];
+      if (drift) {
+        var rate = 1, rateTo = 1, easing = false;
+        var easeRate = function () {
+          rate += (rateTo - rate) * 0.12;
+          if (Math.abs(rateTo - rate) < 0.01) rate = rateTo;
+          drift.updatePlaybackRate(Math.max(rate, 0.0001));
+          if (rate !== rateTo) requestAnimationFrame(easeRate); else easing = false;
+        };
+        var setRate = function (r) { rateTo = r; if (!easing) { easing = true; requestAnimationFrame(easeRate); } };
+        var resume = function () { if (!paused.marquee && !marquee.contains(document.activeElement)) setRate(1); };
+        marquee.addEventListener("pointerenter", function () { setRate(0); });
+        marquee.addEventListener("pointerleave", resume);
+        marquee.addEventListener("focusin", function () { setRate(0); });
+        marquee.addEventListener("focusout", function () { setTimeout(resume, 0); });
+        onPause.marquee = function (on) { if (on) setRate(0); else resume(); };
+        if (hasIO) new IntersectionObserver(function (e) { if (e[0].isIntersecting) drift.play(); else drift.pause(); }).observe(marquee);
+      }
+    }
+
+    // ---------- Providers: the key picks one, and a ripple goes out ----------
+    var orbit = document.querySelector(".orbit");
+    if (orbit && hasIO && !calm && !small) {
+      var chips = orbit.querySelectorAll(".orbit__ring span");
+      var pick = 0, timer = null;
+      var choose = function () {
+        chips.forEach(function (c) { c.classList.remove("is-chosen"); });
+        chips[pick % chips.length].classList.add("is-chosen");
+        pick += 3;
+        orbit.classList.remove("ping");
+        void orbit.offsetWidth;
+        orbit.classList.add("ping");
+      };
+      new IntersectionObserver(function (e) {
+        if (e[0].isIntersecting) { if (!timer) { choose(); timer = setInterval(choose, 2400); } }
+        else if (timer) { clearInterval(timer); timer = null; }
+      }).observe(orbit);
+    }
+
+    // ---------- The orb: the app's Live Voice sphere, in WebGL ----------
+    var FRAG = [
+      "#ifdef GL_FRAGMENT_PRECISION_HIGH",
+      "precision highp float;",
+      "#else",
+      "precision mediump float;",
+      "#endif",
+      "uniform vec2 uRes; uniform float uTime; uniform float uSpin; uniform float uFlow; uniform float uLevel; uniform float uThinking; uniform float uActive; uniform vec2 uTilt;",
+      "vec3 hash3(vec3 p){p=vec3(dot(p,vec3(127.1,311.7,74.7)),dot(p,vec3(269.5,183.3,246.1)),dot(p,vec3(113.5,271.9,124.6)));return -1.0+2.0*fract(sin(p)*43758.5453123);}",
+      "float noise(vec3 p){vec3 i=floor(p);vec3 f=fract(p);vec3 u=f*f*(3.0-2.0*f);",
+      " return mix(mix(mix(dot(hash3(i),f),dot(hash3(i+vec3(1.,0.,0.)),f-vec3(1.,0.,0.)),u.x),",
+      "                mix(dot(hash3(i+vec3(0.,1.,0.)),f-vec3(0.,1.,0.)),dot(hash3(i+vec3(1.,1.,0.)),f-vec3(1.,1.,0.)),u.x),u.y),",
+      "            mix(mix(dot(hash3(i+vec3(0.,0.,1.)),f-vec3(0.,0.,1.)),dot(hash3(i+vec3(1.,0.,1.)),f-vec3(1.,0.,1.)),u.x),",
+      "                mix(dot(hash3(i+vec3(0.,1.,1.)),f-vec3(0.,1.,1.)),dot(hash3(i+vec3(1.,1.,1.)),f-vec3(1.,1.,1.)),u.x),u.y),u.z);}",
+      "mat3 rotY(float a){float c=cos(a),s=sin(a);return mat3(c,0.,-s,0.,1.,0.,s,0.,c);}",
+      "mat3 rotX(float a){float c=cos(a),s=sin(a);return mat3(1.,0.,0.,0.,c,s,0.,-s,c);}",
+      "void main(){",
+      " vec2 uv=(gl_FragCoord.xy-0.5*uRes)/(0.5*min(uRes.x,uRes.y));",
+      " float R=(0.6+0.02*uActive)+0.012*sin(uTime*1.3)+0.03*uLevel;",
+      " float r=length(uv);",
+      " vec3 pink=vec3(1.0,0.216,0.373);",
+      " float halo=exp(-max(r-R,0.0)*(7.5-2.5*uLevel))*(0.34+0.06*uActive+0.3*uLevel)*smoothstep(0.98,0.7,r);",
+      " vec3 col=pink*halo; float alpha=halo;",
+      " if(r<R+0.02){",
+      "  vec2 q=uv/R; float d=min(dot(q,q),1.0);",
+      "  vec3 n=vec3(q,sqrt(1.0-d));",
+      "  vec3 pn=rotY(uSpin*0.73+uTilt.x*0.7)*rotX(0.25+uTilt.y*0.5)*n;",
+      "  float t=uFlow*0.8;",
+      "  float f1=noise(pn*2.3+vec3(0.0,t,t*0.7));",
+      "  float f2=noise(pn*4.4-vec3(t*0.8,0.0,t));",
+      "  float lines=smoothstep(0.08,0.0,abs(f1))*0.95+smoothstep(0.05,0.0,abs(f2))*0.5;",
+      "  lines*=(0.5+0.5*n.z)*(0.65+0.1*uActive+0.65*uLevel);",
+      "  float rim=pow(1.0-n.z,2.4);",
+      "  float core=exp(-d*9.0)*(1.0+0.35*uThinking*sin(uTime*7.0));",
+      "  float ang=atan(uv.y,uv.x);",
+      "  float ring=smoothstep(0.035,0.0,abs(sqrt(d)-0.17))*(0.55+0.45*sin(ang*18.0+uSpin*10.0));",
+      "  float I=0.08+0.2*(1.0-n.z)+lines+rim*0.8+core*(0.5+0.5*uLevel)+ring*(0.45+0.45*uLevel+0.3*uThinking);",
+      "  vec3 deep=vec3(0.28,0.015,0.07);",
+      "  vec3 c=mix(deep,pink,clamp(I,0.0,1.0));",
+      "  c=mix(c,vec3(1.0,0.84,0.9),clamp(I-1.0,0.0,1.0)*0.85);",
+      "  float edge=smoothstep(R,R-0.012,r);",
+      "  col=mix(col,c,edge); alpha=mix(alpha,1.0,edge);",
+      " }",
+      " gl_FragColor=vec4(col,alpha);",
+      "}"
+    ].join("\n");
+
+    function makeOrb(box) {
+      var canvas = box && box.querySelector("canvas");
+      var gl = canvas && canvas.getContext("webgl", { alpha: true, premultipliedAlpha: true, antialias: false, powerPreference: "low-power" });
+      if (!gl) return null;
+      var compile = function (type, src) {
+        var s = gl.createShader(type);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        return gl.getShaderParameter(s, gl.COMPILE_STATUS) ? s : null;
+      };
+      var vs = compile(gl.VERTEX_SHADER, "attribute vec2 p;void main(){gl_Position=vec4(p,0.,1.);}");
+      var fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      if (!vs || !fs) return null;
+      var prog = gl.createProgram();
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) return null;
+      gl.useProgram(prog);
+      gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+      var loc = gl.getAttribLocation(prog, "p");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+      var u = {};
+      ["uRes", "uTime", "uSpin", "uFlow", "uLevel", "uThinking", "uActive", "uTilt"].forEach(function (n) { u[n] = gl.getUniformLocation(prog, n); });
+      box.classList.add("is-webgl");
+
+      // Same motion model as the app's orb: loudness rises fast and falls slowly,
+      // and spin and flow speed up while it thinks or talks.
+      var st = { mode: "idle", level: 0, levelTarget: 0, active: 0, thinking: 0, spin: 0, flow: 0, clock: 2, tiltX: 0, tiltY: 0, tx: 0, ty: 0, visible: false, running: false, last: 0, onFrame: null };
+      var draw = function () {
+        var dpr = Math.min(window.devicePixelRatio || 1, coarse ? 1.5 : 1.75);
+        var w = Math.round(canvas.clientWidth * dpr), h = Math.round(canvas.clientHeight * dpr);
+        if (canvas.width !== w || canvas.height !== h) { canvas.width = w; canvas.height = h; gl.viewport(0, 0, w, h); }
+        gl.uniform2f(u.uRes, w, h);
+        gl.uniform1f(u.uTime, st.clock);
+        gl.uniform1f(u.uSpin, st.spin);
+        gl.uniform1f(u.uFlow, st.flow);
+        gl.uniform1f(u.uLevel, st.level);
+        gl.uniform1f(u.uThinking, st.thinking);
+        gl.uniform1f(u.uActive, st.active);
+        gl.uniform2f(u.uTilt, st.tiltX, st.tiltY);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+      var frame = function (now) {
+        if (!st.visible || document.hidden || st.paused) { st.running = false; return; }
+        var dt = st.last ? Math.min(0.05, (now - st.last) / 1000) : 0;
+        st.last = now;
+        st.clock += dt;
+        var k = st.levelTarget > st.level ? 24 : 7;
+        st.level += (st.levelTarget - st.level) * (1 - Math.exp(-k * dt));
+        st.active += ((st.mode !== "idle" ? 1 : 0) - st.active) * (1 - Math.exp(-3 * dt));
+        st.thinking += ((st.mode === "thinking" ? 1 : 0) - st.thinking) * (1 - Math.exp(-4 * dt));
+        st.spin += dt * (0.22 + 0.18 * st.active + 1.5 * st.thinking + 0.6 * st.level);
+        st.flow += dt * (0.25 + 0.3 * st.active + 0.5 * st.thinking + 2.4 * st.level);
+        st.tiltX += (st.tx - st.tiltX) * Math.min(1, dt * 3);
+        st.tiltY += (st.ty - st.tiltY) * Math.min(1, dt * 3);
+        draw();
+        if (st.onFrame) st.onFrame(st);
+        requestAnimationFrame(frame);
+      };
+      st.start = function () { if (!st.running && st.visible && !document.hidden && !st.paused) { st.running = true; st.last = 0; requestAnimationFrame(frame); } };
+      st.kick = function () {
+        st.levelTarget = 0.5 + Math.random() * 0.4;
+        setTimeout(function () { st.levelTarget = 0.1; }, 70);
+      };
+      if (calm) { st.active = 0.4; draw(); return st; }
+      if (hasIO) new IntersectionObserver(function (e) { st.visible = e[0].isIntersecting; st.start(); }).observe(box);
+      else st.visible = true;
+      document.addEventListener("visibilitychange", st.start);
+      st.start();
+      return st;
+    }
+
+    var heroOrb = makeOrb(document.getElementById("orb"));
+    var finalOrb = makeOrb(document.querySelector(".orb--final"));
+    var glow = document.querySelector(".hero__glow");
+    onPause.hero = function (on) {
+      if (heroOrb) { heroOrb.paused = on; heroOrb.start(); }
+      var liveBox = document.querySelector(".live");
+      if (liveBox) liveBox.classList.toggle("is-paused", on);
+    };
+    if (heroOrb && !calm) {
+      heroOrb.onFrame = function (s) { if (glow) glow.style.setProperty("--level", s.level.toFixed(3)); };
+      window.addEventListener("pointermove", function (e) {
+        heroOrb.tx = (e.clientX / innerWidth - 0.5) * 2;
+        heroOrb.ty = (e.clientY / innerHeight - 0.5) * 2;
+      }, { passive: true });
+    }
+    if (finalOrb && !calm) {
+      finalOrb.mode = "listening";
+      setInterval(function () { if (finalOrb.visible && Math.random() < 0.5) finalOrb.kick(); }, 900);
+      var finalStores = document.querySelector(".final .stores");
+      if (finalStores) {
+        finalStores.addEventListener("pointerenter", function () { finalOrb.mode = "speaking"; finalOrb.levelTarget = 0.9; });
+        finalStores.addEventListener("pointerleave", function () { finalOrb.mode = "listening"; finalOrb.levelTarget = 0.1; });
+      }
+    }
+
+    // ---------- Live captions: what you say, what Fud AI says back and logs ----------
+    var live = document.querySelector(".live");
+    var said = document.getElementById("live-said");
+    var reply = document.getElementById("live-reply");
+    var card = document.getElementById("live-card");
+    var status = document.getElementById("live-status");
+    if (live && said && !calm) {
+      var NB = " ";
+      var demos = [
+        { said: "Log two eggs and a latte for breakfast.", reply: "Done. Logged to breakfast: 290" + NB + "calories with 20" + NB + "grams of protein.", name: "Eggs & latte", macros: "Breakfast · 20P · 11C · 18F", kcal: "290" + NB + "kcal" },
+        { said: "Add a chicken burrito bowl for lunch.", reply: "Logged to lunch: 640" + NB + "calories with 46" + NB + "grams of protein.", name: "Chicken burrito bowl", macros: "Lunch · 46P · 68C · 20F", kcal: "640" + NB + "kcal" },
+        { said: "I just had a protein shake.", reply: "Added to snacks: 180" + NB + "calories with 30" + NB + "grams of protein.", name: "Protein shake", macros: "Snack · 30P · 6C · 3F", kcal: "180" + NB + "kcal" }
+      ];
+      var name = document.getElementById("live-name"), macros = document.getElementById("live-macros"), kcal = document.getElementById("live-kcal");
+      // Build word spans with DOM nodes, never HTML strings.
+      var setWords = function (el, text) {
+        el.replaceChildren();
+        text.split(" ").forEach(function (w, i) {
+          if (i) el.appendChild(document.createTextNode(" "));
+          var span = document.createElement("span");
+          span.className = "w";
+          span.textContent = w;
+          el.appendChild(span);
+        });
+      };
+      var cloneKids = function (el) { return Array.prototype.map.call(el.childNodes, function (n) { return n.cloneNode(true); }); };
+      var setStatus = function (text) { status.textContent = text; };
+
+      // Reserve the tallest demo's height so nothing below the hero moves.
+      var lastW = 0;
+      var fit = function () {
+        if (window.innerWidth === lastW) return;
+        lastW = window.innerWidth;
+        var keep = [cloneKids(said), cloneKids(reply), name.textContent, macros.textContent, kcal.textContent];
+        live.style.minHeight = "";
+        var max = 0;
+        demos.forEach(function (d) {
+          said.textContent = d.said; reply.textContent = d.reply; name.textContent = d.name; macros.textContent = d.macros; kcal.textContent = d.kcal;
+          max = Math.max(max, live.offsetHeight);
+        });
+        said.replaceChildren.apply(said, keep[0]); reply.replaceChildren.apply(reply, keep[1]);
+        name.textContent = keep[2]; macros.textContent = keep[3]; kcal.textContent = keep[4];
+        live.style.minHeight = max + "px";
+      };
+
+      // Waits that only count while the demo is playing, so Pause holds mid-sentence.
+      var waitLive = function (ms) {
+        return new Promise(function (res) {
+          var left = ms, last = performance.now();
+          (function step() {
+            var now = performance.now();
+            if (!paused.hero) left -= now - last;
+            last = now;
+            if (left <= 0) res(); else setTimeout(step, Math.min(Math.max(left, 16), 100));
+          })();
+        });
+      };
+      var heroVisible = function () {
+        return new Promise(function (res) {
+          (function check() {
+            if ((!heroOrb || heroOrb.visible) && !document.hidden && !paused.hero) res(); else setTimeout(check, 300);
+          })();
+        });
+      };
+      var orbSet = function (mode, level) { if (heroOrb) { heroOrb.mode = mode; if (level != null) heroOrb.levelTarget = level; } };
+      var kick = function () { if (heroOrb) heroOrb.kick(); };
+
+      // The first meal is already on the page; let it be read, then keep going.
+      setWords(reply, reply.textContent);
+      said.querySelectorAll(".w").forEach(function (w) { w.classList.add("on"); });
+      reply.querySelectorAll(".w").forEach(function (w) { w.classList.add("on"); });
+      card.classList.add("on");
+      setStatus("Logged");
+      fit();
+      if (document.fonts) document.fonts.ready.then(function () { lastW = 0; fit(); });
+      window.addEventListener("resize", fit, { passive: true });
+
+      (async function loop() {
+        await waitLive(3400);
+        for (var k = 1; ; k++) {
+          await heroVisible();
+          var d = demos[k % demos.length];
+          live.classList.remove("is-speaking");
+          reply.querySelectorAll(".w").forEach(function (w) { w.classList.remove("on"); });
+          said.querySelectorAll(".w").forEach(function (w) { w.classList.remove("on"); });
+          card.classList.add("is-pending");
+          card.classList.remove("is-ticking");
+          await waitLive(450);
+          setWords(said, d.said);
+          setWords(reply, d.reply);
+          setStatus("Listening…");
+          orbSet("listening", 0.1);
+          var sw = said.querySelectorAll(".w");
+          for (var i = 0; i < sw.length; i++) { sw[i].classList.add("on"); kick(); await waitLive(110 + Math.random() * 90); }
+          orbSet("thinking", 0.05);
+          setStatus("Thinking…");
+          await waitLive(700);
+          orbSet("speaking");
+          setStatus("Speaking…");
+          live.classList.add("is-speaking");
+          var rw = reply.querySelectorAll(".w");
+          for (var j = 0; j < rw.length; j++) { rw[j].classList.add("on"); kick(); await waitLive(55 + Math.random() * 35); }
+          orbSet("idle", 0);
+          name.textContent = d.name;
+          macros.textContent = d.macros;
+          kcal.textContent = d.kcal;
+          card.classList.remove("is-pending");
+          card.classList.add("on", "is-logged");
+          void card.offsetWidth;
+          card.classList.add("is-ticking");
+          setTimeout(function () { card.classList.remove("is-logged"); }, 600);
+          setStatus("Logged");
+          await waitLive(3400);
+        }
+      })();
+    }
+  })();
+
 </script>
 </body>
 </html>
