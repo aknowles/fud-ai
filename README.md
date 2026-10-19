@@ -177,69 +177,76 @@ For the Coach chat, every turn builds a slim system prompt from your live profil
 
 ## Screenshots
 
-An eight-screen walkthrough of the current app flow — from the dashboard and grouped logging menu through review, progress, Coach, and Workouts.
+Nine screens from the current app, from Home and Live Voice to Coach, Workouts and your own AI keys. They are captured on a simulator with demo data by [`scripts/screenshots/capture-ios.sh`](scripts/screenshots/capture-ios.sh).
 
 <table>
   <tr>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/home.png" width="230" alt="Home dashboard">
+      <img src="web/assets/screenshots/home.webp" width="230" alt="Home dashboard with calorie ring, macro and water pillars, and the day's diary">
       <br><br>
       <b>01 · Home · Dashboard</b>
       <br>
-      <sub>Daily calorie ring, selected Home nutrient cards, and today's logged meals grouped by meal type. Week strip at the top for date navigation.</sub>
+      <sub>Calorie ring, macro and water pillars, and one diary for meals, water and fasts. The orb next to + starts Live Voice.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/logging.png" width="230" alt="Grouped food logging options menu">
+      <img src="web/assets/screenshots/live-voice.webp" width="230" alt="Live Voice conversation logging breakfast with an Undo card">
       <br><br>
-      <b>02 · Log · Options</b>
+      <b>02 · Live Voice · Talk to Log</b>
       <br>
-      <sub>Tap + for Photo &amp; Scan, Describe Meal, Reuse Meal, and optional Water groups. Camera and Photos accept up to 10 images plus an optional note.</sub>
+      <sub>Talk to log meals, scan food and barcodes, and ask about your progress, with an Undo for every change. Runs on Plus or Pro, or your own Gemini, OpenAI, xAI or Qwen key.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/snap.png" width="230" alt="Snap food capture">
+      <img src="web/assets/screenshots/food.webp" width="230" alt="Food entry with its photo, serving and nutrition">
       <br><br>
-      <b>03 · Snap · Capture</b>
+      <b>03 · Food · Edit</b>
       <br>
-      <sub>Point and shoot. The image is sent to your chosen AI provider; nutrition estimates come back within a few seconds.</sub>
+      <sub>Every entry keeps its photo, serving and full nutrition. Change any value and the day's totals update.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/review.png" width="230" alt="Review food entry">
+      <img src="web/assets/screenshots/nutrition.webp" width="230" alt="Nutrition details with macros, water and micronutrients">
       <br><br>
-      <b>04 · Review · Edit</b>
+      <b>04 · Nutrition · Details</b>
       <br>
-      <sub>Review the AI's guess, unlock nutrition if values need correction, adjust the serving size (everything recalculates live), preview "What if?" impact, and pick a meal type before logging.</sub>
+      <sub>Today's macros against your goals, water, and detailed nutrients from sugar and fiber to vitamins and minerals.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/meals.png" width="230" alt="Meals log">
+      <img src="web/assets/screenshots/progress.webp" width="230" alt="Progress tab with the weekly recap and weight chart">
       <br><br>
-      <b>05 · Meals · Log</b>
+      <b>05 · Progress · Weekly Recap</b>
       <br>
-      <sub>The day's entries grouped by breakfast / lunch / dinner / snack. Swipe to delete, tap to edit any entry.</sub>
+      <sub>Days logged, calories and protein on target, and weight change for the week, above weight and body-fat charts from 1 week to all time.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/coach.png" width="230" alt="AI Coach chat">
+      <img src="web/assets/screenshots/coach.webp" width="230" alt="AI Coach chat answering from the user's data">
       <br><br>
       <b>06 · Coach · AI Chat</b>
       <br>
-      <sub>Multi-turn conversation with full context of your profile, weight history, food log, and forecast. Ask "what should I eat?" or "expected weight in 30 days?".</sub>
+      <sub>Coach reads your profile, logs and trends through tool calls, so answers use your real numbers.</sub>
     </td>
   </tr>
   <tr>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/progress.png" width="230" alt="Progress charts">
+      <img src="web/assets/screenshots/workouts.webp" width="230" alt="Workout log with sets and reps for today's lifts">
       <br><br>
-      <b>07 · Progress · Charts</b>
+      <b>07 · Workouts · Log</b>
       <br>
-      <sub>Weight trend with goal line, calorie history (intake vs. goal), and macro averages. Time ranges span 1 week to all time.</sub>
+      <sub>Log sets and reps from 877 exercises with photos, routines and a rest timer, and estimate the calorie burn.</sub>
     </td>
     <td align="center" width="33%">
-      <img src="web/assets/screenshots/workouts.png" width="230" alt="Workout exercise library">
+      <img src="web/assets/screenshots/ai-providers.webp" width="230" alt="AI provider settings with Gemini and the on-device Gemma model">
       <br><br>
-      <b>08 · Workouts · Library</b>
+      <b>08 · AI Providers · Your Keys</b>
       <br>
-      <sub>Browse 877 exercises with photos, filterable by primary/secondary muscle and equipment, with search, sort, and per-exercise detail pages.</sub>
+      <sub>Pick any of 16 LLM providers with your own key, or download Gemma 4 to run on device, with separate text and fallback providers.</sub>
+    </td>
+    <td align="center" width="33%">
+      <img src="web/assets/screenshots/voice-settings.webp" width="230" alt="Voice Assistant settings with provider, plans and capture options">
+      <br><br>
+      <b>09 · Voice Assistant · Settings</b>
+      <br>
+      <sub>Choose the Live Voice provider, reply language, automatic photo capture, and whether to confirm before anything is saved.</sub>
     </td>
   </tr>
 </table>
