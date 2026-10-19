@@ -205,6 +205,9 @@ struct ReturningUserView: View {
     @State private var selection: Set<Source>
     @State private var steps: [Source: StepState]
     @State private var backupCheck: BackupCheck = .unchecked
+    /// Set once a restore in this visit succeeds: whether its backup had finished
+    /// setup. Kept across Try again, so retrying only Health can't lose it.
+    @State private var restoredBackup: Bool?
     @State private var restoredFinishedSetup = false
     @State private var restoreMissedSetup = false
     @State private var appeared = false
@@ -355,7 +358,7 @@ struct ReturningUserView: View {
                         lineWidth: isSelected ? 2 : 1
                     )
             }
-            .opacity(phase != .choosing && !isSelected ? 0.4 : 1)
+            .opacity(phase != .choosing && !isSelected && steps[source] == nil ? 0.4 : 1)
         }
         .buttonStyle(PressableCardStyle(reduceMotion: reduceMotion))
         .disabled(phase != .choosing)
@@ -583,13 +586,22 @@ struct ReturningUserView: View {
 
     private func toggle(_ source: Source) {
         guard phase == .choosing else { return }
+        // A step that already worked stays done; Try again reruns only what failed.
+        if case .done? = steps[source] { return }
         if selection.remove(source) != nil { return }
         selection.insert(source)
         if source == .iCloud { Task { await checkBackup() } }
     }
 
+    /// Back to picking with only the failed steps picked. A restore replaces what an
+    /// earlier Health import added, so retrying the restore reruns Health too.
     private func tryAgain() {
-        steps = [:]
+        var retry = Set(steps.compactMap { source, state in
+            if case .failed = state { source } else { nil }
+        })
+        if retry.contains(.iCloud), case .done? = steps[.health] { retry.insert(.health) }
+        steps = steps.filter { !retry.contains($0.key) }
+        selection = retry
         restoredFinishedSetup = false
         restoreMissedSetup = false
         phase = .choosing
@@ -624,11 +636,11 @@ struct ReturningUserView: View {
         let plan = selection
         guard !plan.isEmpty else { return }
         phase = .running
-        steps = [:]
+        steps = steps.filter { !plan.contains($0.key) }
         announce(String(localized: "Bringing your data back…"))
 
-        var restored = false
-        var finishedSetup = false
+        var restored = restoredBackup != nil
+        var finishedSetup = restoredBackup ?? false
         if plan.contains(.iCloud) {
             steps[.iCloud] = .working
             do {
@@ -642,6 +654,7 @@ struct ReturningUserView: View {
                 // A backup taken mid-setup, after a wipe, or by a newer app has
                 // no usable profile, so it must not skip setup.
                 finishedSetup = backupFinishedSetup && UserProfile.load() != nil
+                restoredBackup = finishedSetup
                 steps[.iCloud] = .done(restoredText)
             } catch {
                 steps[.iCloud] = .failed(CloudBackupService.userMessage(for: error))
@@ -653,7 +666,7 @@ struct ReturningUserView: View {
             // The restore marked the meal import done, but Health can hold
             // meals and readings saved after the backup.
             if restored { ReturningUser.reopenHealthImports() }
-            switch await importFromHealth() {
+            switch await importFromHealth(afterRestore: restored) {
             case .success(let result):
                 steps[.health] = .done(result.summary)
                 if !finishedSetup { onHealthImported(result) }
@@ -688,7 +701,9 @@ struct ReturningUserView: View {
         let message: String
     }
 
-    private func importFromHealth() async -> Result<ReturningUser.HealthImport, HealthImportFailure> {
+    /// After a restore, Fud AI's own weight and body-fat readings come back too
+    /// when the restored history lacks their ids (saved after the backup).
+    private func importFromHealth(afterRestore: Bool) async -> Result<ReturningUser.HealthImport, HealthImportFailure> {
         guard await healthKitManager.requestAuthorization() else {
             return .failure(HealthImportFailure(
                 message: String(localized: "Couldn't connect to Apple Health. You can try again later in Settings.")
@@ -698,19 +713,20 @@ struct ReturningUserView: View {
         UserDefaults.standard.set(true, forKey: "healthKitEnabled")
 
         let before = storeCounts
-        // Each import skips what the stores already hold: meals by id, and
-        // weight and body fat by day and value. Fud AI's own weight and
-        // body-fat samples only come back (with their original ids) into an
-        // empty history, and onboarding seeds a first entry when it finishes.
+        // Each import skips what the stores already hold: meals and Fud AI's own
+        // readings by id, other apps' readings by day and value. Without a
+        // restore, Fud AI's own readings only come back into an empty history,
+        // and onboarding seeds a first entry when it finishes.
         let imports: [Task<Void, Never>?] = [
             healthKitManager.restoreFoodEntriesFromHealthKitIfNeeded(
                 existingIDs: { [foodStore] in Set(foodStore.entries.map(\.id)) },
                 importBatch: { [foodStore] entries in foodStore.mergeWithCloudEntries(entries) }
             ),
             healthKitManager.backfillWeightFromHealthKitIfNeeded { [weightStore] samples in
-                weightStore.importHealthSamples(samples, restoreOwnSamplesIfEmpty: true)
+                weightStore.importHealthSamples(samples, restoreOwnSamplesIfEmpty: true, addingMissingOwnSamples: afterRestore)
             },
             healthKitManager.backfillBodyFatFromHealthKitIfNeeded(
+                addingMissingOwnSamples: afterRestore,
                 existing: { [bodyFatStore] in bodyFatStore.entries },
                 importBatch: { [bodyFatStore] entries in bodyFatStore.importExternalEntries(entries) }
             ),

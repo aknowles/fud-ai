@@ -938,7 +938,10 @@ class HealthKitManager {
     /// guard so it doesn't re-scan on every scene-active.
     /// Returns the running import so a caller can wait for it; nil when none started.
     @discardableResult
+    /// `addingMissingOwnSamples` also brings back Fud AI's own readings into a
+    /// history that isn't empty (after a welcome-back restore), skipping ids it holds.
     func backfillBodyFatFromHealthKitIfNeeded(
+        addingMissingOwnSamples: Bool = false,
         existing: @escaping () -> [BodyFatEntry],
         importBatch: @escaping ([BodyFatEntry]) -> Void
     ) -> Task<Void, Never>? {
@@ -954,7 +957,8 @@ class HealthKitManager {
             let snapshot = existing()
             // Same restore-mode / original-id / batch-dedup discipline as the
             // weight backfill — see backfillWeightFromHealthKitIfNeeded.
-            let restoringOwnHistory = snapshot.isEmpty
+            let restoringOwnHistory = snapshot.isEmpty || addingMissingOwnSamples
+            let existingIDs = Set(snapshot.map(\.id))
             var newEntries: [BodyFatEntry] = []
             let isAlreadyLogged: (Date, Double) -> Bool = { date, fraction in
                 snapshot.contains {
@@ -966,7 +970,7 @@ class HealthKitManager {
             for s in samples {
                 if isAlreadyLogged(s.date, s.value) { continue }
                 if let fudaiID = s.fudaiID {
-                    guard restoringOwnHistory else { continue }
+                    guard restoringOwnHistory, !existingIDs.contains(fudaiID) else { continue }
                     newEntries.append(BodyFatEntry(id: fudaiID, date: s.date, bodyFatFraction: s.value))
                 } else {
                     newEntries.append(BodyFatEntry(date: s.date, bodyFatFraction: s.value))

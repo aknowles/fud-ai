@@ -189,4 +189,28 @@ struct ReturningUserTests {
         }
         #expect(defaults.bool(forKey: "healthKitEnabled"))
     }
+
+    @Test func afterARestoreOwnWeighInsMissingFromTheBackupComeBack() {
+        let calendar = Calendar(identifier: .gregorian)
+        let restoredDay = Date(timeIntervalSince1970: 1_790_000_000)
+        let newerDay = restoredDay.addingTimeInterval(3 * 86_400)
+        let restored = WeightEntry(date: restoredDay, weightKg: 80)
+        let samples = [
+            // The restored entry's own sample, read back with another value.
+            WeightHealthSample(weightKg: 80.4, date: restoredDay, fudaiID: restored.id),
+            // Logged in Fud AI after the backup was taken.
+            WeightHealthSample(weightKg: 79.2, date: newerDay, fudaiID: UUID()),
+        ]
+
+        let skipped = WeightStore.healthImportCandidates(
+            samples, existing: [restored], tombstones: [], restoringOwnHistory: false, calendar: calendar
+        )
+        let added = WeightStore.healthImportCandidates(
+            samples, existing: [restored], tombstones: [], restoringOwnHistory: true, calendar: calendar
+        )
+
+        #expect(skipped.isEmpty)
+        #expect(added.map(\.weightKg) == [79.2])
+        #expect(added.first?.id == samples[1].fudaiID)
+    }
 }

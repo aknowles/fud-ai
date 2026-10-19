@@ -189,10 +189,13 @@ class WeightStore {
     /// `onlyUnloggedDays` also skips readings on any day the history already
     /// has a weigh-in for (see `HealthKitManager.WeightChangesImport`).
     @discardableResult
+    /// `addingMissingOwnSamples` also brings back Fud AI's own readings into a
+    /// history that isn't empty (after a welcome-back restore), skipping ids it holds.
     func importHealthSamples(
         _ samples: [WeightHealthSample],
         restoreOwnSamplesIfEmpty: Bool,
-        onlyUnloggedDays: Bool = false
+        onlyUnloggedDays: Bool = false,
+        addingMissingOwnSamples: Bool = false
     ) -> Bool {
         guard !isPersistenceBlocked else { return false }
         guard !samples.isEmpty else { return true }
@@ -200,7 +203,7 @@ class WeightStore {
             samples,
             existing: entries,
             tombstones: deletionTombstones,
-            restoringOwnHistory: restoreOwnSamplesIfEmpty && entries.isEmpty,
+            restoringOwnHistory: (restoreOwnSamplesIfEmpty && entries.isEmpty) || addingMissingOwnSamples,
             onlyUnloggedDays: onlyUnloggedDays
         ))
     }
@@ -233,6 +236,7 @@ class WeightStore {
         // Days the history held before this batch; readings from the batch
         // itself don't close a day to its other readings.
         let historyDays = Set(loggedByDay.keys)
+        let existingIDs = Set(existing.map(\.id))
         var fresh: [WeightEntry] = []
         for sample in samples {
             let day = calendar.startOfDay(for: sample.date)
@@ -242,7 +246,7 @@ class WeightStore {
             if let fudaiID = sample.fudaiID {
                 // Own samples are either already represented or synthetic
                 // profile pushes (writeWeight(kg:date:)) that never had an entry.
-                guard restoringOwnHistory else { continue }
+                guard restoringOwnHistory, !existingIDs.contains(fudaiID) else { continue }
                 // Keep the ORIGINAL entry id so a later in-app delete of the
                 // restored entry still finds its HK sample by metadata.
                 fresh.append(WeightEntry(id: fudaiID, date: sample.date, weightKg: sample.weightKg))

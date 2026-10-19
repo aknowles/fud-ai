@@ -305,6 +305,10 @@ final class CloudBackupService {
 
     func autoBackupIfNeeded() async {
         guard enabled else { return }
+        // Mid-setup (a welcome-back restore holds setup open until the user opens
+        // the app) the phone isn't a finished copy; uploading it would replace a
+        // backup's finished setup with an unfinished one.
+        guard defaults.bool(forKey: Self.onboardingKey) else { return }
         guard isUnmetered() else { return }
         if let last = lastAt,
            let date = ISO8601DateFormatter().date(from: last),
