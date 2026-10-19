@@ -167,8 +167,8 @@ draft, read back the main items and total calories; never call a tool with
   loudness of whoever is talking: idle, listening, thinking (waiting on the
   model or a tool), speaking.
 - Settings → Voice Assistant: provider, model (own key), voice, response
-  language (automatic / app language / a chosen one), auto-capture photos,
-  confirm before saving, save conversations to Coach, voice minutes left
+  language (app language by default / automatic / a chosen one), auto-capture
+  photos (default on), confirm before saving, save conversations to Coach, voice minutes left
   (hosted), and how to open it from the system (Action Button/Siri/Control
   Center or tile/shortcut/widget).
 - Each finished turn is added to the Coach chat history when **Save

@@ -728,8 +728,8 @@ struct VoiceAssistantToolTests {
         #expect(await harness.executor.execute(name: "update_setting", arguments: ["key": "water_goal_ml", "value": "2500"])["ok"] as? Bool == true)
         #expect(harness.defaults.integer(forKey: WaterSettings.dailyGoalKey) == 2500)
 
-        #expect(await harness.executor.execute(name: "update_setting", arguments: ["key": "assistant_auto_capture", "value": "true"])["ok"] as? Bool == true)
-        #expect(harness.settings.autoCapture)
+        #expect(await harness.executor.execute(name: "update_setting", arguments: ["key": "assistant_auto_capture", "value": "false"])["ok"] as? Bool == true)
+        #expect(!harness.settings.autoCapture)
         #expect(await harness.executor.execute(name: "update_setting", arguments: ["key": "assistant_voice", "value": "puck"])["ok"] as? Bool == true)
         #expect(harness.settings.voice(for: .gemini) == "Puck")
 

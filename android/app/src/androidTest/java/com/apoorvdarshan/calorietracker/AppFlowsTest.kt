@@ -294,12 +294,12 @@ class AppFlowsTest {
                 compose.onNodeWithTag("nav.workouts").fetchSemanticsNode().boundsInRoot.top)
         saveToCoach.performClick()
         awaitPreference(prefs.voiceAssistantPreferences) { !it.saveToCoach }
-        compose.onNodeWithTag("voiceSettings.autoCapture").performScrollTo().assertIsOff().performClick()
-        awaitPreference(prefs.voiceAssistantPreferences) { it.autoCapture }
+        compose.onNodeWithTag("voiceSettings.autoCapture").performScrollTo().assertIsOn().performClick()
+        awaitPreference(prefs.voiceAssistantPreferences) { !it.autoCapture }
 
         activity!!.recreate()
         openVoiceSettings()
-        compose.onNodeWithTag("voiceSettings.autoCapture").performScrollTo().assertIsOn()
+        compose.onNodeWithTag("voiceSettings.autoCapture").performScrollTo().assertIsOff()
         compose.onNodeWithTag("voiceSettings.confirmSaves").performScrollTo().assertIsOff()
         compose.onNodeWithTag("voiceSettings.saveToCoach").performScrollTo().assertIsOff()
         assertTrue(!(context.applicationContext as FudAIApp).container.voiceAssistant.isActive)

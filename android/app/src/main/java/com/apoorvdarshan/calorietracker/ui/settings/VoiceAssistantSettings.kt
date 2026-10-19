@@ -80,6 +80,7 @@ import com.apoorvdarshan.calorietracker.services.hosted.HostedVoiceQuota
 import com.apoorvdarshan.calorietracker.services.voice.LiveProvider
 import com.apoorvdarshan.calorietracker.services.voice.VoiceAccess
 import com.apoorvdarshan.calorietracker.services.voice.VoiceAssistantTileService
+import com.apoorvdarshan.calorietracker.services.voice.shownAppLanguage
 import com.apoorvdarshan.calorietracker.services.voice.VoiceProviderChoice
 import com.apoorvdarshan.calorietracker.services.voice.VoiceProviderResolver
 import com.apoorvdarshan.calorietracker.services.voice.VoicePhase
@@ -117,7 +118,9 @@ internal fun VoiceAssistantSettings(container: AppContainer, onOpenAiProviders: 
     val assistantState by container.voiceAssistant.ui.collectAsState()
     val assistantActive = assistantState.phase != VoicePhase.IDLE
     val previewSample = stringResource(R.string.voice_preview_sample)
-    val appLanguage = LocalConfiguration.current.locales[0].toLanguageTag()
+    // Recomputed when the configuration (and so the app or device language) changes.
+    val configuration = LocalConfiguration.current
+    val appLanguage = remember(configuration) { shownAppLanguage() }
     val talkLabel = stringResource(R.string.voice_talk_to_fud_ai)
     val scope = rememberCoroutineScope()
     var sheet by remember { mutableStateOf<VoiceSheet?>(null) }
@@ -307,7 +310,7 @@ internal fun VoiceAssistantSettings(container: AppContainer, onOpenAiProviders: 
                     }
                     VoiceSheet.LANGUAGE -> VoiceListSheet(
                         title = stringResource(R.string.voice_settings_language),
-                        items = listOf(VoiceAssistantPreferences.LANGUAGE_AUTOMATIC, VoiceAssistantPreferences.LANGUAGE_APP) +
+                        items = listOf(VoiceAssistantPreferences.LANGUAGE_APP, VoiceAssistantPreferences.LANGUAGE_AUTOMATIC) +
                             REPLY_LANGUAGES,
                         label = { languageLabel(it) },
                         selected = { it == prefs.language }
