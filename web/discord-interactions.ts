@@ -35,8 +35,10 @@ const REPORT_RESET_SECONDS = 172_800;
 /** Enough history to reach the cap; keeps the cooldown key's metadata small. */
 const REPORT_HISTORY_MAX = 12;
 const INTERACTION_RETENTION_SECONDS = 900;
-/** How long an isolate trusts a cooldown it read from KV, since a late rollback may still cancel it. */
-const STORED_COOLDOWN_TRUST_SECONDS = 60;
+/** How often an isolate checks whether the attempt behind a cooldown it read from KV was cancelled. */
+const STORED_COOLDOWN_RECHECK_SECONDS = 60;
+/** Waits before retrying a cancellation marker that failed to save. */
+const CANCELLATION_RETRY_DELAYS_MS = [500, 2_000];
 
 type StateMetadata = { owner: string; reports?: number[] };
 
@@ -92,7 +94,9 @@ export function formatWait(milliseconds: number): string {
 
 // Isolate-local reservations close concurrent-request races while KV persists across restarts.
 // `until` ends the local block; `expires` is when the cooldown ends, once that is known.
-type LocalReservation = { until: number; expires?: number; unavailable?: boolean };
+// `owner` marks a cooldown read from KV, whose attempt may still be cancelled; `checkedAt`
+// is when that was last checked.
+type LocalReservation = { until: number; expires?: number; owner?: string; checkedAt?: number; unavailable?: boolean };
 const localReservations = new WeakMap<DiscordState, Map<string, LocalReservation>>();
 
 const SYSTEM_PROMPT = `You are the Fud AI Discord helper for the free, open-source calorie / fasting / workout tracker (iOS + Android).
@@ -738,6 +742,15 @@ async function reserveCommand(
       local = new Map();
       localReservations.set(state, local);
     }
+    // A cooldown read from KV holds here until it ends, so a stale read can't end it early,
+    // unless a cancellation lands for the attempt behind it.
+    const observed = local.get(cooldownKey);
+    if (observed?.owner && observed.until > Date.now()
+      && Date.now() - (observed.checkedAt ?? 0) >= STORED_COOLDOWN_RECHECK_SECONDS * 1000) {
+      observed.checkedAt = Date.now();
+      const cancelled = await stateOperation(state.get(`fuddy:aborted:${observed.owner}`)).catch(() => null);
+      if (cancelled && local.get(cooldownKey) === observed) local.delete(cooldownKey);
+    }
     const now = Date.now();
     for (const [key, reservation] of local) {
       if (reservation.until <= now) local.delete(key);
@@ -783,8 +796,11 @@ async function reserveCommand(
     }
     const storedUntil = Number(cooling.value);
     if (!cooldownAborted && storedUntil > Date.now()) {
-      cooldownReservation.until = Math.min(storedUntil, Date.now() + STORED_COOLDOWN_TRUST_SECONDS * 1000);
-      cooldownReservation.expires = storedUntil;
+      cooldownReservation.until = cooldownReservation.expires = storedUntil;
+      if (coolingOwner) {
+        cooldownReservation.owner = coolingOwner;
+        cooldownReservation.checkedAt = Date.now();
+      }
       return { status: "cooldown", until: storedUntil };
     }
     const reservedAt = Date.now();
@@ -795,7 +811,7 @@ async function reserveCommand(
       : undefined;
     const wait = reports ? reportCooldownSeconds(reports.length) : cooldown;
     const until = reservedAt + wait * 1000;
-    cooldownReservation.until = cooldownReservation.expires = until;
+    cooldownReservation.until = until;
     const owner = crypto.randomUUID();
     const records: { key: string; value: string; ttl: number; metadata: StateMetadata }[] = [
       { key: interactionKey, value: owner, ttl: INTERACTION_RETENTION_SECONDS, metadata: { owner } },
@@ -823,14 +839,26 @@ async function reserveCommand(
         // As long as the longest record it cancels, starting only after all puts finish, so a
         // cancelled report can never come back to block the user or count toward a streak.
         // This key belongs solely to this attempt and cannot erase another owner.
-        await state.put(`fuddy:aborted:${owner}`, "1", {
+        const cancel = () => state.put(`fuddy:aborted:${owner}`, "1", {
           expirationTtl: Math.max(...records.map(({ ttl }) => ttl)),
         });
+        // Until it saves, the failed attempt blocks the user and counts toward their streak.
+        for (const delay of CANCELLATION_RETRY_DELAYS_MS) {
+          try {
+            await cancel();
+            return;
+          } catch {
+            await new Promise((resolve) => setTimeout(resolve, delay));
+          }
+        }
+        await cancel();
       } finally {
         release?.();
       }
     };
     await stateOperation(Promise.all(writes));
+    // Only now is the wait real; until then a concurrent report hears this one is still being sent.
+    cooldownReservation.expires = until;
     return { status: "accepted" };
   } catch (error) {
     console.warn("discord_cooldown_state_unavailable", {

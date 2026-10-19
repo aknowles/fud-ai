@@ -948,7 +948,7 @@ describe("Discord command reservations", () => {
     expect(h.aiCalls()).toHaveLength(1);
   });
 
-  it("re-reads a stored cooldown after a minute, so a rollback that lands later lifts it", async () => {
+  it("lifts a cooldown it read from KV once that attempt's cancellation lands", async () => {
     const h = await setup();
     let clock = Date.now();
     vi.spyOn(Date, "now").mockImplementation(() => clock);
@@ -973,6 +973,60 @@ describe("Discord command reservations", () => {
     await first.flush();
     clock += 60_001;
     await (await h.send("feature", "after-rollback")).flush();
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("keeps a cooldown it read from KV when a later read misses it", async () => {
+    const h = await setup();
+    let clock = Date.now();
+    vi.spyOn(Date, "now").mockImplementation(() => clock);
+    await (await h.send("bug", "first")).flush();
+    const isolate = { ...h.bindings.DISCORD_STATE };
+    h.bindings.DISCORD_STATE = isolate;
+    clock += 60_000;
+    await (await h.send("feature", "early")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 9 minutes");
+    // An eventually consistent read that misses the record must not end the wait early.
+    isolate.getWithMetadata = async () => ({ value: null, metadata: null });
+    clock += 60_001;
+    await (await h.send("feature", "stale-read")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 8 minutes");
+    expect(h.aiCalls()).toHaveLength(1);
+  });
+
+  it("tells a report sent while the previous one is still saving that it is still being sent", async () => {
+    const h = await setup();
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    let unblock!: () => void;
+    const blocked = new Promise<void>((resolve) => { unblock = resolve; });
+    const writes = vi.spyOn(state, "put").mockImplementation(async (...args) => { await blocked; await put(...args); });
+    const first = await h.send("bug");
+    await vi.waitFor(() => expect(writes).toHaveBeenCalled());
+    await (await h.send("feature", "second")).flush();
+    expect(h.replies().at(-1)).toContain("Your previous report is still being sent.");
+    unblock();
+    await first.flush();
+    expect(h.aiCalls()).toHaveLength(1);
+    await (await h.send("feature", "third")).flush();
+    expect(h.replies().at(-1)).toContain("another report in 10 minutes");
+  });
+
+  it("retries a cancellation that fails to save", async () => {
+    const h = await setup();
+    const state = h.bindings.DISCORD_STATE;
+    const put = state.put.bind(state);
+    let cancellationFailures = 1;
+    const writes = vi.spyOn(state, "put").mockImplementation(async (key, value, options) => {
+      if (key.includes(":interaction:")) throw new Error("write failed");
+      if (key.startsWith("fuddy:aborted:") && cancellationFailures-- > 0) throw new Error("cancellation failed");
+      await put(key, value, options);
+    });
+    await (await h.send("bug", "failed")).flush();
+    expect(writes.mock.calls.filter(([key]) => key.startsWith("fuddy:aborted:"))).toHaveLength(2);
+    writes.mockRestore();
+    h.bindings.DISCORD_STATE = { ...state };
+    await (await h.send("bug", "retry")).flush();
     expect(h.aiCalls()).toHaveLength(1);
   });
 
