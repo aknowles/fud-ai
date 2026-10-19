@@ -13,6 +13,8 @@ import com.google.android.gms.common.api.Scope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -21,11 +23,13 @@ import okhttp3.RequestBody.Companion.asRequestBody
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 import java.io.File
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 /**
  * Google Drive appData folder client. OAuth is requested only when the user
- * turns on Google Drive Backup — never at install or first launch.
+ * turns on Google Drive Backup or taps Restore on the onboarding Welcome back
+ * screen — never at install or first launch.
  */
 class DriveCloudBackupClient(
     private val webClientId: String,
@@ -109,7 +113,13 @@ class DriveCloudBackupClient(
         }
     }
 
-    suspend fun findBackupFileId(accessToken: String): String? = withContext(Dispatchers.IO) {
+    /** The backup file in the appData folder; [modifiedTime] is when it was last uploaded. */
+    data class BackupFile(val id: String, val modifiedTime: Instant?)
+
+    suspend fun findBackupFileId(accessToken: String): String? = findBackupFile(accessToken)?.id
+
+    /** Null when the account has no backup. A failed request throws, so it never reads as "none". */
+    suspend fun findBackupFile(accessToken: String): BackupFile? = withContext(Dispatchers.IO) {
         val url = "https://www.googleapis.com/drive/v3/files" +
             "?spaces=appDataFolder" +
             "&q=${DRIVE_FILE_QUERY}" +
@@ -122,11 +132,18 @@ class DriveCloudBackupClient(
             .build()
         http.newCall(request).execute().use { response ->
             if (!response.isSuccessful) error("Drive list failed (${response.code})")
-            val body = response.body?.string() ?: return@use null
-            val files = JSONObject(body).optJSONArray("files") ?: return@use null
-            if (files.length() == 0) null else files.getJSONObject(0).optString("id").takeIf { it.isNotBlank() }
+            val file = listJson.decodeFromString<DriveFileList>(response.body.string()).files.firstOrNull()
+                ?: return@use null
+            val id = file.id.takeIf { it.isNotBlank() } ?: return@use null
+            BackupFile(id, file.modifiedTime?.let { runCatching { Instant.parse(it) }.getOrNull() })
         }
     }
+
+    @Serializable
+    private data class DriveFileList(val files: List<DriveFile> = emptyList())
+
+    @Serializable
+    private data class DriveFile(val id: String = "", val modifiedTime: String? = null)
 
     suspend fun upload(accessToken: String, zip: File, existingFileId: String?): String =
         withContext(Dispatchers.IO) {
@@ -223,5 +240,6 @@ class DriveCloudBackupClient(
         const val DRIVE_APPDATA_SCOPE = "https://www.googleapis.com/auth/drive.appdata"
         const val EMAIL_SCOPE = "https://www.googleapis.com/auth/userinfo.email"
         private const val DRIVE_FILE_QUERY = "name%3D%27fudai-backup.zip%27"
+        private val listJson = Json { ignoreUnknownKeys = true }
     }
 }

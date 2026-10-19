@@ -28,6 +28,12 @@ data class CloudBackupUi(
     val existingCloudBackup: Boolean = false,
 )
 
+/** The signed-in account has no Fud AI backup in Drive. */
+class CloudBackupNotFoundException : IllegalStateException("No Drive backup found")
+
+/** No Drive access token on this phone; the user has to sign in again. */
+class CloudBackupSignInRequiredException : IllegalStateException("Sign in to Google Drive first")
+
 /**
  * Text for the backup error dialog. VM errors such as OutOfMemoryError (#484)
  * and blank messages mean nothing to users, so they get [fallback] instead.
@@ -152,10 +158,42 @@ class CloudBackupCoordinator(
             val token = requireToken()
             val fileId = prefs.cloudBackupFileId.first()
                 ?: drive.findBackupFileId(token)
-                ?: error("No Drive backup found")
+                ?: throw CloudBackupNotFoundException()
             restoreFromDrive(token, fileId)
             refresh()
         }.also { busy(false) }
+    }
+
+    /**
+     * Looks up the signed-in account's backup without restoring or uploading anything, and
+     * remembers its file for [restoreNow]. Unlike the lookup right after sign-in, a failed
+     * request is a failure here, never "no backup".
+     */
+    suspend fun findBackup(): Result<DriveCloudBackupClient.BackupFile?> = mutex.withLock {
+        runCatching {
+            val file = drive.findBackupFile(requireToken())
+            if (file != null) prefs.setCloudBackupFileId(file.id)
+            _ui.value = _ui.value.copy(existingCloudBackup = file != null)
+            file
+        }
+    }
+
+    /**
+     * Turns backup off and forgets this phone's Drive session (token, account, file and last
+     * backup), leaving the Drive file and the Google grant alone. Waits for a running backup:
+     * an upload ends by turning backup back on, which after Delete All Data would let the next
+     * auto-backup replace the user's Drive copy with the emptied phone.
+     */
+    suspend fun forgetSession() = mutex.withLock {
+        accessToken = null
+        keyStore.setCloudBackupAccessToken(null)
+        prefs.setCloudBackupEnabled(false)
+        prefs.setCloudBackupAccountEmail(null)
+        prefs.setCloudBackupFileId(null)
+        prefs.setCloudBackupLastAt(null)
+        prefs.setCloudBackupLastHash(null)
+        _ui.value = _ui.value.copy(existingCloudBackup = false, message = null)
+        refresh()
     }
 
     suspend fun deleteCloudBackup(): Result<Unit> = mutex.withLock {
@@ -263,7 +301,7 @@ class CloudBackupCoordinator(
 
     private suspend fun requireToken(): String =
         accessToken ?: keyStore.cloudBackupAccessToken()?.also { accessToken = it }
-        ?: error("Sign in to Google Drive first")
+        ?: throw CloudBackupSignInRequiredException()
 
     private fun busy(value: Boolean) {
         _ui.value = _ui.value.copy(busy = value, message = if (value) null else _ui.value.message)

@@ -81,8 +81,11 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -148,6 +151,19 @@ fun OnboardingScreen(container: AppContainer, onComplete: () -> Unit) {
     val canNavigateBack = ui.step != OnboardingStep.WELCOME && ui.step != OnboardingStep.BUILDING_PLAN
     BackHandler(enabled = canNavigateBack) { vm.back() }
 
+    // Welcome back is a state of WELCOME (its own BackHandler returns to the welcome), so the
+    // step list, progress and the onboarding.WELCOME tag stay as they are.
+    val returning by vm.returning.collectAsState()
+    val showReturning = ui.step == OnboardingStep.WELCOME && returning.visible
+    // Fade only, and not at all when the system turned animations off.
+    val screenContext = LocalContext.current
+    val animateReturning = remember(screenContext) { animationsEnabled(screenContext) }
+    LaunchedEffect(Unit) {
+        // After the first frame: the check is Health Connect IPC and must never hold the splash.
+        withFrameNanos { }
+        vm.checkReturningUserSignal()
+    }
+
     Column(
         Modifier
             .testTag("onboarding.${ui.step.name}")
@@ -202,7 +218,17 @@ fun OnboardingScreen(container: AppContainer, onComplete: () -> Unit) {
 
         Box(Modifier.weight(1f).fillMaxWidth().padding(horizontal = 24.dp)) {
             when (ui.step) {
-                OnboardingStep.WELCOME -> WelcomeStep()
+                OnboardingStep.WELCOME -> Crossfade(
+                    targetState = showReturning,
+                    animationSpec = tween(durationMillis = if (animateReturning) 220 else 0),
+                    label = "returning_user"
+                ) { returningVisible ->
+                    if (returningVisible) {
+                        ReturningUserStep(container = container, vm = vm, state = returning)
+                    } else {
+                        WelcomeStep()
+                    }
+                }
                 OnboardingStep.GENDER -> GenderStep(selected = ui.gender, onSelect = vm::setGender)
                 OnboardingStep.BIRTHDAY -> BirthdayStep(current = ui.birthday, onChange = vm::setBirthday)
                 OnboardingStep.HEIGHT_WEIGHT -> HeightWeightStep(
@@ -272,12 +298,15 @@ fun OnboardingScreen(container: AppContainer, onComplete: () -> Unit) {
         }
 
         when (ui.step) {
-            OnboardingStep.WELCOME -> {
+            // Welcome back draws its own actions.
+            OnboardingStep.WELCOME -> if (!showReturning) {
                 // iOS Welcome: full-width pink-gradient "Get Started" capsule.
-                Box(
+                Column(
                     Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 24.dp, vertical = 36.dp)
+                        .padding(horizontal = 24.dp)
+                        .padding(top = 28.dp, bottom = 16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
                         modifier = Modifier
@@ -296,6 +325,20 @@ fun OnboardingScreen(container: AppContainer, onComplete: () -> Unit) {
                             stringResource(R.string.action_get_started),
                             color = Color.White,
                             style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    }
+                    Spacer(Modifier.height(4.dp))
+                    TextButton(
+                        onClick = vm::openReturningUser,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .testTag("onboarding.returningEntry")
+                    ) {
+                        Text(
+                            stringResource(R.string.returning_entry),
+                            color = AppColors.Calorie,
+                            style = MaterialTheme.typography.titleSmall,
                             fontWeight = FontWeight.SemiBold
                         )
                     }

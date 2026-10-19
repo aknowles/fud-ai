@@ -12,6 +12,11 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+/** The archive is not a Fud AI backup, or was written by a newer app version. */
+class CloudBackupFormatException(val needsNewerApp: Boolean) : IllegalArgumentException(
+    if (needsNewerApp) "This backup needs a newer Fud AI" else "Not a Fud AI backup"
+)
+
 object CloudBackupPolicy {
     const val FORMAT = "fudai-cloud-backup"
     const val VERSION = 1
@@ -232,10 +237,8 @@ object CloudBackupArchive {
         }
         val raw = payload ?: error("Backup is missing backup.json")
         val document = json.decodeFromString<CloudBackupDocument>(raw.toString(Charsets.UTF_8))
-        require(document.format == CloudBackupPolicy.FORMAT) { "Not a Fud AI backup" }
-        require(document.format_version <= CloudBackupPolicy.VERSION) {
-            "This backup needs a newer Fud AI"
-        }
+        if (document.format != CloudBackupPolicy.FORMAT) throw CloudBackupFormatException(needsNewerApp = false)
+        if (document.format_version > CloudBackupPolicy.VERSION) throw CloudBackupFormatException(needsNewerApp = true)
         return CloudBackupContents(document, raw.size.toLong(), photoCount, photoBytes)
     }
 

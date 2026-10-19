@@ -85,15 +85,7 @@ class BodyFatRepository(
      */
     suspend fun importExternalBodyFats(external: List<ExternalBodyFat>) {
         val manager = health ?: return
-        val incoming = external
-            .map {
-                BodyFatEntry(
-                    id = manager.ownRecordId(it.clientRecordId)
-                        ?: externalId(it.clientRecordId, it.recordId, it.time),
-                    date = it.time,
-                    bodyFatFraction = it.bodyFatFraction
-                )
-            }
+        val incoming = toEntries(manager, external)
         if (incoming.isEmpty()) return
         var changed = false
         // Same transaction as the merge, like WeightRepository.importExternalWeights.
@@ -105,6 +97,27 @@ class BodyFatRepository(
         if (!changed) return
         syncProfileBodyFatToLatest()
     }
+
+    /** After a Drive restore: adds only the readings the restored history lacks, like
+     *  [WeightRepository.addMissingExternalWeights]; nothing restored or in the profile changes. */
+    suspend fun addMissingExternalBodyFats(external: List<ExternalBodyFat>) {
+        val manager = health ?: return
+        val incoming = toEntries(manager, external)
+        if (incoming.isEmpty()) return
+        prefs.updateBodyFatEntriesSkippingDeleted { current, deletedIds ->
+            addMissingById(current, incoming, deletedIds, BodyFatEntry::id)?.sortedBy { it.date } ?: current
+        }
+    }
+
+    private fun toEntries(manager: HealthConnectManager, external: List<ExternalBodyFat>): List<BodyFatEntry> =
+        external.map {
+            BodyFatEntry(
+                id = manager.ownRecordId(it.clientRecordId)
+                    ?: externalId(it.clientRecordId, it.recordId, it.time),
+                date = it.time,
+                bodyFatFraction = it.bodyFatFraction
+            )
+        }
 
     /** Same as [WeightRepository.heldExternalReadingTimes], for body-fat readings. */
     suspend fun heldExternalReadingTimes(external: List<ExternalBodyFat>): List<Instant> {
