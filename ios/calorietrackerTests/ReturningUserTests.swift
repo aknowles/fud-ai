@@ -142,4 +142,51 @@ struct ReturningUserTests {
         #expect(CloudBackupService.userMessage(for: CloudBackupError.needsNewerApp)
                 == CloudBackupError.needsNewerApp.localizedDescription)
     }
+
+    // MARK: - Restoring and importing together
+
+    @Test func restoreCanHoldBackThePhonesOnboardingState() throws {
+        let suite = "ReturningUserTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: CloudBackupService.onboardingKey)
+        defaults.set("phone", forKey: "phoneOnlySetting")
+
+        CloudBackupService(defaults: defaults).applyValues(
+            [CloudBackupService.onboardingKey: .bool(true), "weightUnit": .string("kg")],
+            keeping: [CloudBackupService.onboardingKey]
+        )
+
+        #expect(defaults.object(forKey: CloudBackupService.onboardingKey) as? Bool == false)
+        #expect(defaults.string(forKey: "weightUnit") == "kg")
+        #expect(defaults.string(forKey: "phoneOnlySetting") == nil)
+    }
+
+    @Test func plainRestoreStillAppliesTheBackupsOnboardingState() throws {
+        let suite = "ReturningUserTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(false, forKey: CloudBackupService.onboardingKey)
+
+        CloudBackupService(defaults: defaults).applyValues([CloudBackupService.onboardingKey: .bool(true)])
+
+        #expect(defaults.bool(forKey: CloudBackupService.onboardingKey))
+    }
+
+    @Test func healthImportsRunAgainAfterARestore() throws {
+        let suite = "ReturningUserTests.\(UUID().uuidString)"
+        let defaults = try #require(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        defaults.set(3, forKey: "healthKitWeightBackfillVersion")
+        defaults.set(3, forKey: "healthKitBodyFatBackfillVersion")
+        CloudBackupService(defaults: defaults).applyValues(["healthKitEnabled": .bool(true)])
+        #expect(defaults.bool(forKey: "healthKitFoodRecoveryDone"))
+
+        ReturningUser.reopenHealthImports(defaults: defaults)
+
+        for key in ReturningUser.healthImportMarkers {
+            #expect(defaults.object(forKey: key) == nil, "\(key) still blocks the import")
+        }
+        #expect(defaults.bool(forKey: "healthKitEnabled"))
+    }
 }

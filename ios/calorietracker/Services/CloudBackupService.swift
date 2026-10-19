@@ -8,6 +8,7 @@ final class CloudBackupService {
     static let enabledKey = "cloudBackupEnabled"
     static let lastAtKey = "cloudBackupLastAt"
     static let lastHashKey = "cloudBackupLastHash"
+    static let onboardingKey = "hasCompletedOnboarding"
     static let smokeTestLaunchArgument = "-fudai.cloudBackup.smokeTest"
     static let smokeTestRecordName = "smoke-test"
 
@@ -75,14 +76,16 @@ final class CloudBackupService {
         return out
     }
 
-    func applyValues(_ values: [String: CloudBackupValue]) {
+    /// Writes the backup's settings over this phone's. Keys in `kept` stay as
+    /// they are on the phone.
+    func applyValues(_ values: [String: CloudBackupValue], keeping kept: Set<String> = []) {
         let restoredKeys = Set(values.keys)
         for key in defaults.dictionaryRepresentation().keys
-        where CloudBackupPolicy.include(key) && !restoredKeys.contains(key) {
+        where CloudBackupPolicy.include(key) && !restoredKeys.contains(key) && !kept.contains(key) {
             defaults.removeObject(forKey: key)
         }
         for (key, value) in values {
-            guard CloudBackupPolicy.include(key) else { continue }
+            guard CloudBackupPolicy.include(key), !kept.contains(key) else { continue }
             switch value.t {
             case "b":
                 if let b = value.b { defaults.set(b, forKey: key) }
@@ -268,7 +271,11 @@ final class CloudBackupService {
         hasCloudBackup = true
     }
 
-    func restoreNow() async throws {
+    /// `holdingOnboarding` leaves this phone's hasCompletedOnboarding as it is,
+    /// so the welcome-back screen can finish its other steps before the app
+    /// opens. Returns whether the backup had finished setup.
+    @discardableResult
+    func restoreNow(holdingOnboarding: Bool = false) async throws -> Bool {
         busy = true
         defer { busy = false }
         try await checkAccount()
@@ -278,13 +285,16 @@ final class CloudBackupService {
         else { throw CloudBackupError.noBackup }
         let archive = try CloudBackupArchive.Reader(url: url)
         let document = archive.document
+        let values = document.payload.values
+        let kept: Set<String> = holdingOnboarding ? [Self.onboardingKey] : []
         try Self.restorePhotos(from: archive, into: FoodImageStore.shared) {
-            applyValues(document.payload.values)
+            applyValues(values, keeping: kept)
         }
         defaults.set(document.contentSha256, forKey: Self.lastHashKey)
         defaults.set(document.exportedAt, forKey: Self.lastAtKey)
         lastAt = document.exportedAt
         NotificationCenter.default.post(name: .cloudBackupDidRestore, object: nil)
+        return values[Self.onboardingKey]?.b == true
     }
 
     func deleteCloudBackup() async throws {

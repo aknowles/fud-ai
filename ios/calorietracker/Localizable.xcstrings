@@ -193749,118 +193749,6 @@
         }
       }
     },
-    "Bring your meals, weight, and workouts back, or start fresh.": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "استعد وجباتك ووزنك وتمارينك، أو ابدأ من جديد."
-          }
-        },
-        "az": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Yeməklərinizi, çəkinizi və məşqlərinizi geri qaytarın və ya yenidən başlayın."
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Vrať zpátky svá jídla, váhu a tréninky, nebo začni znovu."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Hol deine Mahlzeiten, dein Gewicht und deine Trainings zurück oder fang neu an."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recupera tus comidas, tu peso y tus entrenamientos, o empieza de cero."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Récupère tes repas, ton poids et tes entraînements, ou repars de zéro."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "अपने भोजन, वज़न और वर्कआउट वापस लाएँ, या नए सिरे से शुरू करें।"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recupera pasti, peso e allenamenti, oppure ricomincia da capo."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "食事、体重、ワークアウトを復元するか、最初から始めましょう。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "식사, 체중, 운동 기록을 되살리거나 새로 시작하세요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Haal je maaltijden, gewicht en trainingen terug, of begin opnieuw."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Odzyskaj posiłki, wagę i treningi albo zacznij od nowa."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recupere suas refeições, seu peso e seus treinos, ou comece do zero."
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Recuperează-ți mesele, greutatea și antrenamentele sau începe de la zero."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Верните свои приёмы пищи, вес и тренировки или начните заново."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Öğünlerinizi, kilonuzu ve antrenmanlarınızı geri getirin ya da sıfırdan başlayın."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Поверніть свої прийоми їжі, вагу й тренування або почніть заново."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "找回你的饮食、体重和训练记录，或者重新开始。"
-          }
-        }
-      }
-    },
     "Restore from iCloud": {
       "localizations": {
         "ar": {
@@ -193973,118 +193861,6 @@
         }
       }
     },
-    "Your full backup: diary, photos, workouts, and settings, if you turned on iCloud Backup before.": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "نسختك الاحتياطية الكاملة: اليوميات والصور والتمارين والإعدادات، إذا كنت قد فعّلت النسخ الاحتياطي على iCloud من قبل."
-          }
-        },
-        "az": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tam ehtiyat nüsxəniz: gündəlik, fotolar, məşqlər və ayarlar — əgər əvvəllər iCloud ehtiyat nüsxəsini aktiv etmisinizsə."
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Celá tvoje záloha: deník, fotky, tréninky a nastavení – pokud byla dřív zapnutá záloha na iCloud."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Dein komplettes Backup: Tagebuch, Fotos, Trainings und Einstellungen, falls du das iCloud-Backup früher eingeschaltet hattest."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tu copia completa: diario, fotos, entrenamientos y ajustes, si antes activaste la copia de seguridad en iCloud."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ta sauvegarde complète : journal, photos, entraînements et réglages, si tu avais activé la sauvegarde iCloud."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "आपका पूरा बैकअप: डायरी, फ़ोटो, वर्कआउट और सेटिंग्स, अगर आपने पहले iCloud बैकअप चालू किया था।"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Il tuo backup completo: diario, foto, allenamenti e impostazioni, se in passato avevi attivato il backup iCloud."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "以前にiCloudバックアップをオンにしていた場合、日記、写真、ワークアウト、設定をまとめて復元します。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "이전에 iCloud 백업을 켜 두었다면 일지, 사진, 운동, 설정이 담긴 전체 백업을 복원해요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Je volledige back-up: dagboek, foto's, trainingen en instellingen, als je iCloud-back-up eerder had aangezet."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pełna kopia zapasowa: dziennik, zdjęcia, treningi i ustawienia – jeśli kopia zapasowa iCloud była wcześniej włączona."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Seu backup completo: diário, fotos, treinos e ajustes, se você ativou o Backup do iCloud antes."
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Backupul tău complet: jurnal, fotografii, antrenamente și setări, dacă ai activat înainte backupul iCloud."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Полная резервная копия: дневник, фото, тренировки и настройки, если раньше вы включали резервное копирование в iCloud."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Tam yedeğiniz: günlük, fotoğraflar, antrenmanlar ve ayarlar; daha önce iCloud Yedekleme'yi açtıysanız."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Повна резервна копія: щоденник, фото, тренування й налаштування, якщо раніше ви вмикали резервне копіювання в iCloud."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "完整备份：日记、照片、训练和设置（前提是你之前开启过 iCloud 备份）。"
-          }
-        }
-      }
-    },
     "Import from Apple Health": {
       "localizations": {
         "ar": {
@@ -194193,118 +193969,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "从 Apple Health 导入"
-          }
-        }
-      }
-    },
-    "Meals, weight, body fat, and workout calories Fud AI saved to Health. You'll finish a short setup after.": {
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "الوجبات والوزن ونسبة الدهون وسعرات التمارين التي حفظها Fud AI في Apple Health. ستُكمل إعدادًا قصيرًا بعد ذلك."
-          }
-        },
-        "az": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AI-nin Apple Health-ə yazdığı yeməklər, çəki, bədən yağı və məşq kaloriləri. Sonra qısa quraşdırmanı tamamlayacaqsınız."
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Jídla, váha, tělesný tuk a kalorie z tréninků, které Fud AI ukládá do Apple Health. Potom dokončíš krátké nastavení."
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mahlzeiten, Gewicht, Körperfett und Trainingskalorien, die Fud AI in Apple Health gespeichert hat. Danach folgt eine kurze Einrichtung."
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Comidas, peso, grasa corporal y calorías de entrenamiento que Fud AI guardó en Apple Health. Después completarás una configuración breve."
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Repas, poids, masse grasse et calories d’entraînement enregistrés par Fud AI dans Apple Health. Tu termineras ensuite une courte configuration."
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AI द्वारा Apple Health में सेव किए गए भोजन, वज़न, बॉडी फ़ैट और वर्कआउट कैलोरी। इसके बाद आप एक छोटा सेटअप पूरा करेंगे।"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Pasti, peso, grasso corporeo e calorie degli allenamenti che Fud AI ha salvato in Apple Health. Dopo completerai una breve configurazione."
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AIがApple Healthに保存した食事、体重、体脂肪、ワークアウトの消費カロリー。このあと簡単な設定を行います。"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AI가 Apple Health에 저장한 식사, 체중, 체지방, 운동 칼로리를 가져와요. 그다음 간단한 설정을 마치면 돼요."
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Maaltijden, gewicht, vetpercentage en trainingscalorieën die Fud AI in Apple Health heeft opgeslagen. Daarna rond je een korte installatie af."
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Posiłki, waga, tkanka tłuszczowa i kalorie z treningów zapisane przez Fud AI w Apple Health. Potem dokończysz krótką konfigurację."
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Refeições, peso, gordura corporal e calorias de treino que o Fud AI salvou no Apple Health. Depois, você conclui uma configuração rápida."
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Mesele, greutatea, grăsimea corporală și caloriile din antrenamente salvate de Fud AI în Apple Health. După aceea vei finaliza o configurare scurtă."
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Приёмы пищи, вес, процент жира и калории тренировок, которые Fud AI сохранил в Apple Health. Затем останется короткая настройка."
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AI'ın Apple Sağlık'a kaydettiği öğünler, kilo, vücut yağı ve antrenman kalorileri. Ardından kısa bir kurulumu tamamlayacaksınız."
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Прийоми їжі, вага, відсоток жиру й калорії тренувань, які Fud AI зберіг в Apple Health. Потім залишиться коротке налаштування."
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Fud AI 保存到 Apple Health 的饮食、体重、体脂和训练消耗。之后还需完成简短的设置。"
           }
         }
       }
@@ -194753,119 +194417,6 @@
           "stringUnit": {
             "state": "translated",
             "value": "正在从 Apple Health 导入…"
-          }
-        }
-      }
-    },
-    "Restore your backup from %@?": {
-      "comment": "Confirmation before restoring an iCloud backup. The argument is the date and time of the backup.",
-      "localizations": {
-        "ar": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "هل تريد استعادة النسخة الاحتياطية بتاريخ %@؟"
-          }
-        },
-        "az": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ tarixli ehtiyat nüsxə bərpa edilsin?"
-          }
-        },
-        "cs": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Obnovit zálohu z %@?"
-          }
-        },
-        "de": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Backup vom %@ wiederherstellen?"
-          }
-        },
-        "es": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "¿Restaurar la copia de seguridad del %@?"
-          }
-        },
-        "fr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restaurer la sauvegarde du %@ ?"
-          }
-        },
-        "hi": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ का बैकअप पुनर्स्थापित करें?"
-          }
-        },
-        "it": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Ripristinare il backup del %@?"
-          }
-        },
-        "ja": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@のバックアップを復元しますか？"
-          }
-        },
-        "ko": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ 백업을 복원할까요?"
-          }
-        },
-        "nl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Back-up van %@ terugzetten?"
-          }
-        },
-        "pl": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Przywrócić kopię zapasową z %@?"
-          }
-        },
-        "pt-BR": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restaurar o backup de %@?"
-          }
-        },
-        "ro": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Restaurezi backupul din %@?"
-          }
-        },
-        "ru": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Восстановить резервную копию от %@?"
-          }
-        },
-        "tr": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "%@ tarihli yedek geri yüklensin mi?"
-          }
-        },
-        "uk": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "Відновити резервну копію від %@?"
-          }
-        },
-        "zh-Hans": {
-          "stringUnit": {
-            "state": "translated",
-            "value": "要恢复 %@ 的备份吗？"
           }
         }
       }
@@ -197015,6 +196566,1576 @@
           "stringUnit": {
             "state": "translated",
             "value": "%lld 次训练的消耗"
+          }
+        }
+      }
+    },
+    "Pick what to bring back. You can choose both.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اختر ما تريد استعادته. يمكنك اختيار الاثنين."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nəyi geri qaytarmaq istədiyinizi seçin. Hər ikisini seçə bilərsiniz."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vyber, co chceš vrátit. Můžeš zvolit obojí."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wähle, was du zurückholen möchtest. Du kannst beides wählen."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Elige qué quieres recuperar. Puedes elegir ambos."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Choisis ce que tu veux récupérer. Tu peux choisir les deux."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "चुनें कि क्या वापस लाना है। आप दोनों चुन सकते हैं।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scegli cosa recuperare. Puoi sceglierli entrambi."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "戻すデータを選んでください。両方選べます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "되돌릴 항목을 고르세요. 둘 다 선택할 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kies wat je terug wilt halen. Je kunt beide kiezen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Wybierz, co chcesz przywrócić. Możesz wybrać oba."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Escolha o que trazer de volta. Você pode escolher os dois."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alege ce vrei să recuperezi. Poți alege ambele."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Выберите, что вернуть. Можно выбрать оба варианта."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Neyi geri getireceğinizi seçin. İkisini birden seçebilirsiniz."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Виберіть, що повернути. Можна вибрати обидва варіанти."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "选择要恢复的内容，可以两项都选。"
+          }
+        }
+      }
+    },
+    "Diary, photos, workouts, and settings from your last backup.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اليوميات والصور والتمارين والإعدادات من آخر نسخة احتياطية."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son ehtiyat nüsxənizdən gündəlik, fotolar, məşqlər və ayarlar."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deník, fotky, tréninky a nastavení z poslední zálohy."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tagebuch, Fotos, Trainings und Einstellungen aus deinem letzten Backup."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diario, fotos, entrenamientos y ajustes de tu última copia de seguridad."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Journal, photos, entraînements et réglages de ta dernière sauvegarde."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपके पिछले बैकअप से डायरी, फ़ोटो, वर्कआउट और सेटिंग्स।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diario, foto, allenamenti e impostazioni dal tuo ultimo backup."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最新のバックアップにある記録、写真、ワークアウト、設定。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "마지막 백업의 기록, 사진, 운동, 설정."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dagboek, foto’s, trainingen en instellingen uit je laatste back-up."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dziennik, zdjęcia, treningi i ustawienia z ostatniej kopii zapasowej."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diário, fotos, treinos e ajustes do seu último backup."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jurnal, fotografii, antrenamente și setări din ultimul tău backup."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Дневник, фото, тренировки и настройки из последней резервной копии."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Son yedeğinizdeki günlük, fotoğraflar, antrenmanlar ve ayarlar."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Щоденник, фото, тренування й налаштування з останньої резервної копії."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次备份中的饮食日记、照片、训练和设置。"
+          }
+        }
+      }
+    },
+    "Meals, weight, body fat, and workout calories Fud AI saved to Health.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الوجبات والوزن ونسبة الدهون وسعرات التمارين التي حفظها Fud AI في Apple Health."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI-nin Apple Health-ə yazdığı yeməklər, çəki, bədən yağı və məşq kaloriləri."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Jídla, váha, tělesný tuk a kalorie z tréninků, které Fud AI ukládá do Apple Health."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mahlzeiten, Gewicht, Körperfett und Trainingskalorien, die Fud AI in Apple Health gespeichert hat."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Comidas, peso, grasa corporal y calorías de entrenamiento que Fud AI guardó en Apple Health."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Repas, poids, masse grasse et calories d’entraînement enregistrés par Fud AI dans Apple Health."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI द्वारा Apple Health में सेव किए गए भोजन, वज़न, बॉडी फ़ैट और वर्कआउट कैलोरी।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Pasti, peso, grasso corporeo e calorie degli allenamenti che Fud AI ha salvato in Apple Health."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AIがApple Healthに保存した食事、体重、体脂肪、ワークアウトの消費カロリー。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI가 Apple Health에 저장한 식사, 체중, 체지방, 운동 칼로리."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Maaltijden, gewicht, vetpercentage en trainingscalorieën die Fud AI in Apple Health heeft opgeslagen."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Posiłki, waga, tkanka tłuszczowa i kalorie z treningów zapisane przez Fud AI w Apple Health."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Refeições, peso, gordura corporal e calorias de treino que o Fud AI salvou no Apple Health."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mesele, greutatea, grăsimea corporală și caloriile din antrenamente salvate de Fud AI în Apple Health."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Приёмы пищи, вес, процент жира и калории тренировок, которые Fud AI сохранил в Apple Health."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI'ın Apple Sağlık'a kaydettiği öğünler, kilo, vücut yağı ve antrenman kalorileri."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Прийоми їжі, вага, відсоток жиру й калорії тренувань, які Fud AI зберіг в Apple Health."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI 保存到 Apple Health 的饮食、体重、体脂和训练消耗。"
+          }
+        }
+      }
+    },
+    "Backup from %@": {
+      "comment": "Shown under Restore from iCloud once a backup is found. The argument is its date and time.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "نسخة احتياطية من %@"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tarixli ehtiyat nüsxə"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Záloha z %@"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup vom %@"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia de seguridad del %@"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sauvegarde du %@"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ का बैकअप"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup del %@"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のバックアップ"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 백업"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back-up van %@"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kopia zapasowa z %@"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup de %@"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup din %@"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервная копия от %@"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tarihli yedek"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервна копія від %@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 的备份"
+          }
+        }
+      }
+    },
+    "Backup found": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم العثور على نسخة احتياطية"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ehtiyat nüsxə tapıldı"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Záloha nalezena"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup gefunden"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia de seguridad encontrada"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sauvegarde trouvée"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैकअप मिल गया"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup trovato"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップが見つかりました"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "백업을 찾았어요"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back-up gevonden"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Znaleziono kopię zapasową"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup encontrado"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup găsit"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервная копия найдена"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yedek bulundu"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервну копію знайдено"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已找到备份"
+          }
+        }
+      }
+    },
+    "Restored your backup from %@.": {
+      "comment": "Shown once an iCloud backup is restored. The argument is the backup's date and time.",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تمت استعادة نسختك الاحتياطية من %@."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tarixli ehtiyat nüsxəniz bərpa edildi."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Záloha z %@ je obnovená."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dein Backup vom %@ wurde wiederhergestellt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Se restauró tu copia de seguridad del %@."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ta sauvegarde du %@ a été restaurée."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ का आपका बैकअप रीस्टोर हो गया।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Il tuo backup del %@ è stato ripristinato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@のバックアップを復元しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ 백업을 복원했어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je back-up van %@ is teruggezet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przywrócono kopię zapasową z %@."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Seu backup de %@ foi restaurado."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backupul tău din %@ a fost restaurat."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервная копия от %@ восстановлена."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ tarihli yedeğiniz geri yüklendi."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервну копію від %@ відновлено."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢复 %@ 的备份。"
+          }
+        }
+      }
+    },
+    "Backup restored.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تمت استعادة النسخة الاحتياطية."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ehtiyat nüsxə bərpa edildi."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Záloha je obnovená."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup wiederhergestellt."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Copia de seguridad restaurada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Sauvegarde restaurée."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बैकअप रीस्टोर हो गया।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup ripristinato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "バックアップを復元しました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "백업을 복원했어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Back-up teruggezet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przywrócono kopię zapasową."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup restaurado."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Backup restaurat."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервная копия восстановлена."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yedek geri yüklendi."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Резервну копію відновлено."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已恢复备份。"
+          }
+        }
+      }
+    },
+    "iCloud restores first, then Apple Health adds only what's missing. Nothing gets overwritten.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تتم الاستعادة من iCloud أولًا، ثم يضيف Apple Health ما ينقص فقط. لن يُستبدل أي شيء."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Əvvəlcə iCloud bərpa olunur, sonra Apple Health yalnız çatışmayanları əlavə edir. Heç nə üzərinə yazılmır."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nejdřív se obnoví iCloud, potom Apple Health doplní jen to, co chybí. Nic se nepřepíše."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zuerst wird iCloud wiederhergestellt, dann ergänzt Apple Health nur, was fehlt. Nichts wird überschrieben."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primero se restaura iCloud y luego Apple Health añade solo lo que falta. No se sobrescribe nada."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud est restauré en premier, puis Apple Health ajoute uniquement ce qui manque. Rien n’est écrasé."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "पहले iCloud रीस्टोर होता है, फिर Apple Health सिर्फ़ वही जोड़ता है जो नहीं है। कुछ भी ओवरराइट नहीं होता।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prima viene ripristinato iCloud, poi Apple Health aggiunge solo ciò che manca. Non viene sovrascritto nulla."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先にiCloudから復元し、そのあとApple Healthから足りないデータだけを追加します。上書きされることはありません。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "iCloud를 먼저 복원한 다음 Apple Health에서 빠진 항목만 추가해요. 아무것도 덮어쓰지 않아요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eerst wordt iCloud teruggezet, daarna voegt Apple Health alleen toe wat ontbreekt. Er wordt niets overschreven."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Najpierw przywracany jest iCloud, a potem Apple Health dodaje tylko to, czego brakuje. Nic nie zostanie nadpisane."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Primeiro o iCloud é restaurado, depois o Apple Health adiciona só o que falta. Nada é substituído."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mai întâi se restaurează iCloud, apoi Apple Health adaugă doar ce lipsește. Nimic nu este suprascris."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Сначала восстанавливается iCloud, затем Apple Health добавляет только недостающее. Ничего не перезаписывается."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Önce iCloud geri yüklenir, ardından Apple Sağlık yalnızca eksik olanları ekler. Hiçbir şeyin üzerine yazılmaz."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спершу відновлюється iCloud, потім Apple Health додає лише те, чого бракує. Нічого не перезаписується."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先从 iCloud 恢复，再由 Apple Health 补充缺少的数据，不会覆盖任何内容。"
+          }
+        }
+      }
+    },
+    "Bringing your data back…": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ استعادة بياناتك…"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Məlumatlarınız geri qaytarılır…"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vracíme tvoje data…"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deine Daten werden zurückgeholt …"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recuperando tus datos…"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Récupération de tes données…"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "आपका डेटा वापस लाया जा रहा है…"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recupero dei tuoi dati…"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "データを戻しています…"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "데이터를 되돌리는 중…"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Je gegevens worden teruggehaald…"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Przywracanie danych…"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trazendo seus dados de volta…"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Îți recuperăm datele…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Возвращаем ваши данные…"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verileriniz geri getiriliyor…"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Повертаємо ваші дані…"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "正在恢复你的数据…"
+          }
+        }
+      }
+    },
+    "You're all set. Everything is back where you left it.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "كل شيء جاهز. عادت بياناتك كما تركتها."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hər şey hazırdır. Hər şey qoyduğunuz kimi geri qayıtdı."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hotovo. Všechno je zpátky na svém místě."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles erledigt. Alles ist wieder da, wo du es gelassen hast."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Todo listo. Todo está como lo dejaste."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout est prêt. Tout est revenu comme tu l’avais laissé."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "सब तैयार है। सब कुछ वैसे ही वापस आ गया है जैसे आपने छोड़ा था।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tutto pronto. È tutto come l’avevi lasciato."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "準備完了です。すべて元どおりに戻りました。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "준비됐어요. 모든 게 그대로 돌아왔어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Alles is klaar. Alles staat weer zoals je het achterliet."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gotowe. Wszystko wróciło na swoje miejsce."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tudo pronto. Está tudo como você deixou."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Totul e gata. Totul e așa cum l-ai lăsat."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Всё готово. Всё на своих местах."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Her şey hazır. Her şey bıraktığınız gibi geri geldi."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Усе готово. Усе на своїх місцях."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "一切就绪，所有数据都已恢复原样。"
+          }
+        }
+      }
+    },
+    "A short setup and you're in.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعداد قصير وتبدأ."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Qısa quraşdırma və başlayırsınız."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Krátké nastavení a můžeš začít."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Eine kurze Einrichtung, dann geht’s los."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una configuración breve y listo."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Une courte configuration et c’est parti."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "बस एक छोटा सेटअप और आप तैयार हैं।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Una breve configurazione e ci sei."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "簡単な設定をすれば始められます。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "간단한 설정만 마치면 시작할 수 있어요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Een korte installatie en je kunt aan de slag."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Krótka konfiguracja i gotowe."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Uma configuração rápida e pronto."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "O configurare scurtă și ești gata."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Короткая настройка — и можно начинать."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Kısa bir kurulum ve hazırsınız."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Коротке налаштування — і можна починати."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "完成简短设置即可开始。"
+          }
+        }
+      }
+    },
+    "Nothing came back this time. Try again or start fresh.": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لم تتم استعادة أي شيء هذه المرة. حاول مرة أخرى أو ابدأ من جديد."
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu dəfə heç nə qaytarılmadı. Yenidən cəhd edin və ya sıfırdan başlayın."
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentokrát se nic nevrátilo. Zkus to znovu nebo začni od začátku."
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Diesmal kam nichts zurück. Versuch es erneut oder starte neu."
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Esta vez no se recuperó nada. Inténtalo de nuevo o empieza desde cero."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rien n’a été récupéré cette fois. Réessaie ou repars de zéro."
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "इस बार कुछ वापस नहीं आया। फिर से कोशिश करें या नए सिरे से शुरू करें।"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Questa volta non è stato recuperato nulla. Riprova o ricomincia da capo."
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "今回は何も戻せませんでした。もう一度試すか、最初から始めてください。"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "이번에는 아무것도 되돌리지 못했어요. 다시 시도하거나 새로 시작하세요."
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Er is deze keer niets teruggekomen. Probeer het nog eens of begin opnieuw."
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tym razem nic nie wróciło. Spróbuj ponownie lub zacznij od nowa."
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Nada voltou desta vez. Tente de novo ou comece do zero."
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "De data aceasta nu s-a recuperat nimic. Încearcă din nou sau începe de la zero."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "В этот раз ничего не вернулось. Попробуйте ещё раз или начните заново."
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bu sefer hiçbir şey geri gelmedi. Tekrar deneyin veya sıfırdan başlayın."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Цього разу нічого не повернулося. Спробуйте ще раз або почніть заново."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "这次没有恢复任何数据。请重试或重新开始。"
+          }
+        }
+      }
+    },
+    "Open Fud AI": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "افتح Fud AI"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI-ni açın"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otevřít Fud AI"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI öffnen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir Fud AI"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ouvrir Fud AI"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI खोलें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Apri Fud AI"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AIを開く"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI 열기"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Open Fud AI"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Otwórz Fud AI"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Abrir o Fud AI"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Deschide Fud AI"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Открыть Fud AI"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fud AI'ı aç"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Відкрити Fud AI"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "打开 Fud AI"
+          }
+        }
+      }
+    },
+    "Try again": {
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حاول مرة أخرى"
+          }
+        },
+        "az": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Yenidən cəhd edin"
+          }
+        },
+        "cs": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Zkusit znovu"
+          }
+        },
+        "de": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Erneut versuchen"
+          }
+        },
+        "es": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Intentar de nuevo"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réessayer"
+          }
+        },
+        "hi": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "फिर से कोशिश करें"
+          }
+        },
+        "it": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Riprova"
+          }
+        },
+        "ja": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "もう一度試す"
+          }
+        },
+        "ko": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "다시 시도"
+          }
+        },
+        "nl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Probeer opnieuw"
+          }
+        },
+        "pl": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Spróbuj ponownie"
+          }
+        },
+        "pt-BR": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tentar de novo"
+          }
+        },
+        "ro": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Încearcă din nou"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Попробовать ещё раз"
+          }
+        },
+        "tr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tekrar dene"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Спробувати ще раз"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重试"
           }
         }
       }

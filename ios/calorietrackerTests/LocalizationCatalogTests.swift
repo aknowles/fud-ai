@@ -194,13 +194,16 @@ struct LocalizationCatalogTests {
 
     /// Every string on onboarding's welcome-back screen and the link to it.
     static let returningUserKeys = [
-        "Used Fud AI before?", "Welcome back", "Bring your meals, weight, and workouts back, or start fresh.",
-        "Restore from iCloud",
-        "Your full backup: diary, photos, workouts, and settings, if you turned on iCloud Backup before.",
-        "Import from Apple Health",
-        "Meals, weight, body fat, and workout calories Fud AI saved to Health. You'll finish a short setup after.",
+        "Used Fud AI before?", "Welcome back", "Pick what to bring back. You can choose both.",
+        "Restore from iCloud", "Diary, photos, workouts, and settings from your last backup.",
+        "Import from Apple Health", "Meals, weight, body fat, and workout calories Fud AI saved to Health.",
         "Start fresh", "Checking iCloud…", "Restoring…", "Importing from Apple Health…",
-        "Restore your backup from %@?", "This backup doesn't include a finished setup, so let's finish it now.",
+        "Backup from %@", "Backup found", "Restored your backup from %@.", "Backup restored.",
+        "iCloud restores first, then Apple Health adds only what's missing. Nothing gets overwritten.",
+        "Bringing your data back…", "You're all set. Everything is back where you left it.",
+        "A short setup and you're in.", "Nothing came back this time. Try again or start fresh.",
+        "Open Fud AI", "Try again",
+        "This backup doesn't include a finished setup, so let's finish it now.",
         "No iCloud backup found for this Apple ID.", "Couldn't reach iCloud. Check your connection and try again.",
         "Couldn't connect to Apple Health. You can try again later in Settings.",
         "Imported %@.", "Nothing to import from Apple Health yet.", "Continue setup",
@@ -230,8 +233,10 @@ struct LocalizationCatalogTests {
             for key in Self.returningUserCountKeys {
                 #expect(Self.hasTranslation(key, in: bundle), "\(language) is missing \(key)")
             }
-            let date = bundle.localizedString(forKey: "Restore your backup from %@?", value: nil, table: nil)
-            #expect(String(format: date, "Oct 19, 2026").contains("Oct 19, 2026"), "\(language): \(date)")
+            for key in ["Backup from %@", "Restored your backup from %@."] {
+                let date = bundle.localizedString(forKey: key, value: nil, table: nil)
+                #expect(String(format: date, "Oct 19, 2026").contains("Oct 19, 2026"), "\(language): \(date)")
+            }
         }
     }
 
