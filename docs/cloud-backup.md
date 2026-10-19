@@ -1,6 +1,6 @@
 # Optional iCloud / Google Drive backup
 
-Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on, or taps Restore on the onboarding Welcome back screen ("Used Fud AI before?"). The app never checks iCloud or Drive by itself at install. On iOS that screen first fetches only the `current` record's hash field, never the asset, then restores after the user confirms; like any restore, this turns backup on. Delete All Data turns backup off, so the emptied phone never uploads over the cloud copy.
+Off by default in Settings → Data Management. Sign-in runs only when the user turns the toggle on, or taps Restore on the onboarding Welcome back screen ("Used Fud AI before?"). The app never checks iCloud or Drive by itself at install. On iOS, picking Restore from iCloud there fetches only the `current` record's hash field, never the asset, to show the backup's date; the restore runs when the user taps Continue. Like any restore, this turns backup on. When Apple Health is picked too, the restore runs first and the Health import then adds only what the backup is missing. Delete All Data turns backup off, so the emptied phone never uploads over the cloud copy.
 
 ## iOS
 
