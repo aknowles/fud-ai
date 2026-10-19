@@ -4,25 +4,61 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex">
-  <meta name="theme-color" content="#0c0b09">
+  <meta name="theme-color" content="#FF375F">
   <title>Page not found · Fud AI</title>
-  <link rel="icon" href="/assets/calorie logo transparent.png">
+  <link rel="icon" href="/assets/fud-icon-192.png" type="image/png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:wght@400..700&family=Bricolage+Grotesque:opsz,wdth,wght@12..96,75..100,800&display=swap">
   <style>
-    :root { color-scheme: dark; font-family: system-ui, -apple-system, sans-serif; }
-    body { min-height: 100vh; margin: 0; display: grid; place-items: center; background: #0c0b09; color: #f2ede3; }
-    main { max-width: 32rem; padding: 2rem; text-align: center; }
-    img { width: 5rem; height: 5rem; }
-    h1 { margin: 1.25rem 0 0.5rem; font-size: clamp(2rem, 7vw, 3.5rem); }
-    p { color: #a8a192; line-height: 1.6; }
-    a { display: inline-block; margin-top: 1rem; padding: 0.85rem 1.2rem; border-radius: 999px; background: #ff6b7a; color: #fff; font-weight: 700; text-decoration: none; }
+    body {
+      margin: 0;
+      min-height: 100svh;
+      display: grid;
+      place-items: center;
+      padding: 24px 16px;
+      box-sizing: border-box;
+      background: #ff375f;
+      color: #000;
+      font-family: "Atkinson Hyperlegible Next", ui-sans-serif, system-ui, sans-serif;
+      font-size: 1.125rem;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+    main { width: min(100%, 34rem); }
+    .icon { width: 64px; height: 64px; padding: 10px; border-radius: 18px; background: #fff; box-sizing: border-box; }
+    h1 {
+      margin: 28px 0 12px;
+      font-family: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
+      font-weight: 800;
+      font-stretch: 90%;
+      font-size: clamp(2.75rem, 2rem + 4vw, 4.5rem);
+      line-height: 0.98;
+      letter-spacing: -0.03em;
+    }
+    p { margin: 0; max-width: 26em; }
+    a.home {
+      display: inline-flex;
+      align-items: center;
+      min-height: 48px;
+      margin-top: 28px;
+      padding: 0 22px;
+      border-radius: 999px;
+      background: #000;
+      color: #fff;
+      font-weight: 700;
+      text-decoration: none;
+    }
+    a.home:hover { background: #2b2b2b; }
+    a:focus-visible { outline: 3px solid #000; outline-offset: 3px; }
   </style>
 </head>
 <body>
   <main>
-    <img src="/assets/calorie logo transparent.png" alt="Fud AI">
+    <img class="icon" src="/assets/fud-icon-192.png" alt="Fud AI" width="64" height="64">
     <h1>Page not found</h1>
-    <p>The page you were looking for does not exist.</p>
-    <a href="/">Return home</a>
+    <p>The link may be old or mistyped. Everything about Fud AI starts from the home page.</p>
+    <a class="home" href="/">Go to the home page</a>
   </main>
 </body>
 </html>
