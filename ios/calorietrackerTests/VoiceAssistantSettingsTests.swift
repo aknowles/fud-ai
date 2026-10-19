@@ -47,6 +47,17 @@ struct VoiceAssistantSettingsTests {
 
     // MARK: Stored preferences
 
+    @Test func replyLanguageStorageKeepsAnExplicitAutomatic() {
+        #expect(VoiceAssistantLanguage(storageValue: nil) == .app)
+        #expect(VoiceAssistantLanguage(storageValue: "") == .app)
+        #expect(VoiceAssistantLanguage(storageValue: "app") == .app)
+        #expect(VoiceAssistantLanguage(storageValue: "automatic") == .automatic)
+        #expect(VoiceAssistantLanguage(storageValue: "es") == .specific("es"))
+        for language in [VoiceAssistantLanguage.app, .automatic, .specific("pt-BR")] {
+            #expect(VoiceAssistantLanguage(storageValue: language.storageValue) == language)
+        }
+    }
+
     @Test func preferencesDefaultAsTheContractSays() throws {
         let (defaults, suite) = try Self.defaults()
         defer { defaults.removePersistentDomain(forName: suite) }
@@ -55,7 +66,7 @@ struct VoiceAssistantSettingsTests {
         #expect(settings.confirmSaves)
         #expect(settings.saveToCoach)
         #expect(!settings.autoCapture)
-        #expect(settings.language == .automatic)
+        #expect(settings.language == .app)
         #expect(settings.model(for: .gemini) == "gemini-3.8-live")
         #expect(settings.model(for: .openai) == "gpt-realtime-2.1-mini")
         #expect(settings.model(for: .xai) == "grok-voice-latest")

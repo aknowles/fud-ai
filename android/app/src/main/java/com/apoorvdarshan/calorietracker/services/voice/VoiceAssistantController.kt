@@ -1021,8 +1021,8 @@ class VoiceAssistantController(private val container: AppContainer) : VoiceUiBri
     }
 
     private fun replyLanguage(setting: String): String? = when (setting) {
-        VoiceAssistantPreferences.LANGUAGE_AUTOMATIC, "" -> null
-        VoiceAssistantPreferences.LANGUAGE_APP -> {
+        VoiceAssistantPreferences.LANGUAGE_AUTOMATIC -> null
+        VoiceAssistantPreferences.LANGUAGE_APP, "" -> {
             val locale = AppCompatDelegate.getApplicationLocales()[0] ?: Locale.getDefault()
             VoiceInstructions.languageName(locale.toLanguageTag())
         }

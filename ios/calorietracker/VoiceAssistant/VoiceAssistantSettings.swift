@@ -88,10 +88,12 @@ nonisolated enum VoiceAssistantLanguage: Equatable, Hashable, Sendable {
         }
     }
 
+    /// Nothing saved means the app's language: Automatic can pick up whatever
+    /// language it hears, so it's a choice the user makes.
     init(storageValue: String?) {
         switch storageValue {
-        case nil, "", "automatic": self = .automatic
-        case "app": self = .app
+        case nil, "", "app": self = .app
+        case "automatic": self = .automatic
         case let code?: self = .specific(code)
         }
     }

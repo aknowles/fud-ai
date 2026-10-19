@@ -281,8 +281,8 @@ struct VoiceAssistantSettingsView: View {
     private var languageSection: some View {
         Section {
             Picker(selection: $language) {
-                Text("Automatic").tag(VoiceAssistantLanguage.automatic)
                 Text("App Language").tag(VoiceAssistantLanguage.app)
+                Text("Automatic").tag(VoiceAssistantLanguage.automatic)
                 ForEach(VoiceAssistantLanguage.choices, id: \.self) { code in
                     Text(verbatim: VoiceAssistantLanguage.displayName(for: code)).tag(VoiceAssistantLanguage.specific(code))
                 }

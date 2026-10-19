@@ -307,7 +307,7 @@ internal fun VoiceAssistantSettings(container: AppContainer, onOpenAiProviders: 
                     }
                     VoiceSheet.LANGUAGE -> VoiceListSheet(
                         title = stringResource(R.string.voice_settings_language),
-                        items = listOf(VoiceAssistantPreferences.LANGUAGE_AUTOMATIC, VoiceAssistantPreferences.LANGUAGE_APP) +
+                        items = listOf(VoiceAssistantPreferences.LANGUAGE_APP, VoiceAssistantPreferences.LANGUAGE_AUTOMATIC) +
                             REPLY_LANGUAGES,
                         label = { languageLabel(it) },
                         selected = { it == prefs.language }

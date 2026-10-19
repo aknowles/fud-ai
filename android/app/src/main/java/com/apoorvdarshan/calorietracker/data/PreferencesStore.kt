@@ -71,7 +71,9 @@ data class VoiceAssistantPreferences(
     val choice: VoiceProviderChoice = VoiceProviderChoice.AUTOMATIC,
     val models: Map<LiveProvider, String> = LiveProvider.entries.associateWith { it.defaultModel },
     val voices: Map<LiveProvider, String> = LiveProvider.entries.associateWith { it.defaultVoice },
-    val language: String = LANGUAGE_AUTOMATIC,
+    /** Nothing saved means the app's language: Automatic can pick up whatever language it
+     *  hears, so it's a choice the user makes. */
+    val language: String = LANGUAGE_APP,
     val autoCapture: Boolean = false,
     val confirmSaves: Boolean = true,
     val saveToCoach: Boolean = true
@@ -1535,7 +1537,7 @@ class PreferencesStore(
             voices = LiveProvider.entries.associateWith { provider ->
                 provider.supportedVoiceOrDefault(prefs[Keys.voiceVoice(provider)])
             },
-            language = prefs[Keys.VOICE_LANGUAGE] ?: VoiceAssistantPreferences.LANGUAGE_AUTOMATIC,
+            language = prefs[Keys.VOICE_LANGUAGE] ?: VoiceAssistantPreferences.LANGUAGE_APP,
             autoCapture = prefs[Keys.VOICE_AUTO_CAPTURE] ?: false,
             confirmSaves = prefs[Keys.VOICE_CONFIRM_SAVES] ?: true,
             saveToCoach = prefs[Keys.VOICE_SAVE_TO_COACH] ?: true
