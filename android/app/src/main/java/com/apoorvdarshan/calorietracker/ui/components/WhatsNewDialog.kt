@@ -174,7 +174,11 @@ fun WhatsNewDialog(
     val pages = remember(access) { WhatsNewPages.pages(access) }
     val pagerState = rememberPagerState { pages.size }
     val scope = rememberCoroutineScope()
-    var muted by remember { mutableStateOf(true) }
+    // The demo starts with sound unless the phone is on silent or vibrate.
+    val context = LocalContext.current
+    var muted by remember {
+        mutableStateOf(context.getSystemService(AudioManager::class.java)?.ringerMode != AudioManager.RINGER_MODE_NORMAL)
+    }
     val current = pagerState.currentPage
     val isLast = current >= pages.lastIndex
 

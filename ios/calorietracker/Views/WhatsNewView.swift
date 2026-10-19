@@ -86,18 +86,32 @@ enum WhatsNewAccessCheck {
 
 // MARK: - Sound
 
-/// Muted playback must not stop the user's music; turning the sound on takes over like any video.
+/// The demo starts with sound, following the Ring/Silent switch like other autoplaying
+/// video. Muted playback must not stop the user's music; the sound button plays it even
+/// on silent, taking over like any video.
 enum WhatsNewAudio {
+    enum Sound {
+        case muted
+        /// Sound on unless the phone is on silent.
+        case followingSilentSwitch
+        /// Sound on, even on silent.
+        case on
+    }
+
     private static var changedSession = false
 
-    static func apply(muted: Bool) {
+    static func apply(_ sound: Sound) {
         // A live conversation owns the audio session.
         guard !VoiceAssistantController.shared.isActive else { return }
         let session = AVAudioSession.sharedInstance()
         do {
-            if muted {
+            switch sound {
+            case .muted:
                 try session.setCategory(.ambient)
-            } else {
+            case .followingSilentSwitch:
+                try session.setCategory(.soloAmbient)
+                try session.setActive(true)
+            case .on:
                 try session.setCategory(.playback, mode: .moviePlayback)
                 try session.setActive(true)
             }
@@ -127,7 +141,7 @@ struct WhatsNewSheet: View {
     var onClose: () -> Void
     var onAddKey: () -> Void
 
-    @State private var muted = true
+    @State private var muted = false
     @State private var showPlans = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -158,13 +172,13 @@ struct WhatsNewSheet: View {
         .sheet(isPresented: $showPlans) {
             HostedPaywallView()
         }
-        .onAppear { WhatsNewAudio.apply(muted: true) }
+        .onAppear { WhatsNewAudio.apply(.followingSilentSwitch) }
         .onDisappear { WhatsNewAudio.end() }
         .onChange(of: selection) { _, page in
             if page != 0 { muted = true }
         }
         .onChange(of: muted) { _, isMuted in
-            WhatsNewAudio.apply(muted: isMuted)
+            WhatsNewAudio.apply(isMuted ? .muted : .on)
         }
         .onChange(of: scenePhase) { _, phase in
             // Leaving the app turns the sound back off, so other audio is never held up.

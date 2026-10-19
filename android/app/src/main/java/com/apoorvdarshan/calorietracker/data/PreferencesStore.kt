@@ -74,7 +74,8 @@ data class VoiceAssistantPreferences(
     /** Nothing saved means the app's language: Automatic can pick up whatever language it
      *  hears, so it's a choice the user makes. */
     val language: String = LANGUAGE_APP,
-    val autoCapture: Boolean = false,
+    /** On by default: the model takes the photo as soon as it sees the food. */
+    val autoCapture: Boolean = true,
     val confirmSaves: Boolean = true,
     val saveToCoach: Boolean = true
 ) {
@@ -1538,7 +1539,7 @@ class PreferencesStore(
                 provider.supportedVoiceOrDefault(prefs[Keys.voiceVoice(provider)])
             },
             language = prefs[Keys.VOICE_LANGUAGE] ?: VoiceAssistantPreferences.LANGUAGE_APP,
-            autoCapture = prefs[Keys.VOICE_AUTO_CAPTURE] ?: false,
+            autoCapture = prefs[Keys.VOICE_AUTO_CAPTURE] ?: true,
             confirmSaves = prefs[Keys.VOICE_CONFIRM_SAVES] ?: true,
             saveToCoach = prefs[Keys.VOICE_SAVE_TO_COACH] ?: true
         )

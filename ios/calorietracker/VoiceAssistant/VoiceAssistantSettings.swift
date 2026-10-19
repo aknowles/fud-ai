@@ -172,9 +172,10 @@ nonisolated struct VoiceAssistantSettings {
         nonmutating set { defaults.set(newValue.storageValue, forKey: Self.languageKey) }
     }
 
-    /// Off by default: the model takes the photo when the user says so.
+    /// On by default: the model takes the photo as soon as it sees the food.
+    /// Off, it waits for the user to say so.
     var autoCapture: Bool {
-        get { defaults.bool(forKey: Self.autoCaptureKey) }
+        get { defaults.object(forKey: Self.autoCaptureKey) as? Bool ?? true }
         nonmutating set { defaults.set(newValue, forKey: Self.autoCaptureKey) }
     }
 
