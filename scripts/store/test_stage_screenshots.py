@@ -13,6 +13,10 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import stage_screenshots as ss  # noqa: E402
 
+# The store-automation job runs this file again after installing Pillow, with
+# STORE_TESTS_NEED_PILLOW set, so the resizing tests can't skip there.
+PILLOW = ss.try_import_pillow()
+
 
 def png(width: int, height: int, marker: str) -> bytes:
     # Signature + IHDR length/type + size: enough for read_png_size without Pillow.
@@ -24,7 +28,11 @@ def png(width: int, height: int, marker: str) -> bytes:
     )
 
 
-class StageTests(unittest.TestCase):
+class SetsFixture(unittest.TestCase):
+    """The real screenshot sets under a temporary root. PILLOW picks the staging path."""
+
+    PILLOW = None
+
     def setUp(self):
         tmp = tempfile.TemporaryDirectory()
         self.addCleanup(tmp.cleanup)
@@ -48,8 +56,7 @@ class StageTests(unittest.TestCase):
             mock.patch.object(ss, "ASC_SETS", tuple(self.asc_sets)),
             mock.patch.object(ss, "PLAY_SOURCE", self.play_src),
             mock.patch.object(ss, "PLAY_PHONE_DIR", self.play_dest),
-            # Raw copies, so staged bytes can be compared with the sources.
-            mock.patch.object(ss, "try_import_pillow", return_value=None),
+            mock.patch.object(ss, "try_import_pillow", return_value=self.PILLOW),
             mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": ""}),
         ):
             patch.start()
@@ -70,6 +77,11 @@ class StageTests(unittest.TestCase):
 
     def names(self, directory: Path) -> list[str]:
         return sorted(p.name for p in directory.glob("*.png"))
+
+
+class StageTests(SetsFixture):
+    # Raw copies, so staged bytes can be compared with the sources.
+    PILLOW = None
 
     def test_all_stages_each_store_from_its_own_source_in_name_order(self):
         self.write(self.ios_src, "02-b.png", "10-j.png", "01-a.png", "home.png")
@@ -211,6 +223,59 @@ class StageTests(unittest.TestCase):
                 self.stage(dry_run=False, platform="ios")
         self.assertIn('13" iPad', stderr.getvalue())
         self.assertEqual(self.names(self.ipad_dest), ["01-i.png"])
+
+
+@unittest.skipIf(
+    PILLOW is None and not os.environ.get("STORE_TESTS_NEED_PILLOW"), "Pillow not installed"
+)
+class PillowStageTests(SetsFixture):
+    """The path release runs take: Pillow keeps accepted sizes and fits the rest."""
+
+    PILLOW = PILLOW
+
+    def setUp(self):
+        if self.PILLOW is None:
+            self.fail("Pillow is required here (STORE_TESTS_NEED_PILLOW is set)")
+        super().setUp()
+
+    def image(self, directory: Path, name: str, size: tuple[int, int], color) -> Path:
+        directory.mkdir(parents=True, exist_ok=True)
+        path = directory / name
+        self.PILLOW.new("RGBA", size, color).save(path)
+        return path
+
+    def staged_size(self, path: Path) -> tuple[int, int]:
+        with self.PILLOW.open(path) as img:
+            return img.size
+
+    def test_accepted_sizes_stay_unchanged_and_other_shapes_fit_their_set(self):
+        cases = [
+            # (set index, source size, staged size)
+            (0, (1290, 2796), (1290, 2796)),
+            (0, (1284, 2778), (1284, 2778)),
+            (0, (1320, 2868), (1290, 2796)),
+            (1, (2064, 2752), (2064, 2752)),
+            (1, (2048, 2732), (2048, 2732)),
+            (1, (1032, 1376), (2064, 2752)),
+            (2, (1398, 2034), (1398, 2034)),
+            (2, (2007, 2853), (2007, 2853)),
+            (2, (699, 1017), (1398, 2034)),
+        ]
+        sources = []
+        for i, (index, size, _) in enumerate(cases):
+            asc_set = self.asc_sets[index]
+            sources.append(self.image(asc_set.source, f"{i + 1:02d}-frame.png", size, (255, 83, 142, 255)))
+
+        with mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": "true"}):
+            self.stage(dry_run=False, platform="ios")
+
+        for source, (index, size, staged) in zip(sources, cases):
+            dest = self.asc_sets[index].dest / source.name
+            with self.subTest(set=self.asc_sets[index].label, size=size):
+                self.assertEqual(self.staged_size(dest), staged)
+                if size == staged:
+                    with self.PILLOW.open(source) as a, self.PILLOW.open(dest) as b:
+                        self.assertEqual(a.convert("RGBA").tobytes(), b.convert("RGBA").tobytes())
 
 
 if __name__ == "__main__":
