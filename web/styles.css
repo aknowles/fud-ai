@@ -448,6 +448,7 @@ p, h1, h2, h3, figure, dl, dd { margin: 0; }
   .live__card.is-logged { animation: logged 0.6s var(--ease); }
 }
 @keyframes undo { from { transform: scaleX(1); } to { transform: scaleX(0); } }
+.live.is-paused .live__card::after { animation-play-state: paused; }
 @keyframes logged { 40% { box-shadow: inset 0 0 0 1px rgba(255, 55, 95, 0.5), 0 24px 60px -24px rgba(255, 55, 95, 0.45); } }
 .live__icon {
   display: grid;

@@ -943,7 +943,11 @@
     var heroOrb = makeOrb(document.getElementById("orb"));
     var finalOrb = makeOrb(document.querySelector(".orb--final"));
     var glow = document.querySelector(".hero__glow");
-    onPause.hero = function (on) { if (heroOrb) { heroOrb.paused = on; heroOrb.start(); } };
+    onPause.hero = function (on) {
+      if (heroOrb) { heroOrb.paused = on; heroOrb.start(); }
+      var liveBox = document.querySelector(".live");
+      if (liveBox) liveBox.classList.toggle("is-paused", on);
+    };
     if (heroOrb && !calm) {
       heroOrb.onFrame = function (s) { if (glow) glow.style.setProperty("--level", s.level.toFixed(3)); };
       window.addEventListener("pointermove", function (e) {
@@ -1006,10 +1010,23 @@
         live.style.minHeight = max + "px";
       };
 
-      var heroVisible = function () {
-        if (!heroOrb) return Promise.resolve();
+      // Waits that only count while the demo is playing, so Pause holds mid-sentence.
+      var waitLive = function (ms) {
         return new Promise(function (res) {
-          (function check() { if (heroOrb.visible && !document.hidden && !paused.hero) res(); else setTimeout(check, 400); })();
+          var left = ms, last = performance.now();
+          (function step() {
+            var now = performance.now();
+            if (!paused.hero) left -= now - last;
+            last = now;
+            if (left <= 0) res(); else setTimeout(step, Math.min(Math.max(left, 16), 100));
+          })();
+        });
+      };
+      var heroVisible = function () {
+        return new Promise(function (res) {
+          (function check() {
+            if ((!heroOrb || heroOrb.visible) && !document.hidden && !paused.hero) res(); else setTimeout(check, 300);
+          })();
         });
       };
       var orbSet = function (mode, level) { if (heroOrb) { heroOrb.mode = mode; if (level != null) heroOrb.levelTarget = level; } };
@@ -1026,7 +1043,7 @@
       window.addEventListener("resize", fit, { passive: true });
 
       (async function loop() {
-        await wait(3400);
+        await waitLive(3400);
         for (var k = 1; ; k++) {
           await heroVisible();
           var d = demos[k % demos.length];
@@ -1035,21 +1052,21 @@
           said.querySelectorAll(".w").forEach(function (w) { w.classList.remove("on"); });
           card.classList.add("is-pending");
           card.classList.remove("is-ticking");
-          await wait(450);
+          await waitLive(450);
           setWords(said, d.said);
           setWords(reply, d.reply);
           setStatus("Listening…");
           orbSet("listening", 0.1);
           var sw = said.querySelectorAll(".w");
-          for (var i = 0; i < sw.length; i++) { sw[i].classList.add("on"); kick(); await wait(110 + Math.random() * 90); }
+          for (var i = 0; i < sw.length; i++) { sw[i].classList.add("on"); kick(); await waitLive(110 + Math.random() * 90); }
           orbSet("thinking", 0.05);
           setStatus("Thinking…");
-          await wait(700);
+          await waitLive(700);
           orbSet("speaking");
           setStatus("Speaking…");
           live.classList.add("is-speaking");
           var rw = reply.querySelectorAll(".w");
-          for (var j = 0; j < rw.length; j++) { rw[j].classList.add("on"); kick(); await wait(55 + Math.random() * 35); }
+          for (var j = 0; j < rw.length; j++) { rw[j].classList.add("on"); kick(); await waitLive(55 + Math.random() * 35); }
           orbSet("idle", 0);
           name.textContent = d.name;
           macros.textContent = d.macros;
@@ -1060,7 +1077,7 @@
           card.classList.add("is-ticking");
           setTimeout(function () { card.classList.remove("is-logged"); }, 600);
           setStatus("Logged");
-          await wait(3400);
+          await waitLive(3400);
         }
       })();
     }
