@@ -35,6 +35,8 @@ const REPORT_RESET_SECONDS = 172_800;
 /** Enough history to reach the cap; keeps the cooldown key's metadata small. */
 const REPORT_HISTORY_MAX = 12;
 const INTERACTION_RETENTION_SECONDS = 900;
+/** How long an isolate trusts a cooldown it read from KV, since a late rollback may still cancel it. */
+const STORED_COOLDOWN_TRUST_SECONDS = 60;
 
 type StateMetadata = { owner: string; reports?: number[] };
 
@@ -44,9 +46,10 @@ type DiscordState = {
   put(key: string, value: string, options: { expirationTtl: number; metadata?: StateMetadata }): Promise<void>;
 };
 
+/** A cooldown's `until` is missing while the command that started it is still being reserved. */
 type Reservation =
   | { status: "accepted" | "duplicate" | "unavailable" }
-  | { status: "cooldown"; until: number };
+  | { status: "cooldown"; until: number | undefined };
 
 /**
  * The current streak from a cooldown key's metadata (report times in ms, oldest first):
@@ -88,7 +91,8 @@ export function formatWait(milliseconds: number): string {
 }
 
 // Isolate-local reservations close concurrent-request races while KV persists across restarts.
-type LocalReservation = { until: number; unavailable?: boolean };
+// `until` ends the local block; `expires` is when the cooldown ends, once that is known.
+type LocalReservation = { until: number; expires?: number; unavailable?: boolean };
 const localReservations = new WeakMap<DiscordState, Map<string, LocalReservation>>();
 
 const SYSTEM_PROMPT = `You are the Fud AI Discord helper for the free, open-source calorie / fasting / workout tracker (iOS + Android).
@@ -742,8 +746,8 @@ async function reserveCommand(
       return { status: "unavailable" };
     }
     if ((local.get(interactionKey)?.until ?? 0) > now) return { status: "duplicate" };
-    const localUntil = local.get(cooldownKey)?.until ?? 0;
-    if (localUntil > now) return { status: "cooldown", until: localUntil };
+    const localCooldown = local.get(cooldownKey);
+    if (localCooldown && localCooldown.until > now) return { status: "cooldown", until: localCooldown.expires };
     while (local.size > 2_046) {
       const oldest = [...local].find(([, reservation]) => !reservation.unavailable)?.[0];
       if (oldest === undefined) return { status: "unavailable" };
@@ -779,18 +783,19 @@ async function reserveCommand(
     }
     const storedUntil = Number(cooling.value);
     if (!cooldownAborted && storedUntil > Date.now()) {
-      cooldownReservation.until = storedUntil;
+      cooldownReservation.until = Math.min(storedUntil, Date.now() + STORED_COOLDOWN_TRUST_SECONDS * 1000);
+      cooldownReservation.expires = storedUntil;
       return { status: "cooldown", until: storedUntil };
     }
     const reservedAt = Date.now();
     // Reports carry their streak in the cooldown key's metadata, so people who report
     // again as soon as they can wait twice as long each time.
     const reports = bucket === "report"
-      ? [...recentReports(metadata, Boolean(cooldownAborted), reservedAt), reservedAt]
+      ? [...recentReports(metadata, Boolean(cooldownAborted), reservedAt), reservedAt].slice(-REPORT_HISTORY_MAX)
       : undefined;
     const wait = reports ? reportCooldownSeconds(reports.length) : cooldown;
     const until = reservedAt + wait * 1000;
-    cooldownReservation.until = until;
+    cooldownReservation.until = cooldownReservation.expires = until;
     const owner = crypto.randomUUID();
     const records: { key: string; value: string; ttl: number; metadata: StateMetadata }[] = [
       { key: interactionKey, value: owner, ttl: INTERACTION_RETENTION_SECONDS, metadata: { owner } },
@@ -815,9 +820,12 @@ async function reserveCommand(
       interactionReservation.unavailable = cooldownReservation.unavailable = true;
       try {
         await settled;
-        // Longer than either reservation TTL, starting only after all puts finish.
+        // As long as the longest record it cancels, starting only after all puts finish, so a
+        // cancelled report can never come back to block the user or count toward a streak.
         // This key belongs solely to this attempt and cannot erase another owner.
-        await state.put(`fuddy:aborted:${owner}`, "1", { expirationTtl: INTERACTION_RETENTION_SECONDS });
+        await state.put(`fuddy:aborted:${owner}`, "1", {
+          expirationTtl: Math.max(...records.map(({ ttl }) => ttl)),
+        });
       } finally {
         release?.();
       }
@@ -840,6 +848,14 @@ async function reserveCommand(
     }
     return { status: "unavailable" };
   }
+}
+
+function reportCooldownReply(until: number | undefined): string {
+  const wait = until === undefined
+    ? "Your previous report is still being sent."
+    : `You can send another report in ${formatWait(until - Date.now())}.`;
+  return `${wait} /bug and /feature share a wait that starts at 10 minutes, doubles with each report up to a day, `
+    + "and resets after two days without one. Your reports become public GitHub issues.";
 }
 
 function deferCommand(
@@ -871,11 +887,7 @@ function deferCommand(
       return;
     }
     const content = reservation.status === "cooldown"
-      ? command === "ask"
-        ? "Please wait a minute between questions."
-        : `You can send another report in ${formatWait(reservation.until - Date.now())}. /bug and /feature share this wait, `
-          + "which starts at 10 minutes, doubles with each report up to a day, and resets after two days without one. "
-          + "Your reports become public GitHub issues."
+      ? command === "ask" ? "Please wait a minute between questions." : reportCooldownReply(reservation.until)
       : "Fuddy’s command service is temporarily unavailable. Please try again later.";
     await editInteractionReply(applicationId, interaction.token, content);
   })().catch(() => {
