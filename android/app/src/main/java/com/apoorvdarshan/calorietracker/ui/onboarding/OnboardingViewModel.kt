@@ -1,21 +1,31 @@
 package com.apoorvdarshan.calorietracker.ui.onboarding
 
+import android.accounts.Account
+import android.app.Activity
+import android.content.Intent
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.apoorvdarshan.calorietracker.AppContainer
+import com.apoorvdarshan.calorietracker.backup.DriveCloudBackupClient
 import com.apoorvdarshan.calorietracker.models.ActivityLevel
 import com.apoorvdarshan.calorietracker.models.AIProvider
 import com.apoorvdarshan.calorietracker.models.Gender
 import com.apoorvdarshan.calorietracker.models.UserProfile
 import com.apoorvdarshan.calorietracker.models.WeightGoal
+import com.apoorvdarshan.calorietracker.services.AndroidAppIconManager
 import com.apoorvdarshan.calorietracker.services.hosted.AiAccessMode
 import com.apoorvdarshan.calorietracker.services.hosted.HostedPrompt
+import com.apoorvdarshan.calorietracker.ui.theme.AppThemeColor
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.time.LocalDate
 import java.time.ZoneId
 
@@ -120,6 +130,10 @@ data class OnboardingState(
 class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
     private val _ui = MutableStateFlow(OnboardingState())
     val ui: StateFlow<OnboardingState> = _ui.asStateFlow()
+
+    private val _returning = MutableStateFlow(ReturningUserState())
+    /** The Welcome back screen over the WELCOME step. */
+    val returning: StateFlow<ReturningUserState> = _returning.asStateFlow()
 
     init {
         viewModelScope.launch {
@@ -306,6 +320,251 @@ class OnboardingViewModel(private val container: AppContainer) : ViewModel() {
             }
         )
     }
+
+    // -- Welcome back (returning users) -----------------------------------------------
+
+    /** Opens Welcome back on its own when Health Connect grants survived (in-app Delete All
+     *  Data keeps them). Runs once, after the first frame; the check is an IPC call, so it
+     *  never blocks launch. Tests run without background services and never get promoted. */
+    fun checkReturningUserSignal() {
+        if (!container.backgroundServicesEnabled || _returning.value.promotionSettled) return
+        viewModelScope.launch {
+            val granted = withContext(Dispatchers.IO) {
+                runCatching { container.health.isAvailable() && container.health.hasAnyPermission() }
+                    .getOrDefault(false)
+            }
+            _returning.update { it.afterGrantCheck(granted, _ui.value.step) }
+        }
+    }
+
+    fun openReturningUser() {
+        _returning.update { it.opened() }
+    }
+
+    fun closeReturningUser() {
+        _returning.update { it.closed() }
+    }
+
+    fun toggleReturningSource(source: ReturningSource) {
+        _returning.update { it.toggled(source) }
+    }
+
+    /** Continue: runs the picked sources in order. Returns the first one, so the screen can
+     *  open Google's account picker straight from the tap; Health Connect's sheet opens
+     *  through [ReturningUserState.healthPermissionRequested]. */
+    fun startReturningRun(): ReturningSource? {
+        val state = _returning.value
+        if (!state.canContinue) return null
+        val started = state.started()
+        _returning.value = started
+        return started.steps.firstOrNull()?.source
+    }
+
+    /** Start fresh: skips both and runs the normal onboarding from its first question. */
+    fun startFresh() {
+        if (_returning.value.phase != ReturningPhase.SELECTING) return
+        _returning.update { it.closed() }
+        if (_ui.value.step == OnboardingStep.WELCOME) next()
+    }
+
+    /** The finished run's Continue: into the restored app, or on to the short setup. */
+    fun finishReturning() {
+        val state = _returning.value
+        if (state.phase != ReturningPhase.FINISHED || state.restartRequested) return
+        if (state.restoredSetup) {
+            _returning.update { it.copy(restartRequested = true) }
+        } else {
+            _returning.update { it.copy(visible = false) }
+            if (_ui.value.step == OnboardingStep.WELCOME) next()
+        }
+    }
+
+    fun retryReturning() {
+        _returning.update { it.retried() }
+    }
+
+    // Google Drive: account picker (on the screen) -> authorize -> consent if needed -> lookup
+    // -> confirm -> restore. Authorization runs here, not in the screen's scope, so recreating
+    // the Activity mid-call can't strand the step; the Activity is only held for that call.
+
+    fun driveSignInCancelled() {
+        viewModelScope.launch { endDrive(ReturningStepStatus.SKIPPED, ReturningMessage.DRIVE_CANCELLED) }
+    }
+
+    fun driveSignInFailed() {
+        viewModelScope.launch { endDrive(ReturningStepStatus.FAILED, ReturningMessage.SIGN_IN_FAILED) }
+    }
+
+    fun authorizeDrive(activity: Activity, account: Account) {
+        viewModelScope.launch {
+            val outcome = try {
+                container.cloudBackup.authorize(activity, account)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                null
+            }
+            when (outcome) {
+                is DriveCloudBackupClient.AuthOutcome.Token -> lookUpDriveBackup()
+                is DriveCloudBackupClient.AuthOutcome.Resolution ->
+                    _returning.update { it.copy(driveConsent = outcome.intentSender) }
+                null -> endDrive(ReturningStepStatus.FAILED, ReturningMessage.SIGN_IN_FAILED)
+            }
+        }
+    }
+
+    fun driveConsentLaunched() {
+        _returning.update { it.copy(driveConsent = null) }
+    }
+
+    fun finishDriveAuthorization(activity: Activity, data: Intent?) {
+        viewModelScope.launch {
+            val ok = try {
+                container.cloudBackup.finishAuthorization(activity, data)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                false
+            }
+            if (ok) lookUpDriveBackup() else endDrive(ReturningStepStatus.FAILED, ReturningMessage.SIGN_IN_FAILED)
+        }
+    }
+
+    /** Signed in to Google: find the backup without restoring or uploading anything. */
+    private suspend fun lookUpDriveBackup() {
+        container.cloudBackup.findBackup()
+            .onSuccess { file ->
+                if (file == null) {
+                    endDrive(ReturningStepStatus.FAILED, ReturningMessage.NO_BACKUP)
+                } else {
+                    _returning.update { it.copy(confirmingRestore = true, backupModifiedAt = file.modifiedTime) }
+                }
+            }
+            .onFailure { endDrive(ReturningStepStatus.FAILED, returningDriveMessage(it)) }
+    }
+
+    fun cancelDriveRestore() {
+        if (!_returning.value.confirmingRestore) return
+        _returning.update { it.copy(confirmingRestore = false) }
+        viewModelScope.launch { endDrive(ReturningStepStatus.SKIPPED, ReturningMessage.DRIVE_CANCELLED) }
+    }
+
+    /**
+     * Restores the Drive backup over this (still empty) phone. Backup is never turned on
+     * before this succeeds: an upload first would replace the real backup with nothing.
+     * [OnboardingViewModel.complete] never runs afterwards, since it would overwrite the
+     * restored profile, AI and goal settings.
+     */
+    fun restoreDriveBackup() {
+        if (!_returning.value.confirmingRestore) return
+        _returning.update { it.restoring() }
+        viewModelScope.launch {
+            val result = container.cloudBackup.restoreNow()
+            val failure = result.exceptionOrNull()
+            if (failure != null) {
+                // Nothing local changed before the failure; a selected Health Connect
+                // import still runs next.
+                endDrive(ReturningStepStatus.FAILED, returningDriveMessage(failure))
+                return@launch
+            }
+            val prefs = container.prefs
+            // What FudAIApp.onCreate runs once per process: the backup may select a local
+            // model this phone hasn't downloaded, or predate a model or speech migration.
+            prefs.reconcileLocalModelSelections()
+            prefs.migrateAIModelSelections()
+            prefs.migrateMatchingSpeechProviderIfNeeded()
+            AndroidAppIconManager.apply(container.appContext, AppThemeColor.fromKey(prefs.appThemeColor.first()))
+            runCatching { container.rescheduleReminders() }
+            val hasSetup = container.profileRepository.current() != null
+            if (hasSetup) {
+                if (!prefs.hasCompletedOnboarding.first()) prefs.setOnboardingCompleted(true)
+            } else {
+                // Home can't open without a profile (the splash would wait for one forever),
+                // so the short setup finishes over the restored data.
+                prefs.setOnboardingCompleted(false)
+                val heightMetric = prefs.heightUnit.first() == "cm"
+                val weightMetric = prefs.weightUnit.first() == "kg"
+                _ui.update { it.copy(heightMetric = heightMetric, weightMetric = weightMetric) }
+            }
+            _returning.update {
+                it.copy(restoredBackup = true, restoredSetup = hasSetup).finished(
+                    ReturningSource.DRIVE,
+                    ReturningStepStatus.DONE,
+                    if (hasSetup) null else ReturningMessage.SETUP_MISSING
+                )
+            }
+        }
+    }
+
+    /** A Drive step that didn't restore: backup stays off and the account the user signed in
+     *  with is forgotten, so Settings shows backup as never set up and nothing can upload
+     *  over the Drive copy later. The next picked source runs either way. */
+    private suspend fun endDrive(status: ReturningStepStatus, message: ReturningMessage) {
+        runCatching { container.cloudBackup.forgetSession() }
+        _returning.update { it.finished(ReturningSource.DRIVE, status, message) }
+    }
+
+    // Health Connect: sheet (on the screen) -> import -> summary.
+
+    fun healthPermissionLaunched() {
+        _returning.update { it.copy(healthPermissionRequested = false) }
+    }
+
+    fun healthUnavailable() {
+        _returning.update {
+            it.copy(healthPermissionRequested = false)
+                .finished(ReturningSource.HEALTH, ReturningStepStatus.FAILED, ReturningMessage.HEALTH_UNAVAILABLE)
+        }
+    }
+
+    /**
+     * Health Connect sheet answered: import what Fud AI saved there. After a restore in this
+     * run the import only adds what the backup lacks; otherwise it is the regular sync, and
+     * the newest weight and body fat then pre-fill the short setup.
+     */
+    fun importFromHealthConnect(anyGranted: Boolean) {
+        if (_returning.value.step(ReturningSource.HEALTH)?.status != ReturningStepStatus.WORKING) return
+        if (!anyGranted) {
+            _returning.update {
+                it.finished(ReturningSource.HEALTH, ReturningStepStatus.FAILED, ReturningMessage.HEALTH_DENIED)
+            }
+            return
+        }
+        // complete() writes this flag, so the state must agree or it would switch sync off.
+        setHealthConnectEnabled(true)
+        viewModelScope.launch {
+            container.prefs.setHealthConnectEnabled(true)
+            val afterRestore = _returning.value.restoredBackup
+            // Nothing can be logged before onboarding, so without a restore everything in the
+            // stores came from Health Connect, including what Settings' own reconcile already
+            // brought in this session (imports are deduplicated, so running again is safe).
+            val before = if (afterRestore) healthRecordCounts() else HealthRecordCounts()
+            runCatching {
+                if (afterRestore) container.importHealthConnectAddingOnly()
+                else container.syncHealthConnectReadsAndWait()
+            }
+            val added = healthRecordCounts() - before
+            if (!_returning.value.restoredSetup) {
+                container.weightRepository.entries.first().maxByOrNull { it.date }?.let { latest ->
+                    onboardingWeightFromReading(latest.weightKg, _ui.value.weightMetric)?.let(::setWeight)
+                }
+                container.bodyFatRepository.entries.first().maxByOrNull { it.date }?.let { latest ->
+                    onboardingBodyFatFromReading(latest.bodyFatFraction)?.let(::setBodyFat)
+                }
+            }
+            _returning.update {
+                it.copy(healthAdded = added).finished(ReturningSource.HEALTH, ReturningStepStatus.DONE)
+            }
+        }
+    }
+
+    private suspend fun healthRecordCounts() = HealthRecordCounts(
+        meals = container.foodRepository.entries.first().size,
+        weighIns = container.weightRepository.entries.first().size,
+        other = container.bodyFatRepository.entries.first().size +
+            container.workoutRepository.completedSessions.first().size +
+            container.importedHealthWorkoutRepository.workouts.first().size
+    )
 
     fun complete(onDone: () -> Unit) {
         viewModelScope.launch {

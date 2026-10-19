@@ -50,4 +50,23 @@ class WeightHistoryImportTest {
         assertEquals(listOf(original), mergeExternalWeights(listOf(original, original), listOf(original), emptySet()))
         assertNull(mergeExternalWeights(listOf(original), listOf(original), emptySet()))
     }
+
+    @Test
+    fun afterARestoreHealthConnectOnlyAddsWeighInsTheBackupLacks() {
+        val restored = WeightEntry(date = day, weightKg = 80.0)
+        // Health Connect still holds an older value under the same id; the restore wins.
+        val olderCopy = restored.copy(weightKg = 81.5)
+        val newer = WeightEntry(date = day.plusSeconds(86_400), weightKg = 79.6)
+        val deleted = WeightEntry(date = day.minusSeconds(86_400), weightKg = 82.0)
+
+        val merged = addMissingById(
+            current = listOf(restored),
+            incoming = listOf(olderCopy, newer, newer, deleted),
+            deletedIds = setOf(deleted.id.toString()),
+            id = WeightEntry::id
+        )
+
+        assertEquals(listOf(restored, newer), merged)
+        assertNull(addMissingById(listOf(restored), listOf(olderCopy), emptySet(), WeightEntry::id))
+    }
 }

@@ -111,15 +111,7 @@ class WeightRepository(
      */
     suspend fun importExternalWeights(external: List<ExternalWeight>) {
         val manager = health ?: return
-        val incoming = external
-            .map {
-                WeightEntry(
-                    id = manager.ownRecordId(it.clientRecordId)
-                        ?: externalId(it.clientRecordId, it.recordId, it.time),
-                    date = it.time,
-                    weightKg = it.weightKg
-                )
-            }
+        val incoming = toEntries(manager, external)
         if (incoming.isEmpty()) return
         var changed = false
         // Deleted ids are read inside the merge's transaction: a snapshot taken before it
@@ -132,6 +124,30 @@ class WeightRepository(
         if (!changed) return
         syncProfileWeightToLatest()
     }
+
+    /**
+     * After a Drive restore: adds only the weigh-ins the restored history lacks, under the
+     * same ids [importExternalWeights] gives them. Ids it already holds are left exactly as
+     * restored, deleted ids stay deleted, and the profile is not touched.
+     */
+    suspend fun addMissingExternalWeights(external: List<ExternalWeight>) {
+        val manager = health ?: return
+        val incoming = toEntries(manager, external)
+        if (incoming.isEmpty()) return
+        prefs.updateWeightEntriesSkippingDeleted { current, deletedIds ->
+            addMissingById(current, incoming, deletedIds, WeightEntry::id)?.sortedBy { it.date } ?: current
+        }
+    }
+
+    private fun toEntries(manager: HealthConnectManager, external: List<ExternalWeight>): List<WeightEntry> =
+        external.map {
+            WeightEntry(
+                id = manager.ownRecordId(it.clientRecordId)
+                    ?: externalId(it.clientRecordId, it.recordId, it.time),
+                date = it.time,
+                weightKg = it.weightKg
+            )
+        }
 
     /** Times of the readings in [external] that another app wrote and the history already
      *  holds, matched by the id [importExternalWeights] gives them. */
@@ -175,6 +191,22 @@ internal fun crossesWeightGoal(
         WeightGoal.GAIN -> previousLatest.weightKg < goalKg && entry.weightKg >= goalKg
         WeightGoal.MAINTAIN -> false
     }
+}
+
+/**
+ * [current] plus the [incoming] records whose id it doesn't hold yet, skipping ids in
+ * [deletedIds] and repeats within [incoming]. Existing records are never replaced. Null
+ * when nothing is added.
+ */
+internal fun <T> addMissingById(
+    current: List<T>,
+    incoming: List<T>,
+    deletedIds: Set<String>,
+    id: (T) -> UUID
+): List<T>? {
+    val held = current.mapTo(HashSet()) { id(it) }
+    val added = incoming.filter { id(it).toString() !in deletedIds && held.add(id(it)) }
+    return if (added.isEmpty()) null else current + added
 }
 
 /**

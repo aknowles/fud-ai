@@ -62,6 +62,25 @@ class CloudBackupArchiveTest {
         val error = runCatching { CloudBackupArchive.readDocument(tampered) }.exceptionOrNull()
         assertTrue(error is IllegalArgumentException)
         assertTrue(error!!.message!!.contains("newer"))
+        // Typed, so the onboarding restore can say "update the app" in the user's language.
+        assertTrue((error as CloudBackupFormatException).needsNewerApp)
+    }
+
+    @Test
+    fun anotherFormatIsNotAFudAiBackup() {
+        val packed = packToFile(mapOf("useMetric" to CloudBackupValue.bool(true)), emptyList())
+        val other = CloudBackupArchive.readDocument(packed).copy(format = "someone-elses-backup")
+        val encoded = Json.encodeToString(CloudBackupDocument.serializer(), other).toByteArray()
+        val tampered = temp.newFile("other.zip")
+        ZipOutputStream(tampered.outputStream()).use { zipOut ->
+            zipOut.putNextEntry(ZipEntry(CloudBackupPolicy.PAYLOAD_NAME))
+            zipOut.write(encoded)
+            zipOut.closeEntry()
+        }
+        val error = runCatching { CloudBackupArchive.readDocument(tampered) }.exceptionOrNull()
+        assertTrue(error is CloudBackupFormatException)
+        assertFalse((error as CloudBackupFormatException).needsNewerApp)
+        assertEquals("Not a Fud AI backup", error.message)
     }
 
     @Test
