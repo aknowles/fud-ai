@@ -96,6 +96,10 @@ struct calorietrackerApp: App {
                         .environment(chatStore)
                         .environment(waterStore)
                         .environment(fastingStore)
+                        // The welcome-back screen restores iCloud backups and
+                        // imports workout calories from Apple Health.
+                        .environment(strengthWorkoutStore)
+                        .environment(cloudBackupService)
                 }
             }
             .tint(AppThemeColor.color(for: appThemeColorRaw).color)
@@ -172,24 +176,31 @@ struct calorietrackerApp: App {
         }
         .onChange(of: hasCompletedOnboarding) { _, completed in
             if completed {
-                // New installs start with Energy Burn on, and Adaptive Goals on —
-                // UNLESS the user hand-tuned their plan during onboarding, since
-                // adaptive's first weekly run would overwrite those numbers.
-                // Existing users are untouched — these keys are only written here
-                // and by the Settings toggles. Onboarding just calculated goals, so
-                // mark the weekly adaptive check as done; the first run lands next week.
-                UserDefaults.standard.set(
-                    !UserDefaults.standard.bool(forKey: "onboardingPlanEdited"),
-                    forKey: AdaptiveGoalSettings.enabledKey
-                )
-                UserDefaults.standard.set(true, forKey: EnergyBurnSettings.enabledKey)
-                AdaptiveGoalSettings.markCheckedToday()
+                // A welcome-back iCloud restore finished onboarding: its settings,
+                // goal cadence and history came from the backup, so none of the
+                // new-install defaults or seeding below apply.
+                let restoredFromBackup = ReturningUser.onboardingCompletedByRestore
+                ReturningUser.onboardingCompletedByRestore = false
+                if !restoredFromBackup {
+                    // New installs start with Energy Burn on, and Adaptive Goals on —
+                    // UNLESS the user hand-tuned their plan during onboarding, since
+                    // adaptive's first weekly run would overwrite those numbers.
+                    // Existing users are untouched — these keys are only written here
+                    // and by the Settings toggles. Onboarding just calculated goals, so
+                    // mark the weekly adaptive check as done; the first run lands next week.
+                    UserDefaults.standard.set(
+                        !UserDefaults.standard.bool(forKey: "onboardingPlanEdited"),
+                        forKey: AdaptiveGoalSettings.enabledKey
+                    )
+                    UserDefaults.standard.set(true, forKey: EnergyBurnSettings.enabledKey)
+                    AdaptiveGoalSettings.markCheckedToday()
+                }
                 wireUpFoodStoreCallback()
                 wireUpHealthKit()
                 // Seed the user's first WeightEntry from their onboarding-entered profile
                 // weight. Used to be seeded in WeightStore.init with .default fallback,
                 // which produced a 70 kg phantom entry for every fresh user.
-                if let profile = UserProfile.load() {
+                if !restoredFromBackup, let profile = UserProfile.load() {
                     weightStore.seedInitialWeightFromProfileIfEmpty(profile.weightKg)
                     // Same idea for body fat — only when the user actually
                     // entered a value during the onboarding body-fat step.
