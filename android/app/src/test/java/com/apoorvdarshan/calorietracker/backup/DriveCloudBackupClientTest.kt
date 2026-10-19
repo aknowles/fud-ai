@@ -113,6 +113,19 @@ class DriveCloudBackupClientTest {
     }
 
     @Test
+    fun revokeSendsTheTokenInTheFormBodyNotTheUrl() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        drive.revoke("secret-token")
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/revoke", request.path)
+        assertTrue(request.getHeader("Content-Type")!!.startsWith("application/x-www-form-urlencoded"))
+        assertEquals("token=secret-token", request.body.readUtf8())
+    }
+
+    @Test
     fun failedDownloadReportsTheHttpStatus() = runBlocking {
         server.enqueue(MockResponse().setResponseCode(404))
         val destination = temp.newFile("missing.zip")

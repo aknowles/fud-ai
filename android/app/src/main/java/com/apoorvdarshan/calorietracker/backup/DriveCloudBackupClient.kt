@@ -15,6 +15,7 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
+import okhttp3.FormBody
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
 import okhttp3.OkHttpClient
@@ -183,10 +184,11 @@ class DriveCloudBackupClient(
         }
     }
 
+    /** The token goes in the form body: URLs end up in logs. */
     suspend fun revoke(accessToken: String) = withContext(Dispatchers.IO) {
         val request = Request.Builder()
-            .url("https://oauth2.googleapis.com/revoke?token=$accessToken")
-            .post(ByteArray(0).toRequestBody(null))
+            .url("https://oauth2.googleapis.com/revoke")
+            .post(FormBody.Builder().add("token", accessToken).build())
             .build()
         http.newCall(request).execute().use { response ->
             if (!response.isSuccessful && response.code != 400) {

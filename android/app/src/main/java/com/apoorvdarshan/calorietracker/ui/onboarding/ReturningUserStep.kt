@@ -9,16 +9,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.Spring
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.spring
-import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -65,7 +58,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -238,15 +230,20 @@ internal fun ReturningUserStep(container: AppContainer, vm: OnboardingViewModel,
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            GlowingLogo(animate = animate)
-            Spacer(Modifier.height(4.dp))
+            // The same logo, size and headline as the plain welcome.
+            Image(
+                painter = painterResource(id = R.drawable.ic_logo),
+                contentDescription = stringResource(R.string.onboarding_logo_description),
+                modifier = Modifier.size(120.dp)
+            )
+            Spacer(Modifier.height(20.dp))
             Text(
                 stringResource(R.string.returning_title),
-                fontSize = 30.sp,
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center
             )
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(12.dp))
             Text(
                 stringResource(R.string.returning_subtitle),
                 style = MaterialTheme.typography.bodyLarge,
@@ -383,57 +380,6 @@ internal fun ReturningUserStep(container: AppContainer, vm: OnboardingViewModel,
     }
 }
 
-/** The app logo over a soft pink-to-coral glow that breathes slowly; still when the system
- *  turned animations off. */
-@Composable
-private fun GlowingLogo(animate: Boolean) {
-    val breath = if (animate) {
-        val transition = rememberInfiniteTransition(label = "returning_glow")
-        transition.animateFloat(
-            initialValue = 0f,
-            targetValue = 1f,
-            animationSpec = infiniteRepeatable(tween(2600, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-            label = "returning_glow_breath"
-        ).value
-    } else {
-        0.5f
-    }
-    Box(Modifier.size(170.dp), contentAlignment = Alignment.Center) {
-        Canvas(Modifier.fillMaxSize()) {
-            val radius = size.minDimension / 2f * (0.86f + 0.14f * breath)
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(
-                        AppColors.CalorieStart.copy(alpha = 0.42f + 0.18f * breath),
-                        AppColors.CalorieEnd.copy(alpha = 0.20f + 0.10f * breath),
-                        Color.Transparent
-                    ),
-                    center = center,
-                    radius = radius
-                ),
-                radius = radius,
-                center = center
-            )
-            // A brighter core, offset toward the top like light falling on the logo.
-            val core = radius * 0.55f
-            drawCircle(
-                brush = Brush.radialGradient(
-                    colors = listOf(AppColors.CalorieEnd.copy(alpha = 0.22f + 0.12f * breath), Color.Transparent),
-                    center = center + Offset(0f, -core * 0.25f),
-                    radius = core
-                ),
-                radius = core,
-                center = center + Offset(0f, -core * 0.25f)
-            )
-        }
-        Image(
-            painter = painterResource(id = R.drawable.ic_logo),
-            contentDescription = stringResource(R.string.onboarding_logo_description),
-            modifier = Modifier.size(88.dp)
-        )
-    }
-}
-
 @Composable
 private fun ReturningSourceCard(
     icon: ImageVector,
@@ -447,9 +393,10 @@ private fun ReturningSourceCard(
     onToggle: () -> Unit,
     onDisabledClick: (() -> Unit)? = null
 ) {
+    // The onboarding card surface and outline; picked cards get a solid accent border.
     val shape = RoundedCornerShape(20.dp)
     val border = if (selected) {
-        Modifier.border(BorderStroke(2.dp, Brush.linearGradient(listOf(AppColors.CalorieStart, AppColors.CalorieEnd))), shape)
+        Modifier.border(BorderStroke(2.dp, AppColors.Calorie), shape)
     } else {
         Modifier.border(BorderStroke(1.dp, MaterialTheme.colorScheme.onBackground.copy(alpha = 0.08f)), shape)
     }
@@ -512,14 +459,15 @@ private fun GradientTile(icon: ImageVector, colors: List<Color>, alpha: Float, s
     }
 }
 
-/** The card's check: pops in on a spring when picked (no bounce with animations off). */
+/** The card's check: a solid accent circle that scales in when picked (instantly with
+ *  animations off). */
 @Composable
 private fun SelectionCheck(selected: Boolean, animate: Boolean) {
     val pop = remember { Animatable(if (selected) 1f else 0f) }
     LaunchedEffect(selected) {
         val target = if (selected) 1f else 0f
         if (animate) {
-            pop.animateTo(target, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow))
+            pop.animateTo(target, spring(stiffness = Spring.StiffnessMedium))
         } else {
             pop.snapTo(target)
         }
@@ -537,7 +485,7 @@ private fun SelectionCheck(selected: Boolean, animate: Boolean) {
                     .size(26.dp)
                     .scale(pop.value)
                     .clip(CircleShape)
-                    .background(Brush.linearGradient(listOf(AppColors.CalorieStart, AppColors.CalorieEnd))),
+                    .background(AppColors.Calorie),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(Icons.Filled.Check, contentDescription = null, tint = Color.White, modifier = Modifier.size(16.dp))
@@ -632,8 +580,8 @@ private fun StepStatusIndicator(status: ReturningStepStatus, animate: Boolean) {
     LaunchedEffect(status) {
         if (status == ReturningStepStatus.DONE || status == ReturningStepStatus.FAILED || status == ReturningStepStatus.SKIPPED) {
             if (animate) {
-                pop.snapTo(0.4f)
-                pop.animateTo(1f, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessMediumLow))
+                pop.snapTo(0.6f)
+                pop.animateTo(1f, spring(stiffness = Spring.StiffnessMedium))
             } else {
                 pop.snapTo(1f)
             }
@@ -653,24 +601,19 @@ private fun StepStatusIndicator(status: ReturningStepStatus, animate: Boolean) {
             )
             ReturningStepStatus.DONE -> StatusDot(
                 pop = pop.value,
-                background = Brush.linearGradient(listOf(AppColors.CalorieStart, AppColors.CalorieEnd)),
+                background = AppColors.Calorie,
                 icon = Icons.Filled.Check,
                 description = stringResource(R.string.action_done)
             )
             ReturningStepStatus.FAILED -> StatusDot(
                 pop = pop.value,
-                background = Brush.linearGradient(listOf(MaterialTheme.colorScheme.error, MaterialTheme.colorScheme.error)),
+                background = MaterialTheme.colorScheme.error,
                 icon = Icons.Filled.PriorityHigh,
                 description = stringResource(R.string.returning_step_failed)
             )
             ReturningStepStatus.SKIPPED -> StatusDot(
                 pop = pop.value,
-                background = Brush.linearGradient(
-                    listOf(
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
-                        MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f)
-                    )
-                ),
+                background = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.35f),
                 icon = Icons.Filled.Remove,
                 description = null
             )
@@ -679,7 +622,7 @@ private fun StepStatusIndicator(status: ReturningStepStatus, animate: Boolean) {
 }
 
 @Composable
-private fun StatusDot(pop: Float, background: Brush, icon: ImageVector, description: String?) {
+private fun StatusDot(pop: Float, background: Color, icon: ImageVector, description: String?) {
     Box(
         Modifier
             .size(24.dp)
@@ -692,10 +635,11 @@ private fun StatusDot(pop: Float, background: Brush, icon: ImageVector, descript
     }
 }
 
-/** The calorie-gradient capsule the onboarding uses for its main action. */
+/** Onboarding's calorie-gradient Get Started capsule; disabled, it uses the same faded fill
+ *  as the Health Connect step's unavailable button. */
 @Composable
 private fun GradientButton(text: String, enabled: Boolean, onClick: () -> Unit) {
-    val disabled = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.12f)
+    val disabled = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.15f)
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -710,7 +654,7 @@ private fun GradientButton(text: String, enabled: Boolean, onClick: () -> Unit) 
     ) {
         Text(
             text,
-            color = if (enabled) Color.White else MaterialTheme.colorScheme.onBackground.copy(alpha = 0.4f),
+            color = Color.White,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.SemiBold
         )
