@@ -14,6 +14,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
+import java.time.Instant
 import kotlin.random.Random
 
 class DriveCloudBackupClientTest {
@@ -73,6 +74,55 @@ class DriveCloudBackupClientTest {
 
         assertEquals("/drive/v3/files/file-1?alt=media", server.takeRequest().path)
         assertArrayEquals(bytes, destination.readBytes())
+    }
+
+    @Test
+    fun findBackupFileReturnsTheIdAndWhenItWasLastUploaded() = runBlocking {
+        server.enqueue(
+            MockResponse().setResponseCode(200).setBody(
+                """{"files":[{"id":"file-1","name":"fudai-backup.zip","modifiedTime":"2026-10-18T09:30:00.123Z"}]}"""
+            )
+        )
+
+        val file = drive.findBackupFile("token")
+
+        assertEquals("file-1", file?.id)
+        assertEquals(Instant.parse("2026-10-18T09:30:00.123Z"), file?.modifiedTime)
+        val request = server.takeRequest()
+        assertEquals("Bearer token", request.getHeader("Authorization"))
+        assertTrue(request.path!!.contains("spaces=appDataFolder"))
+        assertTrue(request.path!!.contains("modifiedTime"))
+    }
+
+    @Test
+    fun anAccountWithoutABackupHasNoFileAndAMissingDateIsNull() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"files":[]}"""))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"files":[{"id":"file-2"}]}"""))
+
+        assertNull(drive.findBackupFile("token"))
+        assertEquals(DriveCloudBackupClient.BackupFile("file-2", null), drive.findBackupFile("token"))
+    }
+
+    @Test
+    fun aFailedLookupThrowsInsteadOfReadingAsNoBackup() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(401))
+
+        val error = runCatching { drive.findBackupFile("expired") }.exceptionOrNull()
+
+        assertEquals("Drive list failed (401)", error?.message)
+    }
+
+    @Test
+    fun revokeSendsTheTokenInTheFormBodyNotTheUrl() = runBlocking {
+        server.enqueue(MockResponse().setResponseCode(200))
+
+        drive.revoke("secret-token")
+
+        val request = server.takeRequest()
+        assertEquals("POST", request.method)
+        assertEquals("/revoke", request.path)
+        assertTrue(request.getHeader("Content-Type")!!.startsWith("application/x-www-form-urlencoded"))
+        assertEquals("token=secret-token", request.body.readUtf8())
     }
 
     @Test

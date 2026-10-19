@@ -485,14 +485,16 @@ class HealthKitManager {
     /// Reconciles app-owned workout burn samples in both directions. Health-only
     /// rows restore local history after reinstall, while local rows created or
     /// recalculated with Health disabled are exported when sync resumes.
+    /// Returns the queued run so a caller can wait for it; nil when none started.
+    @discardableResult
     func synchronizeWorkoutBurnsWithHealthKit(
         existing: @escaping () -> [StrengthWorkoutSession],
         mergeBatch: @escaping ([StrengthWorkoutSession]) -> Void
-    ) {
-        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return }
-        guard !isBackfillingWorkoutBurn else { return }
+    ) -> Task<Void, Never>? {
+        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return nil }
+        guard !isBackfillingWorkoutBurn else { return nil }
         isBackfillingWorkoutBurn = true
-        enqueueWorkoutBurnOperation { [weak self] in
+        return enqueueWorkoutBurnOperation { [weak self] in
             guard let self else { return }
             defer { self.isBackfillingWorkoutBurn = false }
             guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return }
@@ -582,12 +584,15 @@ class HealthKitManager {
         }
     }
 
-    private func enqueueWorkoutBurnOperation(_ operation: @escaping () async -> Void) {
+    @discardableResult
+    private func enqueueWorkoutBurnOperation(_ operation: @escaping () async -> Void) -> Task<Void, Never> {
         let previous = workoutBurnOperationTail
-        workoutBurnOperationTail = Task {
+        let task = Task {
             _ = await previous?.result
             await operation()
         }
+        workoutBurnOperationTail = task
+        return task
     }
 
     private func replaceWorkoutBurnSample(with session: StrengthWorkoutSession) async {
@@ -800,15 +805,17 @@ class HealthKitManager {
     /// samples so subsequent scene-active wire-ups skip it. `importSamples`
     /// returns false when the weight store could not save them (blocked
     /// persistence); the version then stays unstamped and the backfill retries.
+    /// Returns the running import so a caller can wait for it; nil when none started.
+    @discardableResult
     func backfillWeightFromHealthKitIfNeeded(
         importSamples: @escaping ([WeightHealthSample]) -> Bool
-    ) {
-        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return }
+    ) -> Task<Void, Never>? {
+        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return nil }
         let backfilled = UserDefaults.standard.integer(forKey: weightBackfillVersionKey)
-        guard backfilled < typesVersion else { return }
-        guard !isBackfillingWeight else { return }
+        guard backfilled < typesVersion else { return nil }
+        guard !isBackfillingWeight else { return nil }
         isBackfillingWeight = true
-        Task {
+        return Task {
             defer { isBackfillingWeight = false }
             // A failed query (auth not determined, transient HK error) returns nil —
             // bail WITHOUT stamping the version so the backfill retries next scene-active
@@ -929,23 +936,29 @@ class HealthKitManager {
     /// Same dedup discipline (skip our writes via fudai_bodyfat_id, dedup
     /// externals by same-day + same-fraction) and same one-shot-per-version
     /// guard so it doesn't re-scan on every scene-active.
+    /// Returns the running import so a caller can wait for it; nil when none started.
+    @discardableResult
+    /// `addingMissingOwnSamples` also brings back Fud AI's own readings into a
+    /// history that isn't empty (after a welcome-back restore), skipping ids it holds.
     func backfillBodyFatFromHealthKitIfNeeded(
+        addingMissingOwnSamples: Bool = false,
         existing: @escaping () -> [BodyFatEntry],
         importBatch: @escaping ([BodyFatEntry]) -> Void
-    ) {
-        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return }
+    ) -> Task<Void, Never>? {
+        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return nil }
         let backfilled = UserDefaults.standard.integer(forKey: bodyFatBackfillVersionKey)
-        guard backfilled < typesVersion else { return }
-        guard !isBackfillingBodyFat else { return }
+        guard backfilled < typesVersion else { return nil }
+        guard !isBackfillingBodyFat else { return nil }
         isBackfillingBodyFat = true
-        Task {
+        return Task {
             defer { isBackfillingBodyFat = false }
             guard let samples = await fetchAllSamples(.bodyFatPercentage, unit: .percent(), fudaiMetadataKey: "fudai_bodyfat_id") else { return }
             let calendar = Calendar.current
             let snapshot = existing()
             // Same restore-mode / original-id / batch-dedup discipline as the
             // weight backfill — see backfillWeightFromHealthKitIfNeeded.
-            let restoringOwnHistory = snapshot.isEmpty
+            let restoringOwnHistory = snapshot.isEmpty || addingMissingOwnSamples
+            let existingIDs = Set(snapshot.map(\.id))
             var newEntries: [BodyFatEntry] = []
             let isAlreadyLogged: (Date, Double) -> Bool = { date, fraction in
                 snapshot.contains {
@@ -957,7 +970,7 @@ class HealthKitManager {
             for s in samples {
                 if isAlreadyLogged(s.date, s.value) { continue }
                 if let fudaiID = s.fudaiID {
-                    guard restoringOwnHistory else { continue }
+                    guard restoringOwnHistory, !existingIDs.contains(fudaiID) else { continue }
                     newEntries.append(BodyFatEntry(id: fudaiID, date: s.date, bodyFatFraction: s.value))
                 } else {
                     newEntries.append(BodyFatEntry(date: s.date, bodyFatFraction: s.value))
@@ -1404,6 +1417,16 @@ class HealthKitManager {
     private let foodRecoveryDoneKey = "healthKitFoodRecoveryDone"
     private var isRecoveringFood = false
 
+    /// Whether the one-shot meal, weight and body-fat history imports finished. They
+    /// don't report failures: each stamps its marker only after its Health reads succeed,
+    /// so a failed read leaves this false.
+    var finishedHistoryImports: Bool {
+        let defaults = UserDefaults.standard
+        return defaults.bool(forKey: foodRecoveryDoneKey)
+            && defaults.integer(forKey: weightBackfillVersionKey) >= typesVersion
+            && defaults.integer(forKey: bodyFatBackfillVersionKey) >= typesVersion
+    }
+
     /// Rebuilds the local food log from the nutrition samples this app previously
     /// wrote to HealthKit — the restore path after a reinstall, phone reset, or
     /// new phone, where Health data survives (via iCloud) but the app container
@@ -1414,15 +1437,17 @@ class HealthKitManager {
     /// target the matching HK samples. One-shot per install; dedupes against ids
     /// already in the store, so it's a no-op for users whose log is intact.
     /// Photos, emojis, notes and serving units aren't in Health and don't return.
+    /// Returns the running restore so a caller can wait for it; nil when none started.
+    @discardableResult
     func restoreFoodEntriesFromHealthKitIfNeeded(
         existingIDs: @escaping () -> Set<UUID>,
         importBatch: @escaping ([FoodEntry]) -> Void
-    ) {
-        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return }
-        guard !UserDefaults.standard.bool(forKey: foodRecoveryDoneKey) else { return }
-        guard !isRecoveringFood else { return }
+    ) -> Task<Void, Never>? {
+        guard UserDefaults.standard.bool(forKey: "healthKitEnabled") else { return nil }
+        guard !UserDefaults.standard.bool(forKey: foodRecoveryDoneKey) else { return nil }
+        guard !isRecoveringFood else { return nil }
         isRecoveringFood = true
-        Task {
+        return Task {
             defer { isRecoveringFood = false }
             var accumulated: [UUID: RecoveredEntry] = [:]
             for identifier in nutritionTypeIdentifiers {

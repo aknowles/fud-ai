@@ -62,6 +62,7 @@ import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.launchIn
@@ -151,59 +152,7 @@ open class FudAIApp : Application() {
         // drops scheduled alarms on device reboot and (sometimes) on app
         // updates — without this, a user who enabled Notifications once would
         // silently stop receiving the reminder after the next reboot.
-        appScope.launch {
-            if (container.prefs.fastingTrackingEnabled.first()) {
-                container.notifications.ensureFastingChannel()
-            }
-            if (container.prefs.notificationsEnabled.first() &&
-                container.notifications.canPostNotifications()
-            ) {
-                if (container.prefs.streakReminderEnabled.first()) {
-                    container.notifications.scheduleStreakReminder(
-                        container.prefs.streakReminderHour.first(),
-                        container.prefs.streakReminderMinute.first()
-                    )
-                } else {
-                    container.notifications.cancelStreakReminder()
-                }
-                if (container.prefs.dailySummaryEnabled.first()) {
-                    container.notifications.scheduleDailySummary(
-                        container.prefs.dailySummaryHour.first(),
-                        container.prefs.dailySummaryMinute.first()
-                    )
-                } else {
-                    container.notifications.cancelDailySummary()
-                }
-                if (container.prefs.weightReminderEnabled.first()) {
-                    container.notifications.scheduleWeightReminder()
-                } else {
-                    container.notifications.cancelWeightReminder()
-                }
-                // Body-fat reminder only fires for users who've actually opted
-                // into body-fat tracking and left that notification type on.
-                val profile = container.profileRepository.current()
-                if (container.prefs.bodyFatReminderEnabled.first() && profile?.bodyFatPercentage != null) {
-                    container.notifications.scheduleBodyFatReminder()
-                } else {
-                    container.notifications.cancelBodyFatReminder()
-                }
-                if (container.prefs.waterTrackingEnabled.first() && container.prefs.waterReminderEnabled.first()) {
-                    container.notifications.scheduleWaterReminder(
-                        container.prefs.waterReminderHour.first(),
-                        container.prefs.waterReminderMinute.first()
-                    )
-                } else {
-                    container.notifications.cancelWaterReminder()
-                }
-                if (container.prefs.fastingTrackingEnabled.first() &&
-                    container.prefs.fastingGoalNotificationEnabled.first()
-                ) {
-                    container.notifications.scheduleFastingGoal(container.fastingRepository.active())
-                } else {
-                    container.notifications.cancelFastingGoal()
-                }
-            }
-        }
+        appScope.launch { container.rescheduleReminders() }
     }
 }
 
@@ -427,10 +376,83 @@ class AppContainer(app: FudAIApp) {
      */
     val analyzingFood: MutableStateFlow<Boolean> = MutableStateFlow(false)
 
+    /** Schedules each enabled reminder and cancels the rest, from the saved settings. Runs on
+     *  every cold start, and again after a Drive restore brings back another phone's settings. */
+    suspend fun rescheduleReminders() {
+        if (prefs.fastingTrackingEnabled.first()) {
+            notifications.ensureFastingChannel()
+        }
+        if (!prefs.notificationsEnabled.first() || !notifications.canPostNotifications()) return
+        if (prefs.streakReminderEnabled.first()) {
+            notifications.scheduleStreakReminder(
+                prefs.streakReminderHour.first(),
+                prefs.streakReminderMinute.first()
+            )
+        } else {
+            notifications.cancelStreakReminder()
+        }
+        if (prefs.dailySummaryEnabled.first()) {
+            notifications.scheduleDailySummary(
+                prefs.dailySummaryHour.first(),
+                prefs.dailySummaryMinute.first()
+            )
+        } else {
+            notifications.cancelDailySummary()
+        }
+        if (prefs.weightReminderEnabled.first()) {
+            notifications.scheduleWeightReminder()
+        } else {
+            notifications.cancelWeightReminder()
+        }
+        // Body-fat reminder only fires for users who've actually opted
+        // into body-fat tracking and left that notification type on.
+        val profile = profileRepository.current()
+        if (prefs.bodyFatReminderEnabled.first() && profile?.bodyFatPercentage != null) {
+            notifications.scheduleBodyFatReminder()
+        } else {
+            notifications.cancelBodyFatReminder()
+        }
+        if (prefs.waterTrackingEnabled.first() && prefs.waterReminderEnabled.first()) {
+            notifications.scheduleWaterReminder(
+                prefs.waterReminderHour.first(),
+                prefs.waterReminderMinute.first()
+            )
+        } else {
+            notifications.cancelWaterReminder()
+        }
+        if (prefs.fastingTrackingEnabled.first() &&
+            prefs.fastingGoalNotificationEnabled.first()
+        ) {
+            notifications.scheduleFastingGoal(fastingRepository.active())
+        } else {
+            notifications.cancelFastingGoal()
+        }
+    }
+
     private var adaptiveGoalsRefreshInFlight = false
 
     @Volatile
     private var healthReadSyncInFlight = false
+
+    /** [syncHealthConnectReads] for a caller that shows what was imported: when another sync
+     *  is already running (it returns at once then), waits for that one to finish instead. */
+    suspend fun syncHealthConnectReadsAndWait(): Boolean {
+        while (healthReadSyncInFlight) delay(100)
+        syncHealthConnectReads()
+        while (healthReadSyncInFlight) delay(100)
+        return healthReadsCompleted()
+    }
+
+    /** Whether the steps a failed Health Connect read leaves undone are done: the one-shot
+     *  meal restore and the weigh-in/body-fat changes token, for the types this phone can
+     *  read. The sync itself doesn't report failures; it skips these so a later sync retries. */
+    private suspend fun healthReadsCompleted(): Boolean {
+        if (!prefs.healthConnectEnabled.first() || !health.isAvailable()) return false
+        val caps = health.capabilities()
+        if (caps.nutritionRead && !prefs.healthFoodRestoreDone.first()) return false
+        if ((caps.weightRead || caps.bodyFatRead) && prefs.healthChangesToken.first() == null) return false
+        return true
+    }
 
     /**
      * Pull external weight + body-fat readings FROM Health Connect into the app (e.g. a
@@ -534,15 +556,7 @@ class AppContainer(app: FudAIApp) {
             // A token seeded now would never deliver what a failed read missed; leave it
             // unset so the next sync runs the backfill again (imports are deduped).
             if (!readEverything) return
-            // Seed a token covering only the types we can actually read.
-            val recordTypes = buildSet {
-                if (caps.weightRead) add(androidx.health.connect.client.records.WeightRecord::class)
-                if (caps.bodyFatRead) add(androidx.health.connect.client.records.BodyFatRecord::class)
-            }
-            health.getChangesToken(recordTypes)?.let {
-                prefs.setHealthChangesToken(it)
-                prefs.setHealthChangesTokenTypes(healthReadSeededTypes(desiredTypes))
-            }
+            seedBodyReadingsChangesToken(caps)
         } else {
             var next: String? = null
             if (caps.weightRead) {
@@ -558,6 +572,61 @@ class AppContainer(app: FudAIApp) {
                 next = result.second ?: next
             }
             next?.let { prefs.setHealthChangesToken(it) }
+        }
+    }
+
+    /** Seeds a weight/body-fat changes token covering only the types [caps] can read. */
+    private suspend fun seedBodyReadingsChangesToken(caps: HealthCapabilities) {
+        val recordTypes = buildSet {
+            if (caps.weightRead) add(androidx.health.connect.client.records.WeightRecord::class)
+            if (caps.bodyFatRead) add(androidx.health.connect.client.records.BodyFatRecord::class)
+        }
+        health.getChangesToken(recordTypes)?.let {
+            prefs.setHealthChangesToken(it)
+            prefs.setHealthChangesTokenTypes(healthReadSeededTypes(healthReadTokenTypes(caps)))
+        }
+    }
+
+    /**
+     * Right after a Drive restore: adds what Fud AI saved to Health Connect that the backup
+     * lacks (meals logged after it, newer weigh-ins), matched by the ids the regular sync
+     * uses. Unlike that sync it never replaces a restored record, skips deleted ids, and
+     * leaves the profile alone. The changes token it seeds keeps the next regular sync from
+     * re-running its upserting backfill over the restored history. Workout burns are left to
+     * the regular sync's per-day reconcile, which keeps a restored session unless Health
+     * Connect holds a newer edit of that same session.
+     */
+    suspend fun importHealthConnectAddingOnly(): Boolean {
+        if (!prefs.healthConnectEnabled.first() || !health.isAvailable()) return false
+        while (healthReadSyncInFlight) delay(100)
+        healthReadSyncInFlight = true
+        try {
+            val caps = health.capabilities()
+            val now = Instant.now()
+            var readEverything = true
+            if (caps.nutritionRead) {
+                // Ids already in the restored log are skipped.
+                val records = health.readNutrition(now.minus(Duration.ofDays(730)), now)
+                if (records != null) foodRepository.restoreFromHealthConnect(records) else readEverything = false
+            }
+            if (caps.weightRead || caps.bodyFatRead) {
+                val from = now.minus(Duration.ofDays(HEALTH_BODY_BACKFILL_DAYS))
+                var readBodyReadings = true
+                if (caps.weightRead) {
+                    val weights = health.readWeights(from, now)
+                    if (weights != null) weightRepository.addMissingExternalWeights(weights) else readBodyReadings = false
+                }
+                if (caps.bodyFatRead) {
+                    val bodyFats = health.readBodyFats(from, now)
+                    if (bodyFats != null) bodyFatRepository.addMissingExternalBodyFats(bodyFats) else readBodyReadings = false
+                }
+                if (readBodyReadings) seedBodyReadingsChangesToken(caps) else readEverything = false
+            }
+            // Other apps' workouts are never in a backup; this only adds read-only copies.
+            importedHealthWorkoutRepository.synchronize()
+            return readEverything
+        } finally {
+            healthReadSyncInFlight = false
         }
     }
 

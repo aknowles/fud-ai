@@ -4838,6 +4838,7 @@ struct ProfileView: View {
     @Environment(NotificationManager.self) private var notificationManager
     @Environment(HealthKitManager.self) private var healthKitManager
     @Environment(WeeklyChallengeStore.self) private var weeklyChallengeStore
+    @Environment(CloudBackupService.self) private var cloudBackupService
     private var profile: UserProfile {
         get { profileStore.profile }
         nonmutating set { profileStore.profile = newValue }
@@ -6847,6 +6848,10 @@ struct ProfileView: View {
                         notificationManager.cancelAllNotifications()
                         let domain = Bundle.main.bundleIdentifier ?? ""
                         UserDefaults.standard.removePersistentDomain(forName: domain)
+                        // The backup service still has backup on in memory; left
+                        // alone, the next background auto-backup would upload this
+                        // emptied phone over the user's iCloud backup.
+                        cloudBackupService.turnOffAfterDeleteAllData()
                         AIProviderSettings.deleteAllData()
                         SpeechSettings.deleteAllData()
                         FoodDataCentralSettings.setAPIKey(nil)

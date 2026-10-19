@@ -8,8 +8,13 @@ struct OnboardingView: View {
     @Environment(FoodStore.self) private var foodStore
     @Environment(WeightStore.self) private var weightStore
     @Environment(HealthKitManager.self) private var healthKitManager
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     @State private var step = 0
+    /// Step 0 shows the welcome-back screen instead of the welcome content.
+    @State private var showsWelcomeBack = ReturningUser.opensWelcomeBack
+    /// A Health import from the welcome-back screen; its values prefill the wizard.
+    @State private var healthImport: ReturningUser.HealthImport?
     @State private var gender: Gender = .male
     @State private var birthday: Date = Calendar.current.date(byAdding: .year, value: -25, to: Date()) ?? Date()
     @AppStorage("heightUnit") private var heightUnitRaw = "ftin"
@@ -146,7 +151,7 @@ struct OnboardingView: View {
 
                 ZStack {
                     switch step {
-                    case 0: welcomeStep
+                    case 0: firstStep
                     case 1: genderStep
                     case 2: birthdayStep
                     case 3: heightWeightStep
@@ -197,6 +202,60 @@ struct OnboardingView: View {
 
     // MARK: - 0: Welcome
 
+    /// Welcome, or welcome back for people who used Fud AI before. Both are
+    /// step 0, so the step numbers and progress bar stay the same.
+    private var firstStep: some View {
+        ZStack {
+            if showsWelcomeBack {
+                ReturningUserView(
+                    healthImportSummary: healthImport?.summary,
+                    hasCompletedOnboarding: $hasCompletedOnboarding,
+                    onHealthImported: { result in
+                        healthImport = result
+                        applyHealthPrefill(result.prefill)
+                    },
+                    onStartSetup: {
+                        withAnimation(.snappy) { step = 1 }
+                    }
+                )
+                .transition(welcomeBackTransition)
+            } else {
+                welcomeStep
+                    .transition(welcomeBackTransition)
+            }
+        }
+    }
+
+    private var welcomeBackTransition: AnyTransition {
+        reduceMotion
+            ? .opacity
+            : .asymmetric(
+                insertion: .move(edge: .trailing).combined(with: .opacity),
+                removal: .move(edge: .leading).combined(with: .opacity)
+            )
+    }
+
+    /// Fills the profile steps with what Apple Health had, clamped to each wheel.
+    private func applyHealthPrefill(_ prefill: ReturningUser.HealthPrefill) {
+        if let health = prefill.gender { gender = health }
+        if let dob = prefill.birthday { birthday = ReturningUser.birthdayWheel(dob) }
+        if let cm = prefill.heightCm, let wheels = ReturningUser.heightWheels(cm: cm) {
+            heightCm = wheels.cm
+            heightFeet = wheels.feet
+            heightInches = wheels.inches
+        }
+        if let kg = prefill.weightKg, let wheels = ReturningUser.weightWheels(kg: kg) {
+            weightKgWhole = wheels.kgWhole
+            weightKgTenth = wheels.kgTenth
+            weightLbsWhole = wheels.lbsWhole
+            weightLbsTenth = wheels.lbsTenth
+        }
+        if let fraction = prefill.bodyFatFraction, let percent = ReturningUser.bodyFatWheel(fraction: fraction) {
+            knowsBodyFat = true
+            bodyFatPercentage = percent
+        }
+    }
+
     private var welcomeStep: some View {
         VStack(spacing: 0) {
             Spacer()
@@ -231,21 +290,35 @@ struct OnboardingView: View {
             }
             Spacer()
 
-            Button {
-                withAnimation(.snappy) { step += 1 }
-            } label: {
-                Text("Get Started")
-                    .font(.system(.headline, design: .rounded, weight: .semibold))
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(
-                        LinearGradient(colors: AppColors.calorieGradient, startPoint: .leading, endPoint: .trailing)
-                    )
-                    .foregroundStyle(.white)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+            VStack(spacing: 6) {
+                Button {
+                    withAnimation(.snappy) { step += 1 }
+                } label: {
+                    Text("Get Started")
+                        .font(.system(.headline, design: .rounded, weight: .semibold))
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(
+                            LinearGradient(colors: AppColors.calorieGradient, startPoint: .leading, endPoint: .trailing)
+                        )
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
+
+                Button {
+                    withAnimation(reduceMotion ? .easeInOut(duration: 0.2) : .snappy) { showsWelcomeBack = true }
+                } label: {
+                    Text("Used Fud AI before?")
+                        .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                        .foregroundStyle(AppColors.calorie)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 10)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
-            .padding(.bottom, 36)
+            .padding(.bottom, 26)
         }
     }
 
@@ -784,11 +857,17 @@ struct OnboardingView: View {
                         if authorized {
                             UserDefaults.standard.set(true, forKey: "healthKitEnabled")
 
-                            // Write current profile data to Health
+                            // Write current profile data to Health, except values the
+                            // welcome-back import read from Health: they'd be duplicates.
                             let p = profile
-                            healthKitManager.writeWeight(kg: p.weightKg, date: .now)
-                            healthKitManager.writeHeight(cm: p.heightCm)
-                            if let bf = p.bodyFatPercentage {
+                            let fromHealth = healthImport?.prefill
+                            if fromHealth?.weightKg == nil {
+                                healthKitManager.writeWeight(kg: p.weightKg, date: .now)
+                            }
+                            if fromHealth?.heightCm == nil {
+                                healthKitManager.writeHeight(cm: p.heightCm)
+                            }
+                            if let bf = p.bodyFatPercentage, fromHealth?.bodyFatFraction == nil {
                                 healthKitManager.writeBodyFat(fraction: bf)
                             }
 

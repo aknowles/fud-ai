@@ -17,6 +17,16 @@ enum SimulatorTestEnvironment {
         #endif
     }
 
+    /// `--ui-testing-returning` opens onboarding on the welcome-back screen,
+    /// which tests never reach otherwise (they skip the Keychain check).
+    static var forcesReturningUserWelcome: Bool {
+        #if DEBUG && targetEnvironment(simulator)
+        return CommandLine.arguments.contains("--ui-testing-returning")
+        #else
+        return false
+        #endif
+    }
+
     /// Called before App storage properties initialize. Static initialization
     /// ensures a subsequent App value cannot erase state created by a test.
     static func prepare() {

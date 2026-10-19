@@ -8,6 +8,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.espresso.Espresso.closeSoftKeyboard
+import androidx.test.espresso.Espresso.pressBack
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.apoorvdarshan.calorietracker.models.EnergyUnit
@@ -103,6 +104,45 @@ class AppFlowsTest {
         compose.onNodeWithText(string(R.string.onboarding_height_weight_title)).assertIsDisplayed()
         compose.onNodeWithTag("nav.home").assertDoesNotExist()
         // The test deliberately stops before provider setup and permission prompts.
+    }
+
+    @Test
+    fun returningUserScreenOpensFromWelcomeAndStartFreshContinuesTheNormalOnboarding() {
+        launchFresh(onboarded = false)
+        waitFor(hasTestTag("onboarding.WELCOME"))
+        // Background services are off here, so Welcome back never opens on its own.
+        compose.onNodeWithTag("onboarding.RETURNING").assertDoesNotExist()
+
+        clickText(R.string.returning_entry)
+        waitFor(hasTestTag("onboarding.RETURNING"))
+        compose.onNodeWithText(string(R.string.returning_title)).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.action_get_started)).assertDoesNotExist()
+
+        // System back returns to the welcome content instead of leaving the app.
+        pressBack()
+        waitForAbsent(hasTestTag("onboarding.RETURNING"))
+        waitFor(hasText(string(R.string.action_get_started)))
+        compose.onNodeWithTag("onboarding.WELCOME").assertExists()
+
+        // Cards only toggle; Continue (never tapped here) is what opens Google or Health
+        // Connect, so no sheet appears in this test.
+        clickText(R.string.returning_entry)
+        waitFor(hasTestTag("onboarding.RETURNING"))
+        val continueButton = hasText(string(R.string.action_continue)) and hasClickAction()
+        compose.onNode(continueButton).assertIsNotEnabled()
+        val driveCard = hasText(string(R.string.returning_drive_title)) and isToggleable()
+        compose.onNode(driveCard).assertIsOff().performClick()
+        compose.onNode(driveCard).assertIsOn()
+        compose.onNode(continueButton).assertIsEnabled()
+        compose.onNode(driveCard).performClick()
+        compose.onNode(driveCard).assertIsOff()
+        compose.onNode(continueButton).assertIsNotEnabled()
+
+        clickText(R.string.returning_start_fresh)
+        waitFor(hasTestTag("onboarding.GENDER"))
+        compose.onNodeWithTag("onboarding.RETURNING").assertDoesNotExist()
+        compose.onNodeWithTag("nav.home").assertDoesNotExist()
+        runBlocking { assertTrue(!prefs.cloudBackupEnabled.first()) }
     }
 
     @Test

@@ -1446,6 +1446,11 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             val challengeDeleted = container.weeklyChallengeRepository.prepareForDeleteEverything()
             // Stops the countdown and clears its saved state and alarm, which live outside DataStore.
             container.workoutRestTimer.skip()
+            // Before the wipe, and after any backup already uploading: that upload would turn
+            // backup back on, and the in-memory Drive token would then let an auto-backup
+            // replace the user's Drive copy with this emptied phone. Backup stays off until the
+            // user turns it on again; the Drive file itself is kept for a later restore.
+            container.cloudBackup.forgetSession()
             container.prefs.clearAll()
             container.keyStore.clearAll(preserveWeeklyChallengeToken = !challengeDeleted)
             container.imageStore.clearAll()
