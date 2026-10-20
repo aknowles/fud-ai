@@ -36,7 +36,8 @@ ASC_SETS = (
         '6.7" iPhone',
         ROOT / "store" / "screenshots" / "ios",
         IOS_STAGED / "6.7",
-        ((1290, 2796), (1284, 2778)),
+        # The sizes asc accepts for APP_IPHONE_67 (1284x2778 is the 6.5" size).
+        ((1290, 2796), (1320, 2868), (1260, 2736)),
     ),
     AscSet(
         '13" iPad',

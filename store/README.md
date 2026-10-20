@@ -461,7 +461,8 @@ store/screenshots/     # listing images, as live on the stores (source of truth)
   watch/               # Apple Watch screenshot (uploaded by hand)
 store/creative/ios/    # App Store creative assets (IOS_UPLOAD_CREATIVE_ASSETS)
   header/              # one product page header image, 3840×1646 PNG
-  search-results/      # one search results image, 3:2, 1920×1280 to 3840×2560
+  search-results/      # one search results image, 3:2 PNG or JPEG, 1920×1280 to 3840×2560
+                       # (a 5244×2950 PNG is a universal image that fits either slot)
 store/graphics/
   play/feature-graphic.png   # Play feature graphic, 1024×500 (uploaded by hand)
 store/metadata/
@@ -493,7 +494,10 @@ Upload them in App Store Connect and Play Console by hand.
 A creative image is matched in the Asset Library by file name and size, so
 give a changed image a new file name. Apple reviews each new image on its own
 (the app already has an approved version), and a later run places it once it is
-approved; a rejected image stops the run with Apple's reason. Apple's rules for
+approved; a rejected image stops the run with Apple's reason. Sizes, formats and
+alpha are checked before the build, so a wrong file stops the run early. An
+image approved while the version waits for review is not a mismatch: the rerun
+passes and the image is placed once the version can be edited. Apple's rules for
 these images: no prices, website addresses, other platforms or Apple badges,
 and no transparency.
 

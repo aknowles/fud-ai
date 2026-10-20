@@ -198,9 +198,11 @@ class StageTests(SetsFixture):
             (source / "02-misplaced.png").unlink()
 
     def test_a_frame_shaped_like_its_set_is_still_staged(self):
-        # 6.9" iPhone frames have the 6.7" shape; staging fits them onto 1290x2796.
-        self.assertTrue(ss.asc_frame_fits(self.asc_sets[0], 1320, 2868))
-        self.write(self.ios_src, "01-a.png", size=(1320, 2868))
+        # 6.5" iPhone frames have the 6.7" shape; staging fits them onto 1290x2796
+        # (asc refuses 1284x2778 in the 6.7" set).
+        self.assertTrue(ss.asc_frame_fits(self.asc_sets[0], 1284, 2778))
+        self.assertNotIn((1284, 2778), self.asc_sets[0].accepted)
+        self.write(self.ios_src, "01-a.png", size=(1284, 2778))
         self.write_tablet_sets()
 
         self.stage(dry_run=False, platform="ios")
@@ -279,8 +281,8 @@ class PillowStageTests(SetsFixture):
         cases = [
             # (set index, source size, staged size)
             (0, (1290, 2796), (1290, 2796)),
-            (0, (1284, 2778), (1284, 2778)),
-            (0, (1320, 2868), (1290, 2796)),
+            (0, (1320, 2868), (1320, 2868)),
+            (0, (1284, 2778), (1290, 2796)),
             (1, (2064, 2752), (2064, 2752)),
             (1, (2048, 2732), (2048, 2732)),
             (1, (1032, 1376), (2064, 2752)),
