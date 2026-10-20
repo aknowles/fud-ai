@@ -61,7 +61,8 @@ instead of a run silently cold-booting.
 
 Gradle's build and configuration caches are on. Unit test results are never taken
 from the build cache (the tests read repository files that are not task inputs),
-and signed store builds in `android-release.yml` use `--no-build-cache`.
+and signed store builds (Android Release, through store-release's `android-publish.yml`)
+use `--no-build-cache`.
 
 ## Results and scope
 
