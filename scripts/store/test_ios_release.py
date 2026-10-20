@@ -1183,6 +1183,19 @@ class LiveSubmitFlowTests(unittest.TestCase):
         # Checked before the build is selected, so nothing at all is written.
         self.assertEqual(fake.writes(), [])
 
+    def test_a_stopped_submit_leaves_the_listing_text_alone_too(self) -> None:
+        # Text stays editable in READY_FOR_REVIEW, so the draft check must come
+        # before the listing update, not just before the build selection.
+        with tempfile.TemporaryDirectory() as tmp:
+            loc = Path(tmp) / "ios" / "en-US"
+            loc.mkdir(parents=True)
+            (loc / "description.txt").write_text("New description\n")
+            (loc / "whats_new.txt").write_text("Fixes.\n")
+            fake = FakeAsc(state="READY_FOR_REVIEW", live_text={"description": "Old", "whatsNew": "Older"})
+            env = {**SUBMIT, "UPLOAD_LISTING": "true", "UPLOAD_WHATS_NEW": "true"}
+            self.assertEqual(run_main(fake, env, [*SUBMIT_ARGS, "--metadata-dir", tmp]), 1)
+        self.assertEqual(fake.writes(), [])
+
     def test_the_draft_holding_this_version_is_chosen_over_others(self) -> None:
         other = [{"id": "P", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}}]
         mine = [{"id": "V", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]

@@ -1104,6 +1104,19 @@ def main() -> None:
         )
     if do_submit and not waiting and state not in SUBMITTABLE_VERSION_STATES:
         fail(f"version {args.version!r} cannot be submitted for review (state={state})")
+    # Pick and check the version's draft before any write (text, screenshots,
+    # images or the build), so a run that has to stop here changes nothing.
+    submission_id: str | None = None
+    if do_submit and not waiting:
+        submission_id = find_draft_submission(asc, app_id, version_id)
+        if state == "READY_FOR_REVIEW" and (
+            submission_id is None
+            or not any(related_id(item, "appStoreVersion") == version_id for item in submission_items(asc, submission_id))
+        ):
+            fail(
+                f"version {args.version} is READY_FOR_REVIEW, but no draft review submission holds it; "
+                "remove the version from its submission in App Store Connect and rerun"
+            )
 
     # Read-only comparisons first, so a mismatch stops the run before any write.
     if do_screenshots and screenshots_locked:
@@ -1158,17 +1171,6 @@ def main() -> None:
         return
 
     if do_submit:
-        # Pick and check the draft before any write, so a run that has to stop
-        # here leaves the version and its build untouched.
-        submission_id = find_draft_submission(asc, app_id, version_id)
-        if state == "READY_FOR_REVIEW" and (
-            submission_id is None
-            or not any(related_id(item, "appStoreVersion") == version_id for item in submission_items(asc, submission_id))
-        ):
-            fail(
-                f"version {args.version} is READY_FOR_REVIEW, but no draft review submission holds it; "
-                "remove the version from its submission in App Store Connect and rerun"
-            )
         print("selecting this run's build…")
         select_build(asc, version_id, args.build_id, args.version, args.build_number)
         set_release_type(asc, version_id, public_release=do_public)
