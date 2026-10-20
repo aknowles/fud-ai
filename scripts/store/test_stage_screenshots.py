@@ -262,6 +262,19 @@ class PillowStageTests(SetsFixture):
         with self.PILLOW.open(path) as img:
             return img.size
 
+    def test_translucent_pixels_are_blended_once_even_when_resized(self):
+        # Half-transparent white over black is mid grey; blending twice made it ~96.
+        for size in ((2064, 2752), (1032, 1376)):
+            source = self.image(self.ipad_src, "01-glass.png", size, (255, 255, 255, 128))
+            self.image(self.ios_src, "01-a.png", (1290, 2796), (0, 0, 0, 255))
+            self.image(self.duo_src, "01-d.png", (1398, 2034), (0, 0, 0, 255))
+            with mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": "true"}):
+                self.stage(dry_run=False, platform="ios")
+            with self.PILLOW.open(self.ipad_dest / source.name) as staged, self.subTest(size=size):
+                self.assertEqual(staged.size, (2064, 2752))
+                red, green, blue = staged.getpixel((1032, 1376))
+                self.assertTrue(126 <= red <= 130 and red == green == blue, (red, green, blue))
+
     def test_accepted_sizes_stay_unchanged_and_other_shapes_fit_their_set(self):
         cases = [
             # (set index, source size, staged size)

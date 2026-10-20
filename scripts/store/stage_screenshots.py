@@ -134,11 +134,10 @@ def opaque_rgb(Image, img):
 def prepare_asc_png(Image, path: Path, asc_set: AscSet) -> bytes:
     target_w, target_h = asc_set.accepted[0]
     with Image.open(path) as img:
-        img = img.convert("RGBA")
-        w, h = img.size
-        if (w, h) not in asc_set.accepted:
-            img = fit_and_pad_rgba(Image, img, target_w, target_h)
+        # Flatten once, before any resize, so translucent pixels are blended a single time.
         out_img = opaque_rgb(Image, img)
+        if out_img.size not in asc_set.accepted:
+            out_img = fit_and_pad_rgba(Image, out_img, target_w, target_h).convert("RGB")
     out = io.BytesIO()
     out_img.save(out, format="PNG")
     return out.getvalue()
