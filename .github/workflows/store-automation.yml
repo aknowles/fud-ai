@@ -120,18 +120,12 @@ jobs:
           python3 scripts/store/prepare_whats_new.py --platform all --tag dry-run --out store/metadata
           python3 scripts/store/stage_screenshots.py --dry-run
 
-      # Proves the pinned release still downloads and matches its checksum.
-      - name: Install and check the pinned App Store Connect CLI (no store calls)
-        run: |
-          python3 scripts/store/asc_cli.py install --dest "$RUNNER_TEMP/asc-bin"
-          PATH="$RUNNER_TEMP/asc-bin:$PATH" python3 scripts/store/asc_cli.py check
-
       - name: Validate ASC / Play publisher scripts (import + --dry-run, no network)
         run: |
           python3 scripts/store/asc_release.py --help
           python3 scripts/store/play_listing.py --help
-          UPLOAD_LISTING=true UPLOAD_WHATS_NEW=true UPLOAD_CREATIVE_ASSETS=true SUBMIT_IOS_REVIEW=true \
-            PUBLIC_RELEASE=false python3 scripts/store/asc_release.py --dry-run --metadata-dir store/metadata \
+          UPLOAD_LISTING=true UPLOAD_WHATS_NEW=true SUBMIT_IOS_REVIEW=true PUBLIC_RELEASE=false \
+            python3 scripts/store/asc_release.py --dry-run --metadata-dir store/metadata \
             --build-id DRY-RUN --build-number 1
           python3 scripts/store/ios_release.py --help
           python3 scripts/store/android_release.py --help
@@ -148,7 +142,7 @@ jobs:
       - name: Install and import the store tooling (no store calls)
         run: |
           python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-store.txt
-          python3 -c "import googleapiclient.discovery, google.oauth2.service_account, PIL.Image; print('store tooling imports OK')"
+          python3 -c "import jwt, googleapiclient.discovery, google.oauth2.service_account, PIL.Image; print('store tooling imports OK')"
 
       # Release runs stage screenshots with Pillow, which fits frames onto each set's size.
       - name: Test screenshot staging with Pillow (offline)
