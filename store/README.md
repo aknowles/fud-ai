@@ -429,7 +429,8 @@ version. The draft that already holds this version is reused; otherwise only a
 draft holding no app version is, so another version's draft is never touched. A
 `READY_FOR_REVIEW` version that no draft holds stops the run before anything is
 written: the draft is checked before the listing text, screenshots, images or build
-are touched.
+are touched, and the read-only version preflight checks it too, before anything
+is built.
 
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new
@@ -494,7 +495,9 @@ Upload them in App Store Connect and Play Console by hand.
 
 A creative image is matched in the Asset Library by file name and size, so
 give a changed image a new file name. A reservation left by an interrupted upload
-(`AWAITING_UPLOAD`) is ignored and the image is uploaded again. Apple reviews each new image on its own
+(`AWAITING_UPLOAD`) is ignored and the image is uploaded again. Images never take
+an empty leftover draft (the version may have chosen it); an unfinished draft
+holding only these images is finished instead of starting another. Apple reviews each new image on its own
 (the app already has an approved version), and a later run places it once it is
 approved; a rejected image stops the run with Apple's reason. Sizes, formats and
 alpha are checked before the build, so a wrong file stops the run early. An

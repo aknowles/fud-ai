@@ -531,14 +531,16 @@ def sync_creative_assets(
 def submit_creative_review(asc: asc_cli.Asc, app_id: str, images: list[tuple[str, dict[str, Any]]]) -> str:
     """Send not-yet-reviewed creative images to App Review in a submission of their own.
 
-    A draft an earlier attempt left behind holding only some of these images
-    (or nothing yet) is finished instead of starting another one.
+    A draft an earlier attempt left behind holding only some of these images is
+    finished instead of starting another one. An empty draft is never taken:
+    the version and its products may already have chosen it.
     """
     wanted = {image["id"] for _, image in images}
     submission_id = None
     for draft in draft_submission_ids(asc, app_id):
-        held = {related_id(item, "appAssetLibraryImage") for item in submission_items(asc, draft)}
-        if held <= wanted:
+        items = submission_items(asc, draft)
+        held = {related_id(item, "appAssetLibraryImage") for item in items}
+        if items and held <= wanted:
             submission_id = draft
             print(f"  finishing creative review submission {draft} from an earlier attempt")
             break
