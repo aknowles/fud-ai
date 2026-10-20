@@ -73,8 +73,10 @@ that runs it:
   preflight, build numbering, the build wait, and the whole `prepare` job on
   validation runs. asc refuses a write in that mode before sending it (exit 6).
 - On failure the error keeps asc's exit code and drops the key and issuer IDs.
-  The build wait retries only asc's server-side exit codes (HTTP 5xx, 408, 429
-  and timeouts); auth, usage and not-found errors stop at once.
+  The build wait retries asc's server-side exit codes (HTTP 5xx, 408, 429 and
+  timeouts) and network drops, which asc reports as a generic exit 1 with a
+  connection error; auth, usage and not-found errors stop at once. asc itself
+  retries GET requests that hit 429 or 503 (`ASC_MAX_RETRIES=5`).
 
 The binary itself is still exported and uploaded by `xcodebuild`. To move to a
 newer asc, change `ASC_VERSION` and both `ASC_SHA256` values from that release's
@@ -474,7 +476,10 @@ Release workflows run `stage_screenshots.py --platform ios` when
 `ANDROID_UPLOAD_SCREENSHOTS` is true. Staging copies the numbered PNGs, in file
 name order, into `store/metadata/screenshots/`, and each upload replaces that
 store's whole screenshot set. Every iOS set needs at least one numbered PNG, so a
-missing set stops staging before anything is replaced. The app supports iPad, and
+missing set stops staging before anything is replaced. App Store screenshots are
+staged as RGB PNGs: App Store Connect, and `asc` before it uploads, refuses a PNG
+that stores an alpha channel even when every pixel is opaque, so staging flattens
+it and the store step refuses any staged or creative image that still has one. The app supports iPad, and
 App Store Connect will not submit a version without 13" iPad screenshots. iPhone
 Duo screenshots are optional until April 2027. `APP_IPHONE_DUO` is not in Apple's
 OpenAPI spec yet, but App Store Connect accepts it. To change a listing, replace the files in

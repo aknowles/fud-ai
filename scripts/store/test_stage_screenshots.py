@@ -207,6 +207,20 @@ class StageTests(SetsFixture):
 
         self.assertEqual(self.names(self.ios_dest), ["01-a.png"])
 
+    def test_upload_without_pillow_refuses_alpha(self):
+        self.write(self.ios_src, "01-a.png")
+        self.write_tablet_sets()
+        # Colour type 6 (RGBA) in the IHDR: asc would refuse the upload.
+        path = self.ipad_src / "01-i.png"
+        raw = bytearray(path.read_bytes())
+        raw[25] = 6
+        path.write_bytes(bytes(raw))
+        with mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": "true"}):
+            stderr = io.StringIO()
+            with self.assertRaises(SystemExit), redirect_stderr(stderr):
+                self.stage(dry_run=False, platform="ios")
+        self.assertIn("alpha channel", stderr.getvalue())
+
     def test_upload_without_pillow_checks_each_sets_sizes(self):
         self.write(self.ios_src, "01-a.png")
         self.write_tablet_sets()
@@ -273,9 +287,13 @@ class PillowStageTests(SetsFixture):
             dest = self.asc_sets[index].dest / source.name
             with self.subTest(set=self.asc_sets[index].label, size=size):
                 self.assertEqual(self.staged_size(dest), staged)
+                # asc refuses any PNG that stores alpha, even an opaque one.
+                self.assertFalse(ss.asc_cli.image_has_alpha(dest))
+                with self.PILLOW.open(dest) as img:
+                    self.assertEqual(img.mode, "RGB")
                 if size == staged:
                     with self.PILLOW.open(source) as a, self.PILLOW.open(dest) as b:
-                        self.assertEqual(a.convert("RGBA").tobytes(), b.convert("RGBA").tobytes())
+                        self.assertEqual(a.convert("RGB").tobytes(), b.convert("RGB").tobytes())
 
 
 if __name__ == "__main__":

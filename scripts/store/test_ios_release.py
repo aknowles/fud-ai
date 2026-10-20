@@ -413,6 +413,17 @@ def pre_row(pre_id: str = "P1", version: str = VERSION, platform: str = "IOS") -
     return {"type": "preReleaseVersions", "id": pre_id, "attributes": {"version": version, "platform": platform}}
 
 
+def png_header(color_type: int, *, trns: bool = False) -> bytes:
+    """A PNG signature and IHDR (plus an optional tRNS chunk) with the given colour type."""
+    import zlib
+
+    def chunk(kind: bytes, body: bytes) -> bytes:
+        return len(body).to_bytes(4, "big") + kind + body + zlib.crc32(kind + body).to_bytes(4, "big")
+
+    ihdr = (16).to_bytes(4, "big") + (16).to_bytes(4, "big") + bytes([8, color_type, 0, 0, 0])
+    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + (chunk(b"tRNS", b"\x00\x00") if trns else b"") + chunk(b"IDAT", b"x")
+
+
 def asc_error(code: int) -> asc_cli.AscError:
     return asc_cli.AscError(("builds", "list"), code, "failed")
 
@@ -581,6 +592,16 @@ class TransientErrorTests(unittest.TestCase):
             with self.subTest(exc=repr(exc)):
                 self.assertFalse(ios_release.is_transient_error(exc))
 
+    def test_network_drops_reported_as_exit_1_are_retried(self) -> None:
+        for detail in ('Get "https://api.appstoreconnect.apple.com/v1/builds": read tcp: connection reset by peer',
+                       "dial tcp: lookup api.appstoreconnect.apple.com: no such host",
+                       "net/http: TLS handshake timeout", "unexpected EOF"):
+            with self.subTest(detail=detail):
+                self.assertTrue(ios_release.is_transient_error(asc_cli.AscError(("builds", "list"), 1, detail)))
+        for detail in ("invalid character '<' looking for beginning of value", "build not found"):
+            with self.subTest(detail=detail):
+                self.assertFalse(ios_release.is_transient_error(asc_cli.AscError(("builds", "list"), 1, detail)))
+
 
 class AscRunnerTests(unittest.TestCase):
     ENV = {
@@ -613,7 +634,7 @@ class AscRunnerTests(unittest.TestCase):
         for name in ("ASC_PROFILE", "ASC_CONFIG_PATH"):
             self.assertNotIn(name, env)
         for name, value in (("ASC_BYPASS_KEYCHAIN", "1"), ("ASC_TELEMETRY_DISABLED", "1"), ("DO_NOT_TRACK", "1"),
-                            ("ASC_SKILLS_AUTO_CHECK", "0"), ("ASC_STRICT_AUTH", "1")):
+                            ("ASC_SKILLS_AUTO_CHECK", "0"), ("ASC_STRICT_AUTH", "1"), ("ASC_MAX_RETRIES", "5")):
             self.assertEqual(env[name], value, name)
         self.assertNotIn("ASC_READ_ONLY", env)
 
@@ -676,6 +697,16 @@ class AscRunnerTests(unittest.TestCase):
         # No environment variable can point the release at another executable.
         with mock.patch.dict(os.environ, {"ASC_BIN": "/tmp/evil"}):
             self.assertEqual(asc_cli.Asc().binary, "asc")
+
+    def test_alpha_is_detected_the_way_asc_refuses_it(self) -> None:
+        cases = {"rgb": (png_header(2), False), "rgba": (png_header(6), True), "gray-alpha": (png_header(4), True),
+                 "rgb-trns": (png_header(2, trns=True), True), "jpeg": (b"\xff\xd8\xff\xe0rest", False)}
+        with tempfile.TemporaryDirectory() as tmp:
+            for name, (content, expected) in cases.items():
+                path = Path(tmp) / name
+                path.write_bytes(content)
+                with self.subTest(name=name):
+                    self.assertEqual(asc_cli.image_has_alpha(path), expected)
 
     def test_a_leading_at_sign_is_escaped(self) -> None:
         self.assertEqual(asc_release.asc_value("@apoorvdarshan on X"), "@@apoorvdarshan on X")
@@ -1106,6 +1137,19 @@ class LiveSubmitFlowTests(unittest.TestCase):
         self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
         self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
 
+    def test_a_rerun_with_nothing_to_send_leaves_no_empty_draft(self) -> None:
+        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9")
+        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
+        self.assertEqual(fake.writes(), [])
+
+    def test_a_draft_without_this_version_is_never_submitted(self) -> None:
+        # READY_FOR_REVIEW says a draft holds the version; the one reused here does not.
+        held = [{"id": "P", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}}]
+        subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}]
+        fake = FakeAsc(state="READY_FOR_REVIEW", subscriptions=subs, drafts=["D1"], draft_items={"D1": held})
+        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
+        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
+
     def test_a_product_that_cannot_be_added_keeps_the_version_out_of_review(self) -> None:
         subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}]
         fake = FakeAsc(subscriptions=subs, refuse_items={"S1v2"})
@@ -1383,6 +1427,12 @@ class MetadataRerunTests(unittest.TestCase):
         fake.run = lambda *a, **k: {} if a[:2] == ("screenshots", "upload") else fake_run(*a, **k)  # type: ignore[method-assign]
         self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 1)
 
+    def test_a_screenshot_with_alpha_fails_before_any_call(self) -> None:
+        (self.shots / "ipad-13" / "02-alpha.png").write_bytes(png_header(6))
+        fake = FakeAsc()
+        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 1)
+        self.assertEqual(fake.calls, [])
+
     def test_a_set_without_screenshots_fails_before_any_call(self) -> None:
         for folder, _, _, _ in asc_release.SCREENSHOT_SETS:
             with self.subTest(folder=folder):
@@ -1451,6 +1501,12 @@ class CreativeAssetTests(unittest.TestCase):
         writes = len(fake.writes())
         self.assertEqual(self.run_creative(fake), 0)
         self.assertEqual(len(fake.writes()), writes)
+
+    def test_an_image_with_alpha_fails_before_any_call(self) -> None:
+        (self.dir / "header" / "header.png").write_bytes(png_header(6))
+        fake = FakeAsc()
+        self.assertEqual(self.run_creative(fake), 1)
+        self.assertEqual(fake.calls, [])
 
     def test_a_rejected_image_stops_the_run(self) -> None:
         fake = FakeAsc(library=[self.image("H", "header", "REJECTED")])

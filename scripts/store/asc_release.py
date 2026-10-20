@@ -279,6 +279,9 @@ def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, str, l
             fail(f"no PNG screenshots for the {label} set in {set_dir}")
         if len(pngs) > APP_SCREENSHOT_SET_MAX:
             fail(f"too many PNGs ({len(pngs)}) for the ASC {label} set (max {APP_SCREENSHOT_SET_MAX})")
+        with_alpha = [p.name for p in pngs if asc_cli.image_has_alpha(p)]
+        if with_alpha:
+            fail(f"the {label} screenshots {', '.join(with_alpha)} have an alpha channel, which App Store Connect refuses; stage them with stage_screenshots.py")
         sets.append((display_type, device_type, label, pngs))
     return sets
 
@@ -353,6 +356,8 @@ def creative_sources(creative_dir: Path) -> list[tuple[str, str, Path]]:
         ) if slot_dir.is_dir() else []
         if len(images) > 1:
             fail(f"the {label} slot takes one image; {slot_dir} has {len(images)}")
+        if images and asc_cli.image_has_alpha(images[0]):
+            fail(f"the {label} image {images[0].name} has an alpha channel, which App Store Connect refuses; re-export it as RGB")
         if images:
             found.append((placement_type, label, images[0]))
     if not found:
@@ -554,18 +559,26 @@ def draft_submission_ids(asc: asc_cli.Asc, app_id: str) -> list[str]:
     return [row["id"] for row in rows(payload)]
 
 
-def get_or_create_draft_submission(asc: asc_cli.Asc, app_id: str) -> str:
-    """Return the app's READY_FOR_REVIEW draft for the version and products, creating one.
+def find_draft_submission(asc: asc_cli.Asc, app_id: str) -> str | None:
+    """The app's READY_FOR_REVIEW draft for the version and products, if there is one.
 
     A draft holding creative images belongs to their own review and is skipped.
     """
     for submission_id in draft_submission_ids(asc, app_id):
         if not any(related_id(item, "appAssetLibraryImage") for item in submission_items(asc, submission_id)):
             return submission_id
+    return None
+
+
+def create_draft_submission(asc: asc_cli.Asc, app_id: str) -> str:
     created = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
     if not created.get("id"):
         fail("asc did not report the new review submission's id")
     return created["id"]
+
+
+def get_or_create_draft_submission(asc: asc_cli.Asc, app_id: str) -> str:
+    return find_draft_submission(asc, app_id) or create_draft_submission(asc, app_id)
 
 
 ITEM_RELATIONSHIPS = ("appStoreVersion", "subscriptionVersion", "inAppPurchaseVersion", "appAssetLibraryImage")
@@ -608,7 +621,7 @@ def attach_products(
     asc: asc_cli.Asc,
     app_id: str,
     *,
-    submission_id: str,
+    submission_id: str | None,
     intended_ids: set[str] | None = None,
 ) -> ProductSubmitResult:
     """Add the catalog's Ready-to-Submit subscriptions and in-app purchases to a draft.
@@ -618,15 +631,19 @@ def attach_products(
     purchases attach through their current version the same way. Only products
     in store/catalog/products.json are considered, so an unrelated
     Ready-to-Submit product is never dragged into a release. Nothing reaches App
-    Review until the caller submits the draft.
+    Review until the caller submits the draft. With submission_id None, an
+    existing draft is reused, and a new one is created only when a product has to
+    be added, so a rerun with nothing to send leaves no empty draft behind.
     """
     if intended_ids is None:
         intended_ids = intended_product_ids()
     if not intended_ids:
         print("  catalog has no products to submit")
-        return ProductSubmitResult(submission_id, 0, False)
+        return ProductSubmitResult(submission_id or "", 0, False)
+    if submission_id is None:
+        submission_id = find_draft_submission(asc, app_id)
     # A retry reuses the same draft: skip what is already attached.
-    already = draft_item_version_ids(asc, submission_id)
+    already = draft_item_version_ids(asc, submission_id) if submission_id else set()
     attached = 0
     added = False
     failures: list[str] = []
@@ -659,6 +676,8 @@ def attach_products(
             attached += 1
             print(f"  {kind} {name}: already attached (idempotent)")
             continue
+        if submission_id is None:
+            submission_id = create_draft_submission(asc, app_id)
         try:
             asc.run(
                 "review", "items-add", "--submission", submission_id, "--item-type", item_type, "--item-id", version_id,
@@ -677,7 +696,7 @@ def attach_products(
             + "; ".join(failures)
             + ". Resolve them in App Store Connect and rerun the release."
         )
-    return ProductSubmitResult(submission_id, attached, added, attached > 0, allowed)
+    return ProductSubmitResult(submission_id or "", attached, added, attached > 0, allowed)
 
 
 def check_draft_items(
@@ -689,7 +708,10 @@ def check_draft_items(
     not ride along into App Review.
     """
     unexpected = []
-    for item in submission_items(asc, submission_id):
+    items = submission_items(asc, submission_id)
+    if version_id and not any(related_id(item, "appStoreVersion") == version_id for item in items):
+        fail(f"review submission {submission_id} does not hold App Store version {version_id}; not submitting it")
+    for item in items:
         app_version = related_id(item, "appStoreVersion")
         product = related_id(item, "subscriptionVersion") or related_id(item, "inAppPurchaseVersion")
         if app_version and app_version == version_id:
@@ -1059,12 +1081,13 @@ def main() -> None:
             print("ASC submit skipped — version already WAITING_FOR_REVIEW (idempotent)")
             # Products that missed the version's submission go out in a draft of
             # their own. Only a product-only draft is submitted, so an unrelated
-            # app version never ships from here.
-            draft = get_or_create_draft_submission(asc, app_id)
+            # app version never ships from here; no draft is created when there
+            # is nothing to send.
             try:
-                result = attach_products(asc, app_id, submission_id=draft)
+                result = attach_products(asc, app_id, submission_id=None)
             except ProductSubmitError as exc:
                 fail(str(exc))
+            draft = result.submission_id
             if result.has_products:
                 if draft_holds_app_version(asc, draft):
                     fail("refusing to submit a draft that contains an app version; remove it in App Store Connect and rerun")
