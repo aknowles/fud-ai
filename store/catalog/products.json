@@ -1,5 +1,5 @@
 {
-  "$schema_comment": "Canonical IAP / subscription / tip / credit product IDs for Fud AI. With IOS_CREATE_PRODUCTS on, an ios-v* tag creates every iOS product App Store Connect does not have yet from its `ios` block (fields in store/README.md, Canonical catalog); existing products are never changed. RevenueCat is not synced (STORE_SYNC_REVENUECAT).",
+  "$schema_comment": "Canonical IAP / subscription / tip / credit product IDs for Fud AI. Setup only — stores are not mutated from CI until STORE_SYNC_* gates are enabled.",
   "package": {
     "ios": "com.apoorvdarshan.calorietracker",
     "android": "com.apoorvdarshan.calorietracker"
@@ -16,11 +16,6 @@
       "notes": "Android 7.2+: Plus/Pro, credit packs and the tip jar via RevenueCat + Google Play Billing. Play caps product ids at 40 chars, so each item carries its own Play ids in `play`."
     }
   },
-  "ios_subscription_groups": [
-    {
-      "reference_name": "Hosted AI"
-    }
-  ],
   "subscriptions": [
     {
       "id": "com.apoorvdarshan.calorietracker.plus.monthly",
