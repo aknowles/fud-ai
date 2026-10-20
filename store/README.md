@@ -4,7 +4,7 @@ Fud AI's App Store and Google Play releases run on
 [apoorvdarshan/store-release](https://github.com/apoorvdarshan/store-release), a
 shared set of reusable workflows and Python tooling that started as this
 repository's own pipeline. Three thin caller workflows pin it by commit SHA, with
-the version in a `# vX.Y.Z` comment (v0.1.0 today):
+the version in a `# vX.Y.Z` comment (v0.3.0 today):
 
 | Workflow | Trigger | What it does |
 |----------|---------|--------------|
@@ -20,15 +20,15 @@ only a tag push does. The callers are rendered by store-release
 anything but a store-release release. Dependabot moves all three pins to a new
 store-release release in one PR of its own.
 
-How the pipeline behaves is documented in store-release (v0.1.0):
-[switches](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/switches.md),
-[secrets](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/secrets.md),
-[jobs and checks](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/workflows.md),
-[store plan](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/plan.md),
-[re-runs](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/rerun.md),
-[verifying downloads](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/verification.md),
-[the config file](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/config.md)
-and [how a new release reaches this repository](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/release-process.md#how-apps-receive-a-release).
+How the pipeline behaves is documented in store-release (v0.3.0):
+[switches](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/switches.md),
+[secrets](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/secrets.md),
+[jobs and checks](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/workflows.md),
+[store plan](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/plan.md),
+[re-runs](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/rerun.md),
+[verifying downloads](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/verification.md),
+[the config file](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/config.md)
+and [how a new release reaches this repository](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/release-process.md#how-apps-receive-a-release).
 This file keeps only Fud AI's own facts.
 
 ## What this repository keeps
@@ -107,9 +107,10 @@ automation that does not exist yet and is not set.
 The CI Apple Development identity is certificate "Apple Development: Created via
 API", ID `NVNGDQGCKK`, **expiring 2027-10-14**. The same identity signs the archives
 of Verceltics, Abysm, iitjee, Quit All and Scowld, because Apple allows one
-API-created development certificate per API key. Renewing it and giving another app
-repository a copy without the private key leaving GitHub:
-[the shared CI signing identity](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/secrets.md#the-shared-ci-signing-identity).
+API-created development certificate per API key. Renewing it:
+[the shared CI signing identity](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/provenance.md#facts-that-only-concern-the-six-apps);
+giving another app repository a copy without the private key leaving GitHub:
+[sharing one development identity](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/secrets.md#sharing-one-development-identity-across-your-apps).
 When it is replaced, update both `IOS_DEV_SIGNING_*` secrets here and in every
 repository listed above.
 
@@ -144,7 +145,7 @@ reset, change the pin in the same change as the new keystore secret.
    builds nothing if one fails.
 6. Push `ios-vX.Y` / `android-vX.Y`, one tag at a time.
 7. If a later step fails, fix the cause and use **Re-run failed jobs**
-   ([re-runs](https://github.com/apoorvdarshan/store-release/blob/v0.1.0/docs/rerun.md)).
+   ([re-runs](https://github.com/apoorvdarshan/store-release/blob/v0.3.0/docs/rerun.md)).
 
 **Xcode Cloud** no longer builds Fud AI: its tag-triggered "Release" workflow was
 removed in App Store Connect. Xcode Cloud triggers live in App Store Connect, not in
@@ -259,7 +260,7 @@ Earlier Android releases have no Sigstore bundle.
 With Python 3.11 or later (CI uses 3.13), from the repository root:
 
 ```bash
-git clone --branch v0.1.0 https://github.com/apoorvdarshan/store-release ../store-release
+git clone --branch v0.3.0 https://github.com/apoorvdarshan/store-release ../store-release
 python3 -I -u ../store-release/run.py --app-root . config check --files
 python3 -I -u ../store-release/run.py --app-root . catalog check
 python3 -I -u ../store-release/run.py --app-root . listing prepare --platform all --out /tmp/listing
