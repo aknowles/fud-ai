@@ -73,10 +73,8 @@ that runs it:
   preflight, build numbering, the build wait, and the whole `prepare` job on
   validation runs. asc refuses a write in that mode before sending it (exit 6).
 - On failure the error keeps asc's exit code and drops the key and issuer IDs.
-  The build wait retries asc's server-side exit codes (HTTP 5xx, 408, 429 and
-  timeouts) and network drops, which asc reports as a generic exit 1 with a
-  connection error; auth, usage and not-found errors stop at once. asc itself
-  retries GET requests that hit 429 or 503 (`ASC_MAX_RETRIES=5`).
+  The build wait retries only asc's server-side exit codes (HTTP 5xx, 408, 429
+  and timeouts); auth, usage and not-found errors stop at once.
 
 The binary itself is still exported and uploaded by `xcodebuild`. To move to a
 newer asc, change `ASC_VERSION` and both `ASC_SHA256` values from that release's
@@ -425,10 +423,7 @@ final build and selection recheck; when the recheck fails, nothing is sent. A
 reused draft is submitted only when it holds nothing but this version and
 versions of catalog products; anything else stops the run. Drafts holding
 creative images belong to those images' own review and are never used for the
-version. The draft that already holds this version is reused; otherwise only a
-draft holding no app version is, so another version's draft is never touched. A
-`READY_FOR_REVIEW` version that no draft holds stops the run before anything is
-added.
+version.
 
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new
@@ -461,8 +456,7 @@ store/screenshots/     # listing images, as live on the stores (source of truth)
   watch/               # Apple Watch screenshot (uploaded by hand)
 store/creative/ios/    # App Store creative assets (IOS_UPLOAD_CREATIVE_ASSETS)
   header/              # one product page header image, 3840×1646 PNG
-  search-results/      # one search results image, 3:2 PNG or JPEG, 1920×1280 to 3840×2560
-                       # (a 5244×2950 PNG is a universal image that fits either slot)
+  search-results/      # one search results image, 3:2, 1920×1280 to 3840×2560
 store/graphics/
   play/feature-graphic.png   # Play feature graphic, 1024×500 (uploaded by hand)
 store/metadata/
@@ -480,10 +474,7 @@ Release workflows run `stage_screenshots.py --platform ios` when
 `ANDROID_UPLOAD_SCREENSHOTS` is true. Staging copies the numbered PNGs, in file
 name order, into `store/metadata/screenshots/`, and each upload replaces that
 store's whole screenshot set. Every iOS set needs at least one numbered PNG, so a
-missing set stops staging before anything is replaced. App Store screenshots are
-staged as RGB PNGs: App Store Connect, and `asc` before it uploads, refuses a PNG
-that stores an alpha channel even when every pixel is opaque, so staging flattens
-it and the store step refuses any staged or creative image that still has one. The app supports iPad, and
+missing set stops staging before anything is replaced. The app supports iPad, and
 App Store Connect will not submit a version without 13" iPad screenshots. iPhone
 Duo screenshots are optional until April 2027. `APP_IPHONE_DUO` is not in Apple's
 OpenAPI spec yet, but App Store Connect accepts it. To change a listing, replace the files in
@@ -494,10 +485,7 @@ Upload them in App Store Connect and Play Console by hand.
 A creative image is matched in the Asset Library by file name and size, so
 give a changed image a new file name. Apple reviews each new image on its own
 (the app already has an approved version), and a later run places it once it is
-approved; a rejected image stops the run with Apple's reason. Sizes, formats and
-alpha are checked before the build, so a wrong file stops the run early. An
-image approved while the version waits for review is not a mismatch: the rerun
-passes and the image is placed once the version can be edited. Apple's rules for
+approved; a rejected image stops the run with Apple's reason. Apple's rules for
 these images: no prices, website addresses, other platforms or Apple badges,
 and no transparency.
 
