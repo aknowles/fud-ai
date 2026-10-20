@@ -9,6 +9,9 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import asc_cli  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
 PLAY_SOURCE = ROOT / "store" / "screenshots" / "play"
 PLAY_PHONE_DIR = ROOT / "store" / "metadata" / "screenshots" / "play" / "phone"
@@ -33,7 +36,8 @@ ASC_SETS = (
         '6.7" iPhone',
         ROOT / "store" / "screenshots" / "ios",
         IOS_STAGED / "6.7",
-        ((1290, 2796), (1284, 2778)),
+        # The sizes asc accepts for APP_IPHONE_67 (1284x2778 is the 6.5" size).
+        ((1290, 2796), (1320, 2868), (1260, 2736)),
     ),
     AscSet(
         '13" iPad',
@@ -116,16 +120,25 @@ def fit_and_pad_rgba(
     return canvas
 
 
+def opaque_rgb(Image, img):
+    """The image without an alpha channel, transparent pixels laid over black.
+
+    App Store Connect (and asc) refuse screenshots that store alpha, even when
+    every pixel is opaque.
+    """
+    img = img.convert("RGBA")
+    canvas = Image.new("RGB", img.size, (0, 0, 0))
+    canvas.paste(img, mask=img.getchannel("A"))
+    return canvas
+
+
 def prepare_asc_png(Image, path: Path, asc_set: AscSet) -> bytes:
     target_w, target_h = asc_set.accepted[0]
     with Image.open(path) as img:
-        img = img.convert("RGBA")
-        w, h = img.size
-        if (w, h) in asc_set.accepted:
-            out = io.BytesIO()
-            img.save(out, format="PNG")
-            return out.getvalue()
-        out_img = fit_and_pad_rgba(Image, img, target_w, target_h)
+        # Flatten once, before any resize, so translucent pixels are blended a single time.
+        out_img = opaque_rgb(Image, img)
+        if out_img.size not in asc_set.accepted:
+            out_img = fit_and_pad_rgba(Image, out_img, target_w, target_h).convert("RGB")
     out = io.BytesIO()
     out_img.save(out, format="PNG")
     return out.getvalue()
@@ -228,6 +241,11 @@ def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
             for path in pngs:
                 w, h = read_png_size(path)
                 validate_asc_png(path, asc_set, width=w, height=h)
+                if asc_cli.image_has_alpha(path):
+                    fail(
+                        f"{path.name}: App Store screenshots cannot have an alpha channel; install Pillow "
+                        "(requirements-store.txt) so staging can flatten it, or re-export it as RGB"
+                    )
 
     if not dry_run:
         clear_destination_pngs(

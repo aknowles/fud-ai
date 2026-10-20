@@ -198,14 +198,30 @@ class StageTests(SetsFixture):
             (source / "02-misplaced.png").unlink()
 
     def test_a_frame_shaped_like_its_set_is_still_staged(self):
-        # 6.9" iPhone frames have the 6.7" shape; staging fits them onto 1290x2796.
-        self.assertTrue(ss.asc_frame_fits(self.asc_sets[0], 1320, 2868))
-        self.write(self.ios_src, "01-a.png", size=(1320, 2868))
+        # 6.5" iPhone frames have the 6.7" shape; staging fits them onto 1290x2796
+        # (asc refuses 1284x2778 in the 6.7" set).
+        self.assertTrue(ss.asc_frame_fits(self.asc_sets[0], 1284, 2778))
+        self.assertNotIn((1284, 2778), self.asc_sets[0].accepted)
+        self.write(self.ios_src, "01-a.png", size=(1284, 2778))
         self.write_tablet_sets()
 
         self.stage(dry_run=False, platform="ios")
 
         self.assertEqual(self.names(self.ios_dest), ["01-a.png"])
+
+    def test_upload_without_pillow_refuses_alpha(self):
+        self.write(self.ios_src, "01-a.png")
+        self.write_tablet_sets()
+        # Colour type 6 (RGBA) in the IHDR: asc would refuse the upload.
+        path = self.ipad_src / "01-i.png"
+        raw = bytearray(path.read_bytes())
+        raw[25] = 6
+        path.write_bytes(bytes(raw))
+        with mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": "true"}):
+            stderr = io.StringIO()
+            with self.assertRaises(SystemExit), redirect_stderr(stderr):
+                self.stage(dry_run=False, platform="ios")
+        self.assertIn("alpha channel", stderr.getvalue())
 
     def test_upload_without_pillow_checks_each_sets_sizes(self):
         self.write(self.ios_src, "01-a.png")
@@ -248,12 +264,25 @@ class PillowStageTests(SetsFixture):
         with self.PILLOW.open(path) as img:
             return img.size
 
+    def test_translucent_pixels_are_blended_once_even_when_resized(self):
+        # Half-transparent white over black is mid grey; blending twice made it ~96.
+        for size in ((2064, 2752), (1032, 1376)):
+            source = self.image(self.ipad_src, "01-glass.png", size, (255, 255, 255, 128))
+            self.image(self.ios_src, "01-a.png", (1290, 2796), (0, 0, 0, 255))
+            self.image(self.duo_src, "01-d.png", (1398, 2034), (0, 0, 0, 255))
+            with mock.patch.dict(os.environ, {"STORE_UPLOAD_SCREENSHOTS": "true"}):
+                self.stage(dry_run=False, platform="ios")
+            with self.PILLOW.open(self.ipad_dest / source.name) as staged, self.subTest(size=size):
+                self.assertEqual(staged.size, (2064, 2752))
+                red, green, blue = staged.getpixel((1032, 1376))
+                self.assertTrue(126 <= red <= 130 and red == green == blue, (red, green, blue))
+
     def test_accepted_sizes_stay_unchanged_and_other_shapes_fit_their_set(self):
         cases = [
             # (set index, source size, staged size)
             (0, (1290, 2796), (1290, 2796)),
-            (0, (1284, 2778), (1284, 2778)),
-            (0, (1320, 2868), (1290, 2796)),
+            (0, (1320, 2868), (1320, 2868)),
+            (0, (1284, 2778), (1290, 2796)),
             (1, (2064, 2752), (2064, 2752)),
             (1, (2048, 2732), (2048, 2732)),
             (1, (1032, 1376), (2064, 2752)),
@@ -273,9 +302,13 @@ class PillowStageTests(SetsFixture):
             dest = self.asc_sets[index].dest / source.name
             with self.subTest(set=self.asc_sets[index].label, size=size):
                 self.assertEqual(self.staged_size(dest), staged)
+                # asc refuses any PNG that stores alpha, even an opaque one.
+                self.assertFalse(ss.asc_cli.image_has_alpha(dest))
+                with self.PILLOW.open(dest) as img:
+                    self.assertEqual(img.mode, "RGB")
                 if size == staged:
                     with self.PILLOW.open(source) as a, self.PILLOW.open(dest) as b:
-                        self.assertEqual(a.convert("RGBA").tobytes(), b.convert("RGBA").tobytes())
+                        self.assertEqual(a.convert("RGB").tobytes(), b.convert("RGB").tobytes())
 
 
 if __name__ == "__main__":
