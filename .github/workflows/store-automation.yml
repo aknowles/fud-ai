@@ -92,6 +92,7 @@ jobs:
           IOS_UPLOAD_LISTING: ${{ vars.IOS_UPLOAD_LISTING }}
           IOS_UPLOAD_WHATS_NEW: ${{ vars.IOS_UPLOAD_WHATS_NEW }}
           IOS_UPLOAD_SCREENSHOTS: ${{ vars.IOS_UPLOAD_SCREENSHOTS }}
+          IOS_UPLOAD_CREATIVE_ASSETS: ${{ vars.IOS_UPLOAD_CREATIVE_ASSETS }}
           IOS_SUBMIT_REVIEW: ${{ vars.IOS_SUBMIT_REVIEW }}
           IOS_PUBLIC_RELEASE: ${{ vars.IOS_PUBLIC_RELEASE }}
         run: python3 scripts/store/print_gates.py --platform all
@@ -127,6 +128,8 @@ jobs:
           UPLOAD_LISTING=true UPLOAD_WHATS_NEW=true SUBMIT_IOS_REVIEW=true PUBLIC_RELEASE=false \
             python3 scripts/store/asc_release.py --dry-run --metadata-dir store/metadata \
             --build-id DRY-RUN --build-number 1
+          # The committed header and search results images: sizes, formats, no alpha.
+          UPLOAD_CREATIVE_ASSETS=true python3 scripts/store/asc_release.py --dry-run
           python3 scripts/store/ios_release.py --help
           python3 scripts/store/android_release.py --help
           UPLOAD_LISTING=true \

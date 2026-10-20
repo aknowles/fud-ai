@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Copy store/screenshots/ PNGs into store/metadata/screenshots/ for ASC + Play upload."""
+"""Copy store/screenshots/ PNGs into store/metadata/screenshots/ for ASC + Play upload.
+
+App Store screenshots are staged as RGB PNGs: App Store Connect refuses files
+that store an alpha channel, even when every pixel is opaque. Transparent pixels
+are laid over black once, before any resize, and the colour profile is kept.
+The committed files in store/screenshots/ are only read, never rewritten.
+"""
 from __future__ import annotations
 
 import argparse
@@ -8,6 +14,9 @@ import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import asc_release  # noqa: E402 - PNG checks and the Apple Watch sizes, no App Store Connect calls
 
 ROOT = Path(__file__).resolve().parents[2]
 PLAY_SOURCE = ROOT / "store" / "screenshots" / "play"
@@ -50,9 +59,30 @@ ASC_SETS = (
     ),
 )
 
+
+
+def watch_set() -> AscSet:
+    """The optional Apple Watch set, under the current ROOT.
+
+    It is staged only when store/screenshots/watch/ exists. Every Watch size
+    App Store Connect takes is accepted as it is (asc_release.py picks each
+    frame's display type by its size); another Watch-shaped frame is fitted
+    onto the Series 10 size.
+    """
+    return AscSet(
+        "Apple Watch",
+        ROOT / "store" / "screenshots" / "watch",
+        ROOT / "store" / "metadata" / "screenshots" / "ios" / asc_release.WATCH_FOLDER,
+        tuple(asc_release.WATCH_DISPLAY_TYPES),
+    )
+
+
 # A frame that is not an accepted ASC size is fitted onto the set's first size only
 # when its shape is this close, so a frame from another device's set fails staging.
 ASC_ASPECT_TOLERANCE = 0.03
+# PNG chunks that describe colour, copied from the source to the staged file
+# (Pillow writes an ICC profile, iCCP, itself).
+PNG_COLOUR_CHUNKS = (b"sRGB", b"gAMA", b"cHRM", b"cICP")
 
 # Google Play phone screenshots (portrait ~9:16)
 PLAY_MIN_SIDE = 320
@@ -116,19 +146,51 @@ def fit_and_pad_rgba(
     return canvas
 
 
+def opaque_rgb(Image, img):
+    """The image as RGB, with transparent pixels laid over black."""
+    rgba = img.convert("RGBA")
+    canvas = Image.new("RGB", rgba.size, (0, 0, 0))
+    canvas.paste(rgba, mask=rgba.getchannel("A"))
+    return canvas
+
+
+def colour_chunks(raw: bytes) -> list[tuple[bytes, bytes]]:
+    """The source PNG's colour chunks other than its ICC profile (Pillow keeps that one)."""
+    try:
+        chunks = asc_release.png_chunks(raw, strict=False)
+    except ValueError:
+        return []
+    return [(kind, data) for kind, data in chunks if kind in PNG_COLOUR_CHUNKS]
+
+
 def prepare_asc_png(Image, path: Path, asc_set: AscSet) -> bytes:
+    """An RGB PNG of the frame at an accepted size, without alpha, colour profile kept."""
+    from PIL import PngImagePlugin  # type: ignore[import-untyped]
+
     target_w, target_h = asc_set.accepted[0]
-    with Image.open(path) as img:
-        img = img.convert("RGBA")
-        w, h = img.size
-        if (w, h) in asc_set.accepted:
-            out = io.BytesIO()
-            img.save(out, format="PNG")
-            return out.getvalue()
-        out_img = fit_and_pad_rgba(Image, img, target_w, target_h)
+    raw = path.read_bytes()
+    with Image.open(io.BytesIO(raw)) as img:
+        icc_profile = img.info.get("icc_profile")
+        # Flatten once, before any resize, so translucent pixels are blended a single time.
+        out_img = opaque_rgb(Image, img)
+    if out_img.size not in asc_set.accepted:
+        out_img = fit_and_pad_rgba(Image, out_img, target_w, target_h).convert("RGB")
+    info = PngImagePlugin.PngInfo()
+    for kind, data in colour_chunks(raw):
+        info.add(kind, data)
     out = io.BytesIO()
-    out_img.save(out, format="PNG")
+    options = {"icc_profile": icc_profile} if icc_profile else {}
+    out_img.save(out, format="PNG", pnginfo=info, **options)
     return out.getvalue()
+
+
+def stores_alpha(path: Path) -> bool:
+    """True when a PNG stores alpha (colour type 4 or 6, or a tRNS chunk)."""
+    try:
+        chunks = asc_release.png_chunks(path.read_bytes(), strict=False)
+    except ValueError:
+        fail(f"not a PNG: {path}")
+    return asc_release.png_stores_alpha(chunks)
 
 
 def play_portrait_ok(width: int, height: int) -> bool:
@@ -203,11 +265,13 @@ def numbered_pngs(source: Path) -> list[Path]:
 
 
 def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
-    ios_sets = (
-        [(asc_set, numbered_pngs(asc_set.source)) for asc_set in ASC_SETS]
-        if platform in ("ios", "all")
-        else []
-    )
+    staging_ios = platform in ("ios", "all")
+    ios_sets = [(asc_set, numbered_pngs(asc_set.source)) for asc_set in ASC_SETS] if staging_ios else []
+    # The Watch set is optional: without store/screenshots/watch/ nothing is
+    # staged for it, and stale staged Watch frames are still removed below.
+    watch = watch_set()
+    if staging_ios and watch.source.is_dir():
+        ios_sets.append((watch, numbered_pngs(watch.source)))
     play_pngs = numbered_pngs(PLAY_SOURCE) if platform in ("play", "all") else []
 
     if len(play_pngs) > PLAY_PHONE_MAX:
@@ -228,12 +292,20 @@ def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
             for path in pngs:
                 w, h = read_png_size(path)
                 validate_asc_png(path, asc_set, width=w, height=h)
+                # Without Pillow the file is copied as it is, so it must already be RGB.
+                if stores_alpha(path):
+                    fail(
+                        f"{asc_set.source.name}/{path.name}: App Store screenshots cannot store an alpha "
+                        "channel; install Pillow (requirements-store.txt) so staging can flatten it, "
+                        "or re-export it as RGB"
+                    )
 
     if not dry_run:
-        clear_destination_pngs(
-            *([PLAY_PHONE_DIR] if play_pngs else []),
-            *(asc_set.dest for asc_set, _ in ios_sets),
-        )
+        ios_dests = [asc_set.dest for asc_set, _ in ios_sets]
+        if staging_ios and watch.dest not in ios_dests:
+            # No Watch source: frames an earlier staging left must not be uploaded.
+            ios_dests.append(watch.dest)
+        clear_destination_pngs(*([PLAY_PHONE_DIR] if play_pngs else []), *ios_dests)
 
     copied: list[Path] = []
     for path in play_pngs:
