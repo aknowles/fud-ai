@@ -21,8 +21,8 @@ def main() -> None:
     revenuecat = json.loads(REVENUECAT.read_text())
     product_ids = [
         item["id"]
-        for group in ("subscriptions", "consumables", "non_consumables", "tips")
-        for item in products.get(group, [])
+        for group in ("subscriptions", "consumables", "tips")
+        for item in products[group]
     ]
 
     print(

@@ -70,8 +70,6 @@ jobs:
             /ios/calorietracker.xcodeproj/project.pbxproj
             /ios/calorietracker/Info.plist
             /android/app/build.gradle.kts
-            /.github/workflows/ios-release.yml
-            /.github/workflows/store-automation.yml
 
       # The same pinned Python the release jobs run the store scripts on.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -90,12 +88,10 @@ jobs:
           STORE_SYNC_REVENUECAT: ${{ vars.STORE_SYNC_REVENUECAT }}
           IOS_RELEASE_AUTOMATION: ${{ vars.IOS_RELEASE_AUTOMATION }}
           IOS_CREATE_VERSION: ${{ vars.IOS_CREATE_VERSION }}
-          IOS_CREATE_PRODUCTS: ${{ vars.IOS_CREATE_PRODUCTS }}
           IOS_UPLOAD_BUILD: ${{ vars.IOS_UPLOAD_BUILD }}
           IOS_UPLOAD_LISTING: ${{ vars.IOS_UPLOAD_LISTING }}
           IOS_UPLOAD_WHATS_NEW: ${{ vars.IOS_UPLOAD_WHATS_NEW }}
           IOS_UPLOAD_SCREENSHOTS: ${{ vars.IOS_UPLOAD_SCREENSHOTS }}
-          IOS_UPLOAD_CREATIVE_ASSETS: ${{ vars.IOS_UPLOAD_CREATIVE_ASSETS }}
           IOS_SUBMIT_REVIEW: ${{ vars.IOS_SUBMIT_REVIEW }}
           IOS_PUBLIC_RELEASE: ${{ vars.IOS_PUBLIC_RELEASE }}
         run: python3 scripts/store/print_gates.py --platform all
@@ -124,20 +120,12 @@ jobs:
           python3 scripts/store/prepare_whats_new.py --platform all --tag dry-run --out store/metadata
           python3 scripts/store/stage_screenshots.py --dry-run
 
-      # Proves the pinned release still downloads and matches its checksum.
-      - name: Install and check the pinned App Store Connect CLI (no store calls)
-        run: |
-          python3 scripts/store/asc_cli.py install --dest "$RUNNER_TEMP/asc-bin"
-          PATH="$RUNNER_TEMP/asc-bin:$PATH" python3 scripts/store/asc_cli.py check
-
       - name: Validate ASC / Play publisher scripts (import + --dry-run, no network)
         run: |
           python3 scripts/store/asc_release.py --help
-          python3 scripts/store/asc_products.py --help
-          python3 scripts/store/asc_products.py create  # CREATE_IOS_PRODUCTS unset: skipped, no calls
           python3 scripts/store/play_listing.py --help
-          UPLOAD_LISTING=true UPLOAD_WHATS_NEW=true UPLOAD_CREATIVE_ASSETS=true SUBMIT_IOS_REVIEW=true \
-            PUBLIC_RELEASE=false python3 scripts/store/asc_release.py --dry-run --metadata-dir store/metadata \
+          UPLOAD_LISTING=true UPLOAD_WHATS_NEW=true SUBMIT_IOS_REVIEW=true PUBLIC_RELEASE=false \
+            python3 scripts/store/asc_release.py --dry-run --metadata-dir store/metadata \
             --build-id DRY-RUN --build-number 1
           python3 scripts/store/ios_release.py --help
           python3 scripts/store/android_release.py --help
@@ -154,7 +142,7 @@ jobs:
       - name: Install and import the store tooling (no store calls)
         run: |
           python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-store.txt
-          python3 -c "import googleapiclient.discovery, google.oauth2.service_account, PIL.Image; print('store tooling imports OK')"
+          python3 -c "import jwt, googleapiclient.discovery, google.oauth2.service_account, PIL.Image; print('store tooling imports OK')"
 
       # Release runs stage screenshots with Pillow, which fits frames onto each set's size.
       - name: Test screenshot staging with Pillow (offline)

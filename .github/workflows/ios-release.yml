@@ -19,17 +19,10 @@
 #   IOS_CREATE_VERSION       create the tag's App Store version when it is missing
 #                            (tag runs only; refuses while another version is in
 #                            flight or when the tag is not the newest version)
-#   IOS_CREATE_PRODUCTS      create the catalog's iOS products App Store Connect does
-#                            not have yet, Ready to Submit (store/catalog/products.json;
-#                            tag runs only; validation runs list them read-only).
-#                            Existing products are never changed
 #   IOS_UPLOAD_BUILD         build + upload the binary to App Store Connect
 #   IOS_UPLOAD_LISTING       description, keywords, promo text, URLs
 #   IOS_UPLOAD_WHATS_NEW     What's New text (the What's New block in APPSTORE.md)
-#   IOS_UPLOAD_SCREENSHOTS   6.7" iPhone, 13" iPad and iPhone Duo screenshots
-#   IOS_UPLOAD_CREATIVE_ASSETS  product page header and search results images
-#                            (store/creative/ios): uploaded and reviewed on their
-#                            own, placed on the version once Apple approves them
+#   IOS_UPLOAD_SCREENSHOTS   6.7" screenshots
 #   IOS_SUBMIT_REVIEW        select THIS run's processed build, submit for review
 #                            (needs IOS_UPLOAD_BUILD; never uses an older build)
 #   IOS_PUBLIC_RELEASE       release automatically after approval (else manual)
@@ -52,10 +45,8 @@
 #              app's export compliance declaration (ITSAppUsesNonExemptEncryption,
 #              whenever the run builds), the text that is switched on, creating
 #              App Store version X.Y when IOS_CREATE_VERSION is on and it is
-#              missing, creating the catalog's missing products when
-#              IOS_CREATE_PRODUCTS is on (after a read-only check of every one),
-#              and, when any App Store Connect switch is on, that X.Y exists in a
-#              state that can take the release (read-only)
+#              missing, and, when any App Store Connect switch is on, that X.Y
+#              exists in a state that can take the release (read-only)
 #
 # Jobs (tag run)
 #   ios-tests + quality + prepare → build (archive, upload) → wait-for-build →
@@ -65,14 +56,6 @@
 #   deadline. A re-run of app-store-connect is idempotent: it only changes what
 #   differs, and re-checks a version already waiting for review. github-release
 #   updates the release if an earlier attempt created it.
-#
-# App Store Connect
-#   Every App Store Connect call goes through the App Store Connect CLI (asc),
-#   pinned to an exact release in scripts/store/asc_cli.py and installed only
-#   after its SHA-256 matches. Its telemetry is off. Checks that must not write
-#   (version preflight, build number, build wait, and everything on validation
-#   runs) run asc in read-only mode, which refuses any write before it is sent.
-#   The binary itself is still uploaded by xcodebuild.
 #
 # Secrets
 #   APP_STORE_CONNECT_API_KEY_ID / _ISSUER_ID / _API_KEY_P8
@@ -127,21 +110,15 @@ jobs:
 
   prepare:
     runs-on: ubuntu-latest
-    # Product creation waits for Apple to process each App Review screenshot.
-    timeout-minutes: 30
-    env:
-      # Validation runs never write to App Store Connect; asc enforces it.
-      ASC_READ_ONLY: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}
+    timeout-minutes: 15
     outputs:
       mode: ${{ steps.gates.outputs.mode }}
       create_version: ${{ steps.gates.outputs.create_version }}
-      create_products: ${{ steps.gates.outputs.create_products }}
       build: ${{ steps.gates.outputs.build }}
       upload_build: ${{ steps.gates.outputs.upload_build }}
       listing: ${{ steps.gates.outputs.listing }}
       whats_new: ${{ steps.gates.outputs.whats_new }}
       screenshots: ${{ steps.gates.outputs.screenshots }}
-      creative: ${{ steps.gates.outputs.creative }}
       submit: ${{ steps.gates.outputs.submit }}
       public_release: ${{ steps.gates.outputs.public_release }}
       asc: ${{ steps.gates.outputs.asc }}
@@ -154,7 +131,6 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout-cone-mode: false
-          # The two workflow files are read by the store-script tests.
           sparse-checkout: |
             /scripts/store/
             /scripts/release_notes.py
@@ -164,8 +140,6 @@ jobs:
             /requirements-store.txt
             /RELEASE_NOTES.md
             /APPSTORE.md
-            /.github/workflows/ios-release.yml
-            /.github/workflows/store-automation.yml
 
       # Store tooling runs on a pinned Python, never the runner image's own.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -194,12 +168,10 @@ jobs:
         env:
           IOS_RELEASE_AUTOMATION: ${{ vars.IOS_RELEASE_AUTOMATION }}
           IOS_CREATE_VERSION: ${{ vars.IOS_CREATE_VERSION }}
-          IOS_CREATE_PRODUCTS: ${{ vars.IOS_CREATE_PRODUCTS }}
           IOS_UPLOAD_BUILD: ${{ vars.IOS_UPLOAD_BUILD }}
           IOS_UPLOAD_LISTING: ${{ vars.IOS_UPLOAD_LISTING }}
           IOS_UPLOAD_WHATS_NEW: ${{ vars.IOS_UPLOAD_WHATS_NEW }}
           IOS_UPLOAD_SCREENSHOTS: ${{ vars.IOS_UPLOAD_SCREENSHOTS }}
-          IOS_UPLOAD_CREATIVE_ASSETS: ${{ vars.IOS_UPLOAD_CREATIVE_ASSETS }}
           IOS_SUBMIT_REVIEW: ${{ vars.IOS_SUBMIT_REVIEW }}
           IOS_PUBLIC_RELEASE: ${{ vars.IOS_PUBLIC_RELEASE }}
           IOS_BUILD_POLL_SECONDS: ${{ vars.IOS_BUILD_POLL_SECONDS }}
@@ -216,13 +188,11 @@ jobs:
         if: steps.gates.outputs.whats_new == 'true'
         run: python3 scripts/store/prepare_whats_new.py --platform ios --tag "$GITHUB_REF_NAME" --out "$RUNNER_TEMP/whats-new-check"
 
-      - name: Install the pinned App Store Connect CLI
+      - name: Install store tooling
         if: >-
           steps.gates.outputs.build == 'true' || steps.gates.outputs.asc == 'true' ||
-          steps.gates.outputs.create_version == 'true' || steps.gates.outputs.product_plan == 'true'
-        run: |
-          python3 scripts/store/asc_cli.py install --dest "$RUNNER_TEMP/asc-bin"
-          PATH="$RUNNER_TEMP/asc-bin:$PATH" python3 scripts/store/asc_cli.py check
+          steps.gates.outputs.create_version == 'true'
+        run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-store.txt
 
       # Tag runs only (never validation runs). Adds the App Store version for this
       # tag when App Store Connect does not have it yet; an existing one is left
@@ -240,27 +210,6 @@ jobs:
           MARKETING_VERSION: ${{ steps.gates.outputs.marketing_version }}
         run: python3 -u scripts/store/asc_release.py --create-version --version "$MARKETING_VERSION"
 
-      # Every iOS product in store/catalog/products.json that App Store Connect
-      # does not have yet is created and brought to Ready to Submit, so
-      # IOS_SUBMIT_REVIEW attaches it in this same run. The read-only plan runs
-      # first and must pass for every product (fields, review screenshot, price
-      # point, territories) before anything is written, so a problem stops the run
-      # before the build. A product an interrupted run left in Missing Metadata is
-      # finished, never created twice; other existing products are only compared
-      # (warnings). Validation runs only print the plan (asc is read-only there).
-      - name: Create missing App Store products (IOS_CREATE_PRODUCTS)
-        if: steps.gates.outputs.product_plan == 'true'
-        env:
-          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
-          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
-          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
-          CREATE_IOS_PRODUCTS: ${{ steps.gates.outputs.create_products }}
-        run: |
-          set -euo pipefail
-          command=plan
-          [ "$CREATE_IOS_PRODUCTS" = true ] && command=create
-          python3 -u scripts/store/asc_products.py "$command"
-
       # Read-only, tag runs with a listing/What's New/screenshot/review switch on
       # (`asc` is never on for validation runs). Fails now, before the archive and
       # upload, when X.Y is missing (turn on IOS_CREATE_VERSION or create it in App
@@ -275,7 +224,6 @@ jobs:
           UPLOAD_LISTING: ${{ steps.gates.outputs.listing }}
           UPLOAD_WHATS_NEW: ${{ steps.gates.outputs.whats_new }}
           UPLOAD_SCREENSHOTS: ${{ steps.gates.outputs.screenshots }}
-          UPLOAD_CREATIVE_ASSETS: ${{ steps.gates.outputs.creative }}
           SUBMIT_IOS_REVIEW: ${{ steps.gates.outputs.submit }}
         run: python3 -u scripts/store/ios_release.py version-preflight --version "$MARKETING_VERSION"
 
@@ -554,15 +502,14 @@ jobs:
           sparse-checkout-cone-mode: false
           sparse-checkout: |
             /scripts/store/
+            /requirements-store.txt
 
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.13"
 
-      - name: Install the pinned App Store Connect CLI
-        run: |
-          python3 scripts/store/asc_cli.py install --dest "$RUNNER_TEMP/asc-bin"
-          PATH="$RUNNER_TEMP/asc-bin:$PATH" python3 scripts/store/asc_cli.py check
+      - name: Install store tooling
+        run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-store.txt
 
       # -u: each poll's progress line shows in the live log right away.
       - name: Wait for App Store Connect to process this build
@@ -588,7 +535,7 @@ jobs:
        (needs.prepare.outputs.upload_build != 'true' &&
         needs.build.result == 'skipped' && needs.wait-for-build.result == 'skipped'))
     runs-on: ubuntu-latest
-    # Listing, What's New, screenshots, creative assets and review submission (no build wait here).
+    # Listing, What's New, screenshots and review submission (no build wait here).
     timeout-minutes: 60
     env:
       MARKETING_VERSION: ${{ needs.prepare.outputs.marketing_version }}
@@ -613,14 +560,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      # Pillow, for staging the screenshots.
       - name: Install store tooling
         run: python3 -m pip install --disable-pip-version-check --require-hashes -r requirements-store.txt
-
-      - name: Install the pinned App Store Connect CLI
-        run: |
-          python3 scripts/store/asc_cli.py install --dest "$RUNNER_TEMP/asc-bin"
-          PATH="$RUNNER_TEMP/asc-bin:$PATH" python3 scripts/store/asc_cli.py check
 
       - name: Prepare listing text and What's New (local only)
         env:
@@ -643,12 +584,11 @@ jobs:
           STORE_UPLOAD_SCREENSHOTS: "true"
         run: python3 -u scripts/store/stage_screenshots.py --platform ios
 
-      - name: Listing / What's New / screenshots / creative assets / review (gated)
+      - name: Listing / What's New / screenshots / review (gated)
         env:
           UPLOAD_LISTING: ${{ needs.prepare.outputs.listing }}
           UPLOAD_WHATS_NEW: ${{ needs.prepare.outputs.whats_new }}
           UPLOAD_SCREENSHOTS: ${{ needs.prepare.outputs.screenshots }}
-          UPLOAD_CREATIVE_ASSETS: ${{ needs.prepare.outputs.creative }}
           SUBMIT_IOS_REVIEW: ${{ needs.prepare.outputs.submit }}
           PUBLIC_RELEASE: ${{ needs.prepare.outputs.public_release }}
           BUILD_ID: ${{ needs.wait-for-build.outputs.build_id }}
@@ -693,12 +633,10 @@ jobs:
         env:
           IOS_RELEASE_AUTOMATION: ${{ vars.IOS_RELEASE_AUTOMATION }}
           IOS_CREATE_VERSION: ${{ vars.IOS_CREATE_VERSION }}
-          IOS_CREATE_PRODUCTS: ${{ vars.IOS_CREATE_PRODUCTS }}
           IOS_UPLOAD_BUILD: ${{ vars.IOS_UPLOAD_BUILD }}
           IOS_UPLOAD_LISTING: ${{ vars.IOS_UPLOAD_LISTING }}
           IOS_UPLOAD_WHATS_NEW: ${{ vars.IOS_UPLOAD_WHATS_NEW }}
           IOS_UPLOAD_SCREENSHOTS: ${{ vars.IOS_UPLOAD_SCREENSHOTS }}
-          IOS_UPLOAD_CREATIVE_ASSETS: ${{ vars.IOS_UPLOAD_CREATIVE_ASSETS }}
           IOS_SUBMIT_REVIEW: ${{ vars.IOS_SUBMIT_REVIEW }}
           IOS_PUBLIC_RELEASE: ${{ vars.IOS_PUBLIC_RELEASE }}
           STORE_SYNC_REVENUECAT: ${{ vars.STORE_SYNC_REVENUECAT }}

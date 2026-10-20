@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""Offline tests for iOS release switches, build waiting, build selection, product creation and the asc runner.
+"""Offline tests for iOS release switches, build waiting and build selection.
 
-No network: every asc call goes to an in-memory fake of App Store Connect.
+No network: every App Store Connect call goes to an in-memory fake.
 Run: python3 -m unittest scripts/store/test_ios_release.py
 """
 from __future__ import annotations
 
-import functools
 import hashlib
 import io
-import json
 import os
 import plistlib
 import sys
@@ -22,15 +20,12 @@ from unittest import mock
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-import asc_cli  # noqa: E402
-import asc_products  # noqa: E402
 import asc_release  # noqa: E402
 import ios_release  # noqa: E402
 import prepare_whats_new  # noqa: E402
 import print_gates  # noqa: E402
 import redact_credential_ids  # noqa: E402
 import release_notes  # noqa: E402
-import validate_catalog  # noqa: E402
 from ios_release import ReleaseError, resolve_gates  # noqa: E402
 
 TAG = "ios-v7.2"
@@ -38,17 +33,14 @@ VERSION = "7.2"
 ALL_ON = {
     "IOS_RELEASE_AUTOMATION": "true",
     "IOS_CREATE_VERSION": "true",
-    "IOS_CREATE_PRODUCTS": "true",
     "IOS_UPLOAD_BUILD": "true",
     "IOS_UPLOAD_LISTING": "true",
     "IOS_UPLOAD_WHATS_NEW": "true",
     "IOS_UPLOAD_SCREENSHOTS": "true",
-    "IOS_UPLOAD_CREATIVE_ASSETS": "true",
     "IOS_SUBMIT_REVIEW": "true",
     "IOS_PUBLIC_RELEASE": "true",
 }
-OPS = ("create_version", "create_products", "upload_build", "listing", "whats_new", "screenshots", "creative", "submit",
-       "public_release")
+OPS = ("create_version", "upload_build", "listing", "whats_new", "screenshots", "submit", "public_release")
 
 
 def gates(env: dict[str, str], *, event: str = "push", ref: str = TAG) -> dict:
@@ -81,15 +73,6 @@ class GateTests(unittest.TestCase):
         self.assertFalse(result["whats_new"])
         self.assertFalse(result["upload_build"])
         self.assertFalse(result["build"])
-
-    def test_creative_assets_are_their_own_switch(self) -> None:
-        result = gates({"IOS_RELEASE_AUTOMATION": "true", "IOS_UPLOAD_CREATIVE_ASSETS": "true"})
-        self.assertTrue(result["creative"])
-        self.assertTrue(result["asc"])
-        self.assertFalse(result["screenshots"])
-        self.assertFalse(result["build"])
-        with self.assertRaisesRegex(ReleaseError, "IOS_UPLOAD_CREATIVE_ASSETS"):
-            gates({"IOS_UPLOAD_CREATIVE_ASSETS": "sometimes"})
 
     def test_all_on(self) -> None:
         result = gates(ALL_ON)
@@ -377,8 +360,7 @@ class BuildNumberTests(unittest.TestCase):
         self.assertEqual(ios_release.next_build_number(5, ["٩٩"]), 5)  # only ASCII digits count
 
 
-APP = asc_release.ASC_APP_ID
-BUNDLE = asc_release.DEFAULT_BUNDLE_ID
+APP = "APP1"
 STARTED = 1_800_000_000.0  # this run's upload start (epoch seconds)
 
 
@@ -419,28 +401,6 @@ def pre_row(pre_id: str = "P1", version: str = VERSION, platform: str = "IOS") -
     return {"type": "preReleaseVersions", "id": pre_id, "attributes": {"version": version, "platform": platform}}
 
 
-def png_header(color_type: int = 2, *, trns: bool = False, width: int = 16, height: int = 16) -> bytes:
-    """A PNG signature and IHDR (plus an optional tRNS chunk) with the given colour type and size."""
-    import zlib
-
-    def chunk(kind: bytes, body: bytes) -> bytes:
-        return len(body).to_bytes(4, "big") + kind + body + zlib.crc32(kind + body).to_bytes(4, "big")
-
-    ihdr = width.to_bytes(4, "big") + height.to_bytes(4, "big") + bytes([8, color_type, 0, 0, 0])
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + (chunk(b"tRNS", b"\x00\x00") if trns else b"") + chunk(b"IDAT", b"x")
-
-
-def jpeg_header(width: int, height: int) -> bytes:
-    """A JPEG with an APP0 segment and a baseline SOF0 frame header of the given size."""
-    app0 = b"\xff\xe0" + (16).to_bytes(2, "big") + b"JFIF\x00" + bytes(9)
-    sof0 = b"\xff\xc0" + (17).to_bytes(2, "big") + b"\x08" + height.to_bytes(2, "big") + width.to_bytes(2, "big") + bytes(12)
-    return b"\xff\xd8" + app0 + sof0 + b"\xff\xd9"
-
-
-def asc_error(code: int) -> asc_cli.AscError:
-    return asc_cli.AscError(("builds", "list"), code, "failed")
-
-
 class FakeClock:
     def __init__(self, start: float) -> None:
         self.time = start
@@ -454,22 +414,22 @@ class FakeClock:
         self.time += seconds
 
 
-class SequenceAsc:
-    """Returns queued `asc builds list` payloads (or raises queued exceptions) per call."""
+class SequenceClient:
+    """Returns queued /builds payloads (or raises queued exceptions) per GET."""
 
     def __init__(self, responses: list) -> None:
         self.responses = list(responses)
-        self.calls: list[tuple[str, ...]] = []
+        self.paths: list[str] = []
 
-    def run(self, *args: str, **_: object) -> dict:
-        self.calls.append(args)
+    def get(self, path: str) -> dict:
+        self.paths.append(path)
         item = self.responses.pop(0) if len(self.responses) > 1 else self.responses[0]
         if isinstance(item, BaseException):
             raise item
         return item
 
 
-def wait(client: SequenceAsc, clock: FakeClock, *, minutes: int = 120, transient=None) -> dict:
+def wait(client: SequenceClient, clock: FakeClock, *, minutes: int = 120, transient=None) -> dict:
     with redirect_stdout(io.StringIO()):
         return ios_release.wait_for_build(
             client,
@@ -485,14 +445,9 @@ def wait(client: SequenceAsc, clock: FakeClock, *, minutes: int = 120, transient
         )
 
 
-def quiet(fn, *args, **kwargs):
-    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-        return fn(*args, **kwargs)
-
-
 class WaitForBuildTests(unittest.TestCase):
     def test_waits_through_missing_and_processing_then_returns_build(self) -> None:
-        client = SequenceAsc(
+        client = SequenceClient(
             [
                 {"data": []},
                 {"data": [build_row(state="PROCESSING")], "included": [pre_row()]},
@@ -503,45 +458,44 @@ class WaitForBuildTests(unittest.TestCase):
         build = wait(client, clock)
         self.assertEqual(build["id"], "B1")
         self.assertEqual(clock.sleeps, [30, 30])
-        query = client.calls[0]
-        self.assertEqual(query[:2], ("builds", "list"))
-        self.assertEqual(query[query.index("--app") + 1], APP)
-        self.assertEqual(query[query.index("--build-number") + 1], "40")
-        self.assertIn("preReleaseVersion,app", query)
+        self.assertIn("filter%5Bversion%5D=40", client.paths[0])
+        self.assertIn("filter%5Bapp%5D=APP1", client.paths[0])
 
     def test_times_out_without_using_another_build(self) -> None:
-        client = SequenceAsc([{"data": [build_row(state="PROCESSING")], "included": [pre_row()]}])
+        client = SequenceClient([{"data": [build_row(state="PROCESSING")], "included": [pre_row()]}])
         clock = FakeClock(STARTED)
         with self.assertRaisesRegex(ReleaseError, "timed out"):
             wait(client, clock, minutes=10)
         self.assertLessEqual(clock.time, STARTED + 10 * 60 + 30)
 
     def test_ready_build_after_the_deadline_is_still_a_timeout(self) -> None:
-        client = SequenceAsc([{"data": [build_row()], "included": [pre_row()]}])
+        client = SequenceClient([{"data": [build_row()], "included": [pre_row()]}])
         clock = FakeClock(STARTED + 121 * 60)  # job started after the 120-minute budget
         with self.assertRaisesRegex(ReleaseError, "timed out"):
             wait(client, clock)
-        self.assertEqual(client.calls, [], "must not poll once the budget is spent")
+        self.assertEqual(client.paths, [], "must not poll once the budget is spent")
 
     def test_processing_failure_stops(self) -> None:
         for state in ("FAILED", "INVALID"):
-            client = SequenceAsc([{"data": [build_row(state=state)], "included": [pre_row()]}])
+            client = SequenceClient([{"data": [build_row(state=state)], "included": [pre_row()]}])
             with self.subTest(state=state), self.assertRaisesRegex(ReleaseError, state):
                 wait(client, FakeClock(STARTED))
 
     def test_expired_build_is_rejected(self) -> None:
-        client = SequenceAsc([{"data": [build_row(expired=True)], "included": [pre_row()]}])
+        client = SequenceClient([{"data": [build_row(expired=True)], "included": [pre_row()]}])
         with self.assertRaisesRegex(ReleaseError, "expired"):
             wait(client, FakeClock(STARTED))
 
     def test_ambiguous_match_stops(self) -> None:
-        client = SequenceAsc([{"data": [build_row("B1"), build_row("B2")], "included": [pre_row()]}])
+        client = SequenceClient(
+            [{"data": [build_row("B1"), build_row("B2")], "included": [pre_row()]}]
+        )
         with self.assertRaisesRegex(ReleaseError, "ambiguous"):
             wait(client, FakeClock(STARTED))
 
     def test_older_upload_is_never_substituted(self) -> None:
         old = build_row(uploaded=STARTED - 3600)
-        client = SequenceAsc([{"data": [old], "included": [pre_row()]}])
+        client = SequenceClient([{"data": [old], "included": [pre_row()]}])
         with self.assertRaisesRegex(ReleaseError, "older build"):
             wait(client, FakeClock(STARTED))
 
@@ -549,7 +503,9 @@ class WaitForBuildTests(unittest.TestCase):
         # Fail closed: a VALID build that cannot be proven to be this run's upload
         # keeps the wait going until the deadline instead of passing the check.
         for missing in (None, ""):
-            client = SequenceAsc([{"data": [build_row(uploaded=None, uploaded_raw=missing)], "included": [pre_row()]}])
+            client = SequenceClient(
+                [{"data": [build_row(uploaded=None, uploaded_raw=missing)], "included": [pre_row()]}]
+            )
             with self.subTest(missing=missing), self.assertRaisesRegex(ReleaseError, "timed out"):
                 wait(client, FakeClock(STARTED), minutes=10)
         state, message, build = ios_release.evaluate_builds(
@@ -561,412 +517,129 @@ class WaitForBuildTests(unittest.TestCase):
 
     def test_unreadable_upload_time_stops(self) -> None:
         for raw in ("yesterday", 1_800_000_060):
-            client = SequenceAsc([{"data": [build_row(uploaded_raw=raw)], "included": [pre_row()]}])
+            client = SequenceClient([{"data": [build_row(uploaded_raw=raw)], "included": [pre_row()]}])
             with self.subTest(raw=raw), self.assertRaisesRegex(ReleaseError, "unreadable uploadedDate"):
                 wait(client, FakeClock(STARTED))
 
     def test_other_versions_and_platforms_are_ignored(self) -> None:
         other_version = build_row("BX", pre="P2")
         other_platform = build_row("BY", pre="P3")
-        client = SequenceAsc(
+        client = SequenceClient(
             [
-                {"data": [other_version, other_platform], "included": [pre_row("P2", "7.1"), pre_row("P3", VERSION, "MAC_OS")]},
+                {
+                    "data": [other_version, other_platform],
+                    "included": [pre_row("P2", "7.1"), pre_row("P3", VERSION, "MAC_OS")],
+                },
                 {"data": [other_version, build_row("B1")], "included": [pre_row("P2", "7.1"), pre_row()]},
             ]
         )
         self.assertEqual(wait(client, FakeClock(STARTED))["id"], "B1")
 
     def test_build_from_another_app_is_a_mismatch(self) -> None:
-        client = SequenceAsc([{"data": [build_row(app="OTHER")], "included": [pre_row()]}])
+        client = SequenceClient([{"data": [build_row(app="OTHER")], "included": [pre_row()]}])
         with self.assertRaisesRegex(ReleaseError, "another app"):
             wait(client, FakeClock(STARTED))
 
     def test_transient_errors_are_retried_and_others_raise(self) -> None:
-        client = SequenceAsc([asc_error(63), {"data": [build_row()], "included": [pre_row()]}])
+        transient = asc_release.AscHttpError(503, "unavailable")
+        client = SequenceClient([transient, {"data": [build_row()], "included": [pre_row()]}])
         with redirect_stderr(io.StringIO()):
-            build = wait(client, FakeClock(STARTED), transient=ios_release.is_transient_error)
+            build = wait(client, FakeClock(STARTED), transient=lambda exc: getattr(exc, "status", 0) == 503)
         self.assertEqual(build["id"], "B1")
-        fatal = SequenceAsc([asc_error(3)])
-        with self.assertRaises(asc_cli.AscError):
-            wait(fatal, FakeClock(STARTED), transient=ios_release.is_transient_error)
-
-
-class TransientErrorTests(unittest.TestCase):
-    def test_retry_rule_follows_asc_exit_codes(self) -> None:
-        # 408, 429, any 5xx and a call that ran out of time are retried.
-        for code in (18, 39, 60, 62, 63, 99, 124):
-            with self.subTest(code=code):
-                self.assertTrue(ios_release.is_transient_error(asc_error(code)))
-        # Generic, usage, auth, not found, conflict, read-only refusal, 4xx.
-        for code in (1, 2, 3, 4, 5, 6, 10, 32, 127):
-            with self.subTest(code=code):
-                self.assertFalse(ios_release.is_transient_error(asc_error(code)))
-        for exc in (ValueError("bad"), ReleaseError("mismatch"), SystemExit(1)):
-            with self.subTest(exc=repr(exc)):
-                self.assertFalse(ios_release.is_transient_error(exc))
-
-    def test_network_drops_reported_as_exit_1_are_retried(self) -> None:
-        for detail in ('Get "https://api.appstoreconnect.apple.com/v1/builds": read tcp: connection reset by peer',
-                       "dial tcp: lookup api.appstoreconnect.apple.com: no such host",
-                       "net/http: TLS handshake timeout", "unexpected EOF",
-                       'Get "https://api.appstoreconnect.apple.com/v1/builds": EOF'):
-            with self.subTest(detail=detail):
-                self.assertTrue(ios_release.is_transient_error(asc_cli.AscError(("builds", "list"), 1, detail)))
-        for detail in ("invalid character '<' looking for beginning of value", "build not found"):
-            with self.subTest(detail=detail):
-                self.assertFalse(ios_release.is_transient_error(asc_cli.AscError(("builds", "list"), 1, detail)))
-
-
-class AscRunnerTests(unittest.TestCase):
-    ENV = {
-        "APP_STORE_CONNECT_API_KEY_ID": "TESTKEY0001",
-        "APP_STORE_CONNECT_ISSUER_ID": "00000000-test-4000-8000-issuer000001",
-        "APP_STORE_CONNECT_API_KEY_P8": "-----BEGIN PRIVATE KEY-----\\nabc\\n-----END PRIVATE KEY-----",
-        "ASC_PROFILE": "personal",
-        "ASC_CONFIG_PATH": "/home/me/.asc/config.json",
-    }
-
-    def run_once(self, *, returncode: int = 0, stdout: str = '{"data": []}', stderr: str = "", read_only=False, env=None):
-        seen: dict = {}
-
-        def runner(argv, **kwargs):
-            seen["argv"], seen["env"] = argv, kwargs["env"]
-            return mock.Mock(returncode=returncode, stdout=stdout, stderr=stderr)
-
-        with mock.patch.dict(os.environ, env or self.ENV, clear=True):
-            result = asc_cli.Asc(binary="asc", read_only=read_only, runner=runner).run("apps", "view", "--id", APP)
-        return result, seen
-
-    def test_credentials_come_from_the_release_secrets_and_nothing_else(self) -> None:
-        result, seen = self.run_once()
-        self.assertEqual(result, {"data": []})
-        self.assertEqual(seen["argv"], ["asc", "apps", "view", "--id", APP, "--output", "json"])
-        env = seen["env"]
-        self.assertEqual(env["ASC_KEY_ID"], "TESTKEY0001")
-        self.assertEqual(env["ASC_ISSUER_ID"], self.ENV["APP_STORE_CONNECT_ISSUER_ID"])
-        self.assertIn("\nabc\n", env["ASC_PRIVATE_KEY"])
-        for name in ("ASC_PROFILE", "ASC_CONFIG_PATH"):
-            self.assertNotIn(name, env)
-        for name, value in (("ASC_BYPASS_KEYCHAIN", "1"), ("ASC_TELEMETRY_DISABLED", "1"), ("DO_NOT_TRACK", "1"),
-                            ("ASC_SKILLS_AUTO_CHECK", "0"), ("ASC_STRICT_AUTH", "1"), ("ASC_MAX_RETRIES", "5")):
-            self.assertEqual(env[name], value, name)
-        self.assertNotIn("ASC_READ_ONLY", env)
-
-    def test_read_only_from_the_caller_or_the_job(self) -> None:
-        _, seen = self.run_once(read_only=True)
-        self.assertEqual(seen["env"]["ASC_READ_ONLY"], "1")
-        _, seen = self.run_once(env={**self.ENV, "ASC_READ_ONLY": "1"})
-        self.assertEqual(seen["env"]["ASC_READ_ONLY"], "1")
-
-    def test_failures_keep_the_exit_code_and_hide_the_ids(self) -> None:
-        stderr = f"401 for key {self.ENV['APP_STORE_CONNECT_API_KEY_ID']} issuer {self.ENV['APP_STORE_CONNECT_ISSUER_ID']}"
-        with self.assertRaises(asc_cli.AscError) as caught:
-            self.run_once(returncode=3, stderr=stderr)
-        self.assertEqual(caught.exception.exit_code, 3)
-        self.assertNotIn("TESTKEY0001", str(caught.exception))
-        self.assertNotIn("issuer000001", str(caught.exception))
-        with self.assertRaises(asc_cli.AscError):
-            self.run_once(stdout="not json")
-
-    def test_install_accepts_only_the_pinned_binary(self) -> None:
-        good = b"pinned-binary"
-        with mock.patch.dict(asc_cli.ASC_SHA256, {"linux_amd64": hashlib.sha256(good).hexdigest()}):
-            with tempfile.TemporaryDirectory() as tmp:
-                opener = lambda url, timeout: io.BytesIO(good)  # noqa: E731
-                target = quiet(asc_cli.install, Path(tmp), key="linux_amd64", opener=opener)
-                self.assertEqual(target.read_bytes(), good)
-                self.assertTrue(os.access(target, os.X_OK))
-                bad = lambda url, timeout: io.BytesIO(b"tampered")  # noqa: E731
-                with self.assertRaises(SystemExit):
-                    quiet(asc_cli.install, Path(tmp) / "other", key="linux_amd64", opener=bad)
-                self.assertFalse((Path(tmp) / "other" / "asc").exists())
-
-    def test_the_pin_is_one_exact_release_with_both_ci_platforms(self) -> None:
-        self.assertRegex(asc_cli.ASC_VERSION, r"^[0-9]+\.[0-9]+\.[0-9]+$")
-        self.assertEqual(set(asc_cli.ASC_SHA256), {"linux_amd64", "macOS_arm64"})
-        for digest in asc_cli.ASC_SHA256.values():
-            self.assertRegex(digest, r"^[0-9a-f]{64}$")
-        self.assertEqual(asc_cli.platform_key("Linux", "x86_64"), "linux_amd64")
-        self.assertEqual(asc_cli.platform_key("Darwin", "arm64"), "macOS_arm64")
+        fatal = SequenceClient([asc_release.AscHttpError(401, "unauthorized")])
         with self.assertRaises(SystemExit):
-            asc_cli.platform_key("Windows", "x86_64")
-
-    def test_only_the_pinned_binary_receives_credentials(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            binary = Path(tmp) / "asc"
-            binary.write_bytes(b"pinned-binary")
-            pinned = {asc_cli.platform_key(): hashlib.sha256(b"pinned-binary").hexdigest()}
-            with mock.patch.dict(asc_cli.ASC_SHA256, pinned), mock.patch.object(asc_cli.shutil, "which", return_value=str(binary)):
-                self.assertEqual(asc_cli.verified_binary("asc"), str(binary))
-                binary.write_bytes(b"something else")
-                with self.assertRaises(asc_cli.AscError) as caught:
-                    asc_cli.verified_binary("asc")
-                self.assertEqual(caught.exception.exit_code, 126)
-                # A real run checks the binary before anything is executed.
-                with mock.patch.object(asc_cli.subprocess, "run") as run, self.assertRaises(asc_cli.AscError):
-                    asc_cli.Asc().run("apps", "view", "--id", APP)
-                run.assert_not_called()
-            with mock.patch.object(asc_cli.shutil, "which", return_value=None), self.assertRaises(asc_cli.AscError):
-                asc_cli.verified_binary("asc")
-        # No environment variable can point the release at another executable.
-        with mock.patch.dict(os.environ, {"ASC_BIN": "/tmp/evil"}):
-            self.assertEqual(asc_cli.Asc().binary, "asc")
-
-    def test_alpha_is_detected_the_way_asc_refuses_it(self) -> None:
-        cases = {"rgb": (png_header(2), False), "rgba": (png_header(6), True), "gray-alpha": (png_header(4), True),
-                 "rgb-trns": (png_header(2, trns=True), True), "jpeg": (b"\xff\xd8\xff\xe0rest", False)}
-        with tempfile.TemporaryDirectory() as tmp:
-            for name, (content, expected) in cases.items():
-                path = Path(tmp) / name
-                path.write_bytes(content)
-                with self.subTest(name=name):
-                    self.assertEqual(asc_cli.image_has_alpha(path), expected)
-
-    def test_a_leading_at_sign_is_escaped(self) -> None:
-        self.assertEqual(asc_release.asc_value("@apoorvdarshan on X"), "@@apoorvdarshan on X")
-        self.assertEqual(asc_release.asc_value("Track food"), "Track food")
+            wait(fatal, FakeClock(STARTED), transient=lambda exc: getattr(exc, "status", 0) == 503)
 
 
-MUTATIONS = {
-    ("versions", "create"), ("versions", "update"), ("versions", "attach-build"), ("localizations", "update"),
-    ("screenshots", "upload"), ("asset-library", "images", "upload"), ("localizations", "placements", "create"),
-    ("localizations", "placements", "swap"), ("review", "submissions-create"), ("review", "items-add"),
-    ("review", "submissions-submit"),
-    # Product creation.
-    ("subscriptions", "setup"), ("subscriptions", "update"), ("iap", "create"), ("iap", "versions", "create"),
-    ("iap", "versions", "localizations", "create"), ("iap", "pricing", "schedules", "create"),
-    ("iap", "pricing", "availability", "set"), ("iap", "review-screenshots", "create"),
-    ("iap", "review-screenshots", "update"),
-}
+class SelectionClient:
+    """Fake ASC client for build verification and selection."""
 
-
-def is_write(call: tuple[str, ...]) -> bool:
-    return any(call[:n] in MUTATIONS for n in (2, 3, 4, 5))
-
-
-def flag(call: tuple[str, ...], name: str) -> str:
-    return call[call.index(name) + 1]
-
-
-class FakeAsc:
-    """A stateful App Store Connect behind `asc`, for asc_release (no network)."""
-
-    def __init__(
-        self,
-        *,
-        state: str = "PREPARE_FOR_SUBMISSION",
-        attached: str | None = "OLD",
-        revert_after_select: bool = False,
-        live_text: dict | None = None,
-        live_shots: list[dict] | None = None,
-        versions: list[dict] | None = None,
-        bundle: str = BUNDLE,
-        subscriptions: list[dict] | None = None,
-        iaps: list[dict] | None = None,
-        drafts: list[str] | None = None,
-        draft_items: dict[str, list[dict]] | None = None,
-        library: list[dict] | None = None,
-        placements: list[dict] | None = None,
-        refuse_items: set[str] | None = None,
-        listed_after_create: bool = True,
-    ) -> None:
-        self.state = state
+    def __init__(self, *, build: dict, included: list, attached: str | None, sticky: bool = True) -> None:
+        self.build = build
+        self.included = included
         self.attached = attached
-        self.revert_after_select = revert_after_select
-        self.live_text = dict(live_text or {})
-        self.live_shots = live_shots
-        self.versions = versions if versions is not None else [
-            {"id": "V1", "attributes": {"versionString": VERSION, "appStoreState": state}}
-        ]
-        self.bundle = bundle
-        self.subscriptions = subscriptions or []
-        self.iaps = iaps or []
-        self.drafts = list(drafts or [])
-        self.items = {k: list(v) for k, v in (draft_items or {}).items()}
-        self.library = list(library or [])
-        self.placements = list(placements or [])
-        self.refuse_items = refuse_items or set()
-        self.listed_after_create = listed_after_create
-        self.uploaded_sets: list[str] = []
-        self.created_versions: list[str] = []
-        self.calls: list[tuple[str, ...]] = []
-        self.version_views = 0
+        self.sticky = sticky
+        self.calls: list[tuple[str, str, dict | None]] = []
 
-    def run(self, *args: str, **_: object):
-        self.calls.append(args)
-        head = args[:3] if args[:3] in MUTATIONS or args[:2] in {("localizations", "placements"), ("asset-library", "images")} else args[:2]
-        if head == ("apps", "view"):
-            return {"data": {"type": "apps", "id": flag(args, "--id"), "attributes": {"bundleId": self.bundle}}}
-        if head == ("versions", "list"):
-            return {"data": self.versions}
-        if head == ("versions", "create"):
-            self.created_versions.append(flag(args, "--version"))
-            if self.listed_after_create:
-                self.versions.append({"id": "NEW", "attributes": {"versionString": flag(args, "--version"),
-                                                                  "appStoreState": "PREPARE_FOR_SUBMISSION"}})
-            return {"data": {"id": "NEW"}}
-        if head == ("versions", "view"):
-            self.version_views += 1
-            build = self.attached
-            if self.revert_after_select and self.version_views >= 2:
-                build = "OLD"
-            rel = {"build": {"data": {"type": "builds", "id": build} if build else None}}
-            return {"data": {"id": flag(args, "--version-id"), "relationships": rel}}
-        if head == ("versions", "attach-build"):
-            self.attached = flag(args, "--build-id")
-            return {"data": {}}
-        if head == ("versions", "update"):
-            return {"data": {}}
-        if head == ("builds", "list"):
-            return {"data": [build_row("B9")], "included": [pre_row()]}
-        if head == ("localizations", "list"):
-            return {"data": [{"id": "LOC1", "attributes": {"locale": flag(args, "--locale"), **self.live_text}}]}
-        if head == ("localizations", "update"):
-            return {"data": {}}
-        if head == ("screenshots", "list"):
-            if self.live_shots is None:
-                return {"sets": []}
-            return {"sets": [
-                {"set": {"attributes": {"screenshotDisplayType": display}},
-                 "screenshots": [{"attributes": shot} for shot in self.live_shots]}
-                for _, display, _, _ in asc_release.SCREENSHOT_SETS
-            ]}
-        if head == ("screenshots", "upload"):
-            self.uploaded_sets.append(flag(args, "--device-type"))
-            # Upload makes the set hold exactly the files in --path.
-            folder = Path(flag(args, "--path"))
-            self.live_shots = [
-                {"fileName": p.name, "fileSize": p.stat().st_size,
-                 "sourceFileChecksum": hashlib.md5(p.read_bytes()).hexdigest()}
-                for p in sorted(folder.glob("*.png"))
-            ]
-            return {}
-        if head == ("asset-library", "view"):
-            return {"data": {"id": "LIB1"}}
-        if head == ("asset-library", "images", "list"):
-            return {"data": self.library}
-        if head == ("asset-library", "images", "upload"):
-            path = Path(flag(args, "--file"))
-            image_id = f"IMG{len(self.library) + 1}"
-            self.library.append({"id": image_id, "attributes": {"fileName": path.name, "fileSize": path.stat().st_size,
-                                                                "state": "PREPARE_FOR_SUBMISSION", "createdDate": "z"}})
-            return {"imageId": image_id, "ready": True, "state": "PREPARE_FOR_SUBMISSION"}
-        if head == ("localizations", "placements", "list"):
-            wanted = flag(args, "--placement-type")
-            return {"data": [p for p in self.placements if p["attributes"]["placementType"] == wanted]}
-        if head in {("localizations", "placements", "create"), ("localizations", "placements", "swap")}:
-            self.placements = [p for p in self.placements if p["attributes"]["placementType"] != flag(args, "--placement-type")]
-            self.placements.append({"id": "PL-new", "attributes": {"placementType": flag(args, "--placement-type")},
-                                    "relationships": {"image": {"data": {"id": flag(args, "--image-id")}}}})
-            return {"data": {}}
-        if head == ("review", "submissions-list"):
-            return {"data": [{"id": d} for d in self.drafts]}
-        if head == ("review", "submissions-create"):
-            new = f"SUB{len(self.drafts) + 1}"
-            self.drafts.append(new)
-            return {"data": {"id": new}}
-        if head == ("review", "items-list"):
-            return {"data": self.items.get(flag(args, "--submission"), [])}
-        if head == ("review", "items-add"):
-            item_type, item_id = flag(args, "--item-type"), flag(args, "--item-id")
-            if item_id in self.refuse_items:
-                raise asc_cli.AscError(args, 5, "conflict")
-            relation = {"appStoreVersions": "appStoreVersion", "subscriptionVersions": "subscriptionVersion",
-                        "inAppPurchaseVersions": "inAppPurchaseVersion",
-                        "appAssetLibraryImages": "appAssetLibraryImage"}[item_type]
-            held = self.items.setdefault(flag(args, "--submission"), [])
-            if any(related == item_id for item in held
-                   for related in [((item.get("relationships") or {}).get(relation) or {}).get("data", {}).get("id")]):
-                if flag(args, "--if-exists") != "skip":
-                    raise asc_cli.AscError(args, 5, "already on the submission")
-                return {"data": {}}
-            held.append({"id": f"ITEM-{item_id}", "relationships": {relation: {"data": {"id": item_id}}}})
-            return {"data": {}}
-        if head == ("review", "submissions-submit"):
-            return {"data": {}}
-        if head == ("subscriptions", "list"):
-            return {"data": self.subscriptions}
-        if args[:3] == ("subscriptions", "versions", "list"):
-            return {"data": [{"id": f"{flag(args, '--subscription-id')}v2", "attributes": {"version": 2}},
-                             {"id": f"{flag(args, '--subscription-id')}v1", "attributes": {"version": 1}}]}
-        if head == ("iap", "list"):
-            return {"data": self.iaps}
-        if args[:3] == ("iap", "versions", "list"):
-            return {"data": [{"id": f"{flag(args, '--iap-id')}v1", "attributes": {"version": 1}}]}
-        raise AssertionError(f"unexpected asc call {args}")
+    def get(self, path: str) -> dict:
+        self.calls.append(("GET", path, None))
+        if path.startswith(f"/builds/{self.build['id']}"):
+            return {"data": self.build, "included": self.included}
+        if path.endswith("/build"):
+            return {"data": {"type": "builds", "id": self.attached} if self.attached else None}
+        raise AssertionError(f"unexpected GET {path}")
 
-    def writes(self) -> list[tuple[str, ...]]:
-        return [c for c in self.calls if is_write(c)]
+    def patch(self, path: str, body: dict) -> dict:
+        self.calls.append(("PATCH", path, body))
+        return {"data": body["data"]}
+
+    def request(self, method: str, path: str, body: dict | None = None):
+        self.calls.append((method, path, body))
+        if method == "PATCH" and path.endswith("/relationships/build") and self.sticky:
+            self.attached = body["data"]["id"]
+        return None
 
 
-def run_main(fake: FakeAsc, env: dict[str, str], argv: list[str]) -> int:
-    full_env = {k: v for k, v in os.environ.items() if k not in {
-        "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "UPLOAD_CREATIVE_ASSETS", "SUBMIT_IOS_REVIEW",
-        "PUBLIC_RELEASE", "CREATE_IOS_VERSION"}}
-    full_env.update(env)
-    code = 0
-    with mock.patch.dict(os.environ, full_env, clear=True), mock.patch.object(sys, "argv", ["asc_release.py", *argv]), \
-            mock.patch.object(asc_release, "asc_from_environment", return_value=fake), \
-            mock.patch.object(asc_release, "intended_product_ids", return_value=PRODUCT_IDS), \
-            redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-        try:
-            asc_release.main()
-        except SystemExit as exc:
-            code = exc.code if isinstance(exc.code, int) else 1
-    return code
-
-
-PRODUCT = "com.apoorvdarshan.calorietracker.plus.monthly"
-CREDITS = "com.apoorvdarshan.calorietracker.credits.50"
-PRODUCT_IDS = {PRODUCT, CREDITS}
-SUBMIT = {"SUBMIT_IOS_REVIEW": "true"}
-SUBMIT_ARGS = ["--version", VERSION, "--build-id", "B9", "--build-number", "40"]
+def quiet(fn, *args, **kwargs):
+    with redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+        return fn(*args, **kwargs)
 
 
 class BuildSelectionTests(unittest.TestCase):
     def test_selects_and_reads_back_this_runs_build(self) -> None:
-        fake = FakeAsc()
-        quiet(asc_release.select_build, fake, "V1", "B9", VERSION, "40")
-        self.assertEqual(fake.attached, "B9")
-        names = [c[:2] for c in fake.calls]
-        self.assertEqual(names, [("builds", "list"), ("versions", "attach-build"), ("versions", "view")])
+        client = SelectionClient(build=build_row("B9"), included=[pre_row()], attached="OLD")
+        quiet(asc_release.select_build, client, "V1", "B9", VERSION, "40")
+        self.assertEqual(client.attached, "B9")
+        methods = [(m, p) for m, p, _ in client.calls]
+        self.assertIn(("PATCH", "/appStoreVersions/V1/relationships/build"), methods)
+        self.assertEqual(methods[-1], ("GET", "/appStoreVersions/V1/build"))
 
     def test_selection_that_does_not_stick_fails(self) -> None:
-        fake = FakeAsc(revert_after_select=True)
-        quiet(asc_release.confirm_selected_build, fake, "V1", "OLD")
+        client = SelectionClient(build=build_row("B9"), included=[pre_row()], attached="OLD", sticky=False)
         with self.assertRaises(SystemExit):
-            quiet(asc_release.select_build, fake, "V1", "B9", VERSION, "40")
+            quiet(asc_release.select_build, client, "V1", "B9", VERSION, "40")
 
     def test_unprocessed_expired_or_wrong_build_is_refused(self) -> None:
         cases = {
-            "processing": ([build_row("B9", state="PROCESSING")], [pre_row()]),
-            "expired": ([build_row("B9", expired=True)], [pre_row()]),
-            "number": ([build_row("B9", number="41")], [pre_row()]),
-            "version": ([build_row("B9")], [pre_row(version="7.1")]),
-            "missing": ([build_row("B8")], [pre_row()]),
+            "processing": (build_row("B9", state="PROCESSING"), [pre_row()]),
+            "expired": (build_row("B9", expired=True), [pre_row()]),
+            "number": (build_row("B9", number="41"), [pre_row()]),
+            "version": (build_row("B9"), [pre_row(version="7.1")]),
         }
-        for label, (builds, included) in cases.items():
-            fake = FakeAsc()
-            fake_run = fake.run
-            fake.run = lambda *a, _b=builds, _i=included, _r=fake_run, **k: (  # type: ignore[method-assign]
-                {"data": _b, "included": _i} if a[:2] == ("builds", "list") else _r(*a, **k))
+        for label, (build, included) in cases.items():
+            client = SelectionClient(build=build, included=included, attached=None)
             with self.subTest(label), self.assertRaises(SystemExit):
-                quiet(asc_release.select_build, fake, "V1", "B9", VERSION, "40")
-            self.assertEqual(fake.attached, "OLD", label)
+                quiet(asc_release.select_build, client, "V1", "B9", VERSION, "40")
+            self.assertFalse([c for c in client.calls if c[0] == "PATCH"], label)
 
     def test_release_type(self) -> None:
         for public, expected in ((True, "AFTER_APPROVAL"), (False, "MANUAL")):
-            fake = FakeAsc()
-            quiet(asc_release.set_release_type, fake, "V1", public_release=public)
-            self.assertEqual(flag(fake.calls[-1], "--release-type"), expected)
+            client = SelectionClient(build=build_row(), included=[], attached=None)
+            quiet(asc_release.set_release_type, client, "V1", public_release=public)
+            body = client.calls[-1][2]
+            self.assertEqual(body["data"]["attributes"]["releaseType"], expected)
 
 
-class MainArgumentTests(unittest.TestCase):
+class TokenRefreshTests(unittest.TestCase):
+    def test_token_is_reminted_during_long_waits(self) -> None:
+        minted: list[str] = []
+
+        def factory() -> str:
+            minted.append(f"t{len(minted)}")
+            return minted[-1]
+
+        with mock.patch.object(asc_release.time, "monotonic", side_effect=[0, 100, 700, 700, 800]):
+            client = asc_release.AscClient(token_factory=factory)
+            self.assertEqual(client._authorization(), "Bearer t0")
+            self.assertEqual(client._authorization(), "Bearer t1")
+            self.assertEqual(client._authorization(), "Bearer t1")
+
+
+class AscCliTests(unittest.TestCase):
     def run_cli(self, env: dict[str, str], *args: str) -> tuple[int, str]:
         out = io.StringIO()
         full_env = {k: v for k, v in os.environ.items() if k not in {
-            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "UPLOAD_CREATIVE_ASSETS", "SUBMIT_IOS_REVIEW",
-            "PUBLIC_RELEASE"}}
+            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "SUBMIT_IOS_REVIEW", "PUBLIC_RELEASE"}}
         full_env.update(env)
         with mock.patch.dict(os.environ, full_env, clear=True), mock.patch.object(
             sys, "argv", ["asc_release.py", "--dry-run", *args]
@@ -987,11 +660,6 @@ class MainArgumentTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("--build-id", output)
 
-    def test_dry_run_submit_runs_the_offline_self_check(self) -> None:
-        code, output = self.run_cli({"SUBMIT_IOS_REVIEW": "true"}, "--build-id", "B", "--build-number", "1")
-        self.assertEqual(code, 0, output)
-        self.assertIn("self-check: product submission selection OK", output)
-
     def test_public_release_without_submit_fails(self) -> None:
         code, _ = self.run_cli({"UPLOAD_LISTING": "true", "PUBLIC_RELEASE": "true"})
         self.assertEqual(code, 1)
@@ -1011,411 +679,532 @@ class MainArgumentTests(unittest.TestCase):
             code, output = self.run_cli({"UPLOAD_WHATS_NEW": "true"}, "--metadata-dir", tmp)
             self.assertEqual(code, 0, output)
 
-    def test_creative_assets_need_an_image(self) -> None:
-        with tempfile.TemporaryDirectory() as tmp:
-            code, output = self.run_cli({"UPLOAD_CREATIVE_ASSETS": "true"}, "--creative-dir", tmp)
-            self.assertEqual(code, 1)
-            self.assertIn("no header or search results image", output)
-            (Path(tmp) / "header").mkdir()
-            (Path(tmp) / "header" / "a.png").write_bytes(png_header(width=3840, height=1646))
-            (Path(tmp) / "header" / "b.png").write_bytes(png_header(width=3840, height=1646))
-            code, output = self.run_cli({"UPLOAD_CREATIVE_ASSETS": "true"}, "--creative-dir", tmp)
-            self.assertEqual(code, 1)
-            self.assertIn("takes one image", output)
-            (Path(tmp) / "header" / "b.png").unlink()
-            code, output = self.run_cli({"UPLOAD_CREATIVE_ASSETS": "true"}, "--creative-dir", tmp)
-            self.assertEqual(code, 0, output)
-
-    def test_the_repository_creative_assets_are_valid(self) -> None:
-        sources = asc_release.creative_sources(asc_release.ROOT / "store" / "creative" / "ios")
-        self.assertEqual([placement for placement, _, _ in sources],
-                         ["PRODUCT_PAGE_HEADER_ASSET", "APP_STORE_SEARCH_RESULTS_ASSET"])
-
     def test_listing_excludes_whats_new_unless_enabled(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             loc = Path(tmp) / "ios" / "en-US"
             loc.mkdir(parents=True)
             (loc / "description.txt").write_text("Desc")
             (loc / "whats_new.txt").write_text("New")
-            for whats_new, expected in ((False, {"--description"}), (True, {"--description", "--whats-new"})):
-                fake = FakeAsc()
-                quiet(asc_release.upload_listing, fake, version_id="V1", locale="en-US", metadata_dir=Path(tmp),
-                      include_listing=True, include_whats_new=whats_new)
-                update = [c for c in fake.calls if c[:2] == ("localizations", "update")][0]
-                self.assertEqual({a for a in update if a.startswith("--")} - {"--id"}, expected)
-                self.assertEqual(flag(update, "--id"), "LOC1")
+            for whats_new, expected in ((False, {"description"}), (True, {"description", "whatsNew"})):
+                client = mock.Mock()
+                client.get.return_value = {"data": [{"id": "LOC", "attributes": {"locale": "en-US"}}]}
+                quiet(
+                    asc_release.upload_listing,
+                    client,
+                    app_id=APP,
+                    version_id="V1",
+                    locale="en-US",
+                    metadata_dir=Path(tmp),
+                    include_listing=True,
+                    include_whats_new=whats_new,
+                )
+                attrs = client.patch.call_args[0][1]["data"]["attributes"]
+                self.assertEqual(set(attrs), expected)
+
+
+class TransientErrorTests(unittest.TestCase):
+    def test_real_retry_rule(self) -> None:
+        import http.client
+        import urllib.error
+
+        transient = [
+            http.client.RemoteDisconnected("closed"),
+            ConnectionResetError("reset"),
+            http.client.IncompleteRead(b""),
+            urllib.error.URLError("dns"),
+            TimeoutError("slow"),
+            asc_release.AscHttpError(503, "busy"),
+            asc_release.AscHttpError(429, "rate limited"),
+            urllib.error.HTTPError("https://x", 502, "bad gateway", {}, None),
+        ]
+        fatal = [
+            asc_release.AscHttpError(401, "unauthorized"),
+            asc_release.AscHttpError(409, "conflict"),
+            urllib.error.HTTPError("https://x", 404, "missing", {}, None),
+            ValueError("bad"),
+            ReleaseError("mismatch"),
+            SystemExit(1),
+        ]
+        for exc in transient:
+            with self.subTest(exc=repr(exc)):
+                self.assertTrue(ios_release.is_transient_error(exc))
+        for exc in fatal:
+            with self.subTest(exc=repr(exc)):
+                self.assertFalse(ios_release.is_transient_error(exc))
 
 
 class CmdWaitBuildTests(unittest.TestCase):
     def test_deadline_counts_from_upload_start_and_app_lookup_is_retried(self) -> None:
+        import http.client
         import argparse
 
         lookups = []
 
-        class Lookup:
-            def run(self, *args: str, **_: object):
-                lookups.append(args)
-                if len(lookups) == 1:
-                    raise asc_error(63)
-                return {"data": {"id": APP, "attributes": {"bundleId": ios_release.BUNDLE_ID}}}
+        def find_app(_client, bundle_id):
+            lookups.append(bundle_id)
+            if len(lookups) == 1:
+                raise http.client.RemoteDisconnected("closed")
+            return APP
 
+        fake_module = mock.Mock(find_app=find_app)
         captured = {}
 
         def fake_wait(client, **kwargs):
             captured.update(kwargs)
             return {"id": "B9"}
 
-        args = argparse.Namespace(version=VERSION, build=40, started_at=STARTED, wait_minutes=120, poll_seconds=30)
+        args = argparse.Namespace(
+            version=VERSION, build=40, started_at=STARTED, wait_minutes=120, poll_seconds=30
+        )
         with tempfile.NamedTemporaryFile("r", suffix=".out") as out, mock.patch.object(
-            ios_release, "asc_client", return_value=(asc_release, Lookup())
+            ios_release, "asc_client", return_value=(fake_module, object())
         ), mock.patch.object(ios_release, "wait_for_build", side_effect=fake_wait), mock.patch.object(
             ios_release.time, "sleep"
-        ), mock.patch.object(ios_release.time, "time", return_value=STARTED + 30), mock.patch.dict(
-            os.environ, {"GITHUB_OUTPUT": out.name}
-        ), redirect_stdout(io.StringIO()):
+        ), mock.patch.object(
+            ios_release.time, "time", return_value=STARTED + 30
+        ), mock.patch.dict(os.environ, {"GITHUB_OUTPUT": out.name}), redirect_stdout(io.StringIO()):
             ios_release.cmd_wait_build(args)
             written = Path(out.name).read_text()
-        self.assertEqual(len(lookups), 2)
+        self.assertEqual(lookups, [ios_release.BUNDLE_ID] * 2)
         self.assertEqual(captured["deadline"], STARTED + 120 * 60)
         self.assertEqual(captured["uploaded_after"], STARTED)
         self.assertEqual(captured["build_number"], "40")
         self.assertIs(captured["is_transient"], ios_release.is_transient_error)
         self.assertIn("build_id=B9", written)
 
-    def test_runs_alone_as_the_build_job_checks_it_out(self) -> None:
-        # The build job's sparse checkout holds ios_release.py without asc_cli.py.
-        import shutil
-        import subprocess
-
-        with tempfile.TemporaryDirectory() as tmp:
-            copy = Path(tmp) / "ios_release.py"
-            shutil.copy(Path(ios_release.__file__), copy)
-            done = subprocess.run([sys.executable, str(copy), "export-compliance", "--help"],
-                                  capture_output=True, text=True, timeout=60)
-        self.assertEqual(done.returncode, 0, done.stderr)
-
-    def test_asc_errors_end_with_an_error_line_not_a_traceback(self) -> None:
-        err = io.StringIO()
-        with mock.patch.object(ios_release, "asc_client", side_effect=asc_cli.AscError(("apps", "view"), 3, "unauthorized")), \
-                mock.patch.dict(os.environ, {}, clear=True), redirect_stderr(err), redirect_stdout(io.StringIO()), \
-                self.assertRaises(SystemExit) as caught:
-            ios_release.main(["wait-build", "--version", VERSION, "--build", "40", "--started-at", str(STARTED),
-                              "--wait-minutes", "120", "--poll-seconds", "30"])
-        self.assertEqual(caught.exception.code, 1)
-        self.assertIn("error: asc apps view failed (exit 3)", err.getvalue())
-
-    def test_another_app_record_stops_the_wait(self) -> None:
-        import argparse
-
-        class Other:
-            def run(self, *args: str, **_: object):
-                return {"data": {"id": APP, "attributes": {"bundleId": "com.example.other"}}}
-
-        args = argparse.Namespace(version=VERSION, build=40, started_at=STARTED, wait_minutes=120, poll_seconds=30)
-        with mock.patch.object(ios_release, "asc_client", return_value=(asc_release, Other())), \
-                mock.patch.object(ios_release.time, "time", return_value=STARTED), \
-                redirect_stdout(io.StringIO()), self.assertRaises(ReleaseError):
-            ios_release.cmd_wait_build(args)
-
     def test_app_lookup_gives_up_at_the_deadline(self) -> None:
+        import http.client
+
         def boom():
-            raise asc_error(63)
+            raise http.client.RemoteDisconnected("closed")
 
         clock = FakeClock(STARTED)
-        with redirect_stdout(io.StringIO()), self.assertRaises(asc_cli.AscError):
-            ios_release.call_with_retries(boom, deadline=STARTED + 90, poll_seconds=30, now=clock.now, sleep=clock.sleep)
+        with redirect_stdout(io.StringIO()), self.assertRaises(http.client.RemoteDisconnected):
+            ios_release.call_with_retries(
+                boom, deadline=STARTED + 90, poll_seconds=30, now=clock.now, sleep=clock.sleep
+            )
         self.assertEqual(clock.sleeps, [30, 30, 30])
 
-    def test_checks_run_asc_read_only(self) -> None:
-        env = {"APP_STORE_CONNECT_API_KEY_ID": "K", "APP_STORE_CONNECT_ISSUER_ID": "I", "APP_STORE_CONNECT_API_KEY_P8": "P"}
-        with mock.patch.dict(os.environ, env, clear=True):
-            _, client = ios_release.asc_client()
-        self.assertTrue(client.read_only)
+
+class FakeAsc:
+    """App Store Connect stand-in for asc_release.main() (live path, no network)."""
+
+    def __init__(self, *, state: str = "PREPARE_FOR_SUBMISSION", attached: str | None = "OLD",
+                 revert_after_select: bool = False, live_text: dict | None = None,
+                 live_shots: list[dict] | None = None, iaps: list[dict] | None = None) -> None:
+        self.state = state
+        self.attached = attached
+        self.revert_after_select = revert_after_select
+        self.live_text = dict(live_text or {})
+        self.live_shots = live_shots
+        self.iaps = iaps or []
+        self.build_reads = 0
+        self.calls: list[tuple[str, str]] = []
+        self.created_sets: list[str] = []
+
+    def get(self, path: str) -> dict:
+        self.calls.append(("GET", path))
+        if path.startswith("/apps?"):
+            return {"data": [{"id": APP, "attributes": {"bundleId": asc_release.DEFAULT_BUNDLE_ID}}]}
+        if path.startswith(f"/apps/{APP}/appStoreVersions"):
+            return {"data": [{"id": "V1", "attributes": {"versionString": VERSION, "appStoreState": self.state}}]}
+        if path.startswith("/builds/B9"):
+            return {"data": build_row("B9"), "included": [pre_row()]}
+        if path == "/appStoreVersions/V1/build":
+            self.build_reads += 1
+            if self.revert_after_select and self.build_reads >= 2:
+                return {"data": {"type": "builds", "id": "OLD"}}
+            return {"data": {"type": "builds", "id": self.attached} if self.attached else None}
+        if path.startswith(f"/apps/{APP}/reviewSubmissions"):
+            return {"data": [{"id": "SUB1"}]}
+        if path.startswith("/reviewSubmissions/SUB1/items"):
+            return {"data": []}
+        if path.startswith("/appStoreVersions/V1/appStoreVersionLocalizations"):
+            return {"data": [{"id": "LOC1", "attributes": {"locale": "en-US", **self.live_text}}]}
+        if path == "/appStoreVersionLocalizations/LOC1/appScreenshotSets":
+            if self.live_shots is None:
+                return {"data": []}
+            return {"data": [{"id": f"SET-{display}", "attributes": {"screenshotDisplayType": display}}
+                             for _, display, _ in asc_release.SCREENSHOT_SETS]}
+        if path.startswith("/appScreenshotSets/") and path.endswith("/appScreenshots"):
+            # Every live set holds live_shots; sets created by this run start empty.
+            live = self.live_shots if path.startswith("/appScreenshotSets/SET-") else []
+            return {"data": [{"id": f"SHOT{i}", "attributes": shot} for i, shot in enumerate(live or [])]}
+        if path == f"/apps/{APP}/subscriptionGroups?limit=200":
+            return {"data": []}
+        if path == f"/apps/{APP}/inAppPurchasesV2?limit=200":
+            return {"data": self.iaps}
+        raise AssertionError(f"unexpected GET {path}")
+
+    def post(self, path: str, body: dict) -> dict:
+        self.calls.append(("POST", path))
+        if path == "/appScreenshotSets":
+            display = body["data"]["attributes"]["screenshotDisplayType"]
+            self.created_sets.append(display)
+            return {"data": {"id": f"NEW-{display}"}}
+        return {"data": {"id": "ITEM"}}
+
+    def patch(self, path: str, body: dict) -> dict:
+        self.calls.append(("PATCH", path))
+        return {"data": body["data"]}
+
+    def request(self, method: str, path: str, body: dict | None = None):
+        self.calls.append((method, path))
+        if method == "PATCH" and path == "/appStoreVersions/V1/relationships/build":
+            self.attached = body["data"]["id"]
+        return None
 
 
 class LiveSubmitFlowTests(unittest.TestCase):
+    def run_main(self, fake: FakeAsc) -> tuple[int, mock.Mock]:
+        products = mock.Mock(return_value=asc_release.ProductSubmitResult("SUB1", 0, False))
+        argv = ["asc_release.py", "--version", VERSION, "--build-id", "B9", "--build-number", "40"]
+        env = {k: v for k, v in os.environ.items() if k not in {
+            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "PUBLIC_RELEASE"}}
+        env["SUBMIT_IOS_REVIEW"] = "true"
+        code = 0
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(asc_release, "client_from_environment", return_value=fake), \
+                mock.patch.object(asc_release, "submit_in_app_purchases", products), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            try:
+                asc_release.main()
+            except SystemExit as exc:
+                code = exc.code if isinstance(exc.code, int) else 1
+        return code, products
+
     def test_selects_rechecks_then_submits(self) -> None:
-        fake = FakeAsc(subscriptions=[{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT,
-                                                                   "state": "READY_TO_SUBMIT"}}])
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        writes = [c[:2] for c in fake.writes()]
-        self.assertEqual(writes, [("versions", "attach-build"), ("versions", "update"), ("review", "submissions-create"),
-                                  ("review", "items-add"), ("review", "items-add"), ("review", "submissions-submit")])
-        items = [flag(c, "--item-type") for c in fake.writes() if c[:2] == ("review", "items-add")]
-        self.assertEqual(items, ["subscriptionVersions", "appStoreVersions"])
-        # The build is re-read and the selection re-checked after the products are attached.
-        submit = fake.calls.index(fake.writes()[-1])
-        last_items_add = max(i for i, c in enumerate(fake.calls) if c[:2] == ("review", "items-add"))
-        rechecks = [i for i, c in enumerate(fake.calls) if c[:2] in {("builds", "list"), ("versions", "view")}]
-        self.assertTrue(any(last_items_add < i < submit for i in rechecks))
-        self.assertEqual(flag([c for c in fake.calls if c[:2] == ("versions", "update")][0], "--release-type"), "MANUAL")
+        fake = FakeAsc()
+        code, products = self.run_main(fake)
+        self.assertEqual(code, 0)
+        calls = fake.calls
+        select = calls.index(("PATCH", "/appStoreVersions/V1/relationships/build"))
+        submit = calls.index(("PATCH", "/reviewSubmissions/SUB1"))
+        reads = [i for i, c in enumerate(calls) if c == ("GET", "/appStoreVersions/V1/build")]
+        build_checks = [i for i, c in enumerate(calls) if c[0] == "GET" and c[1].startswith("/builds/B9")]
+        self.assertEqual(len(reads), 2, "selection must be read back and rechecked")
+        self.assertTrue(select < reads[0] < reads[1] < submit)
+        self.assertEqual(len(build_checks), 2)
+        self.assertTrue(build_checks[1] < reads[1] < submit, "build must be re-verified just before submit")
+        self.assertIn(("PATCH", "/appStoreVersions/V1"), calls)  # release type
+        products.assert_called_once()
 
     def test_selection_changed_before_submit_aborts(self) -> None:
         fake = FakeAsc(revert_after_select=True)
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
-        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.calls])
+        code, _ = self.run_main(fake)
+        self.assertEqual(code, 1)
+        self.assertNotIn(("PATCH", "/reviewSubmissions/SUB1"), fake.calls)
 
     def test_waiting_for_review_with_another_build_aborts(self) -> None:
         fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="OTHER")
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
-        self.assertEqual(fake.writes(), [])
+        code, products = self.run_main(fake)
+        self.assertEqual(code, 1)
+        products.assert_not_called()
+        self.assertNotIn(("PATCH", "/reviewSubmissions/SUB1"), fake.calls)
 
     def test_waiting_for_review_with_this_build_is_idempotent(self) -> None:
         fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9")
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
-        self.assertNotIn(("versions", "attach-build"), [c[:2] for c in fake.writes()])
+        code, products = self.run_main(fake)
+        self.assertEqual(code, 0)
+        products.assert_called_once()
+        self.assertNotIn(("PATCH", "/appStoreVersions/V1/relationships/build"), fake.calls)
 
-    def test_late_products_go_out_in_a_product_only_draft(self) -> None:
-        iap = [{"id": "IAP1", "attributes": {"name": "Credits", "productId": CREDITS, "state": "READY_TO_SUBMIT"}}]
-        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9", iaps=iap)
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertEqual(flag([c for c in fake.writes() if c[:2] == ("review", "items-add")][0], "--item-id"), "IAP1v1")
-        self.assertEqual(fake.writes()[-1][:2], ("review", "submissions-submit"))
-        # A draft that holds an app version is never touched from here: the
-        # products go out in a new product-only draft instead.
-        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9", iaps=iap, drafts=["D1"],
-                       draft_items={"D1": [{"id": "X", "relationships": {"appStoreVersion": {"data": {"id": "V0"}}}}]})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertNotIn("D1", [flag(c, "--submission") for c in fake.writes() if c[:2] == ("review", "items-add")])
-        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "D1")
 
-    def test_a_rerun_with_nothing_to_send_leaves_no_empty_draft(self) -> None:
-        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9")
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_ready_for_review_version_with_no_draft_holding_it_stops_before_writing_to_review(self) -> None:
-        # READY_FOR_REVIEW says a draft holds the version; the only draft here does not.
-        held = [{"id": "P", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}}]
-        subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}]
-        fake = FakeAsc(state="READY_FOR_REVIEW", subscriptions=subs, drafts=["D1"], draft_items={"D1": held})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
-        # Checked before the build is selected, so nothing at all is written.
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_stopped_submit_leaves_the_listing_text_alone_too(self) -> None:
-        # Text stays editable in READY_FOR_REVIEW, so the draft check must come
-        # before the listing update, not just before the build selection.
-        with tempfile.TemporaryDirectory() as tmp:
-            loc = Path(tmp) / "ios" / "en-US"
-            loc.mkdir(parents=True)
-            (loc / "description.txt").write_text("New description\n")
-            (loc / "whats_new.txt").write_text("Fixes.\n")
-            fake = FakeAsc(state="READY_FOR_REVIEW", live_text={"description": "Old", "whatsNew": "Older"})
-            env = {**SUBMIT, "UPLOAD_LISTING": "true", "UPLOAD_WHATS_NEW": "true"}
-            self.assertEqual(run_main(fake, env, [*SUBMIT_ARGS, "--metadata-dir", tmp]), 1)
-        self.assertEqual(fake.writes(), [])
-
-    def test_the_draft_holding_this_version_is_chosen_over_others(self) -> None:
-        other = [{"id": "P", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}}]
-        mine = [{"id": "V", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]
-        subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}]
-        fake = FakeAsc(state="READY_FOR_REVIEW", subscriptions=subs, drafts=["OTHER", "MINE"],
-                       draft_items={"OTHER": other, "MINE": mine})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertEqual({flag(c, "--submission") for c in fake.writes() if c[:2] == ("review", "items-add")}, {"MINE"})
-        self.assertEqual(flag(fake.writes()[-1], "--id"), "MINE")
-
-    def test_another_versions_draft_is_never_reused(self) -> None:
-        theirs = [{"id": "V", "relationships": {"appStoreVersion": {"data": {"id": "V0"}}}}]
-        fake = FakeAsc(drafts=["THEIRS"], draft_items={"THEIRS": theirs})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
-        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "THEIRS")
-
-    def test_a_product_that_cannot_be_added_keeps_the_version_out_of_review(self) -> None:
-        subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}]
-        fake = FakeAsc(subscriptions=subs, refuse_items={"S1v2"})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
-        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
-        added = [flag(c, "--item-type") for c in fake.writes() if c[:2] == ("review", "items-add")]
-        self.assertNotIn("appStoreVersions", added)
-
-    def test_reused_draft_skips_what_it_already_holds(self) -> None:
-        subs = [{"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "DEVELOPER_REJECTED"}}]
-        held = [{"id": "I1", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}},
-                {"id": "I2", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]
-        fake = FakeAsc(subscriptions=subs, drafts=["D1"], draft_items={"D1": held})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertEqual([c[:2] for c in fake.writes() if c[:1] == ("review",)], [("review", "submissions-submit")])
-        self.assertEqual(flag(fake.writes()[-1], "--id"), "D1")
-
-    def test_products_outside_the_catalog_or_already_approved_are_left_alone(self) -> None:
-        subs = [{"id": "S9", "attributes": {"name": "Legacy", "productId": "com.example.legacy", "state": "READY_TO_SUBMIT"}},
-                {"id": "S1", "attributes": {"name": "Plus", "productId": PRODUCT, "state": "APPROVED"}}]
-        iaps = [{"id": "IAP1", "attributes": {"name": "Credits", "productId": CREDITS, "state": "APPROVED"}}]
-        fake = FakeAsc(subscriptions=subs, iaps=iaps)
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        added = [flag(c, "--item-type") for c in fake.writes() if c[:2] == ("review", "items-add")]
-        self.assertEqual(added, ["appStoreVersions"])
-        self.assertFalse([c for c in fake.calls if "S9" in c], "a product outside the catalog was read")
-
-    def test_a_reused_draft_with_items_this_release_did_not_choose_is_not_submitted(self) -> None:
-        stray = [{"id": "STRAY", "relationships": {"inAppPurchaseVersion": {"data": {"id": "OTHER-IAPv1"}}}}]
-        fake = FakeAsc(drafts=["D1"], draft_items={"D1": stray})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
-        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
-        # A catalog product's version (in any state) and this version are fine.
-        iaps = [{"id": "IAP1", "attributes": {"name": "Credits", "productId": CREDITS, "state": "APPROVED"}}]
-        held = [{"id": "OK", "relationships": {"inAppPurchaseVersion": {"data": {"id": "IAP1v1"}}}}]
-        fake = FakeAsc(iaps=iaps, drafts=["D1"], draft_items={"D1": held})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertEqual(fake.writes()[-1][:2], ("review", "submissions-submit"))
-
-    def test_a_creative_draft_is_never_used_for_the_version(self) -> None:
-        creative = [{"id": "IMG", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
-        fake = FakeAsc(drafts=["CREATIVE"], draft_items={"CREATIVE": creative})
-        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
-        self.assertIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
-        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "CREATIVE")
-
-    def test_public_release_sets_after_approval(self) -> None:
-        fake = FakeAsc()
-        self.assertEqual(run_main(fake, {**SUBMIT, "PUBLIC_RELEASE": "true"}, SUBMIT_ARGS), 0)
-        update = [c for c in fake.calls if c[:2] == ("versions", "update")][0]
-        self.assertEqual(flag(update, "--release-type"), "AFTER_APPROVAL")
+def writes(fake: FakeAsc) -> list[tuple[str, str]]:
+    return [call for call in fake.calls if call[0] != "GET"]
 
 
 class FindAppTests(unittest.TestCase):
-    def test_the_pinned_app_must_carry_the_bundle_id(self) -> None:
-        self.assertEqual(quiet(asc_release.find_app, FakeAsc(), BUNDLE), APP)
-        with self.assertRaises(SystemExit):
-            quiet(asc_release.find_app, FakeAsc(bundle="com.example.other"), BUNDLE)
+    BUNDLE = asc_release.DEFAULT_BUNDLE_ID
 
-    def test_asc_failures_stop_with_a_readable_error(self) -> None:
-        class Broken:
-            def run(self, *args: str, **_: object):
-                raise asc_cli.AscError(args, 3, "unauthorized")
+    def find(self, rows: list[dict]) -> str:
+        client = mock.Mock()
+        client.get.return_value = {"data": rows}
+        return quiet(asc_release.find_app, client, self.BUNDLE)
 
-        err = io.StringIO()
-        with redirect_stderr(err), self.assertRaises(SystemExit):
-            asc_release.find_app(Broken(), BUNDLE)
-        self.assertIn("exit 3", err.getvalue())
+    def test_only_an_exact_bundle_id_matches(self) -> None:
+        rows = [
+            {"id": "DEBUG", "attributes": {"bundleId": self.BUNDLE + ".debug"}},
+            {"id": "APP", "attributes": {"bundleId": self.BUNDLE}},
+        ]
+        self.assertEqual(self.find(rows), "APP")
+
+    def test_no_match_or_an_ambiguous_match_stops(self) -> None:
+        exact = {"attributes": {"bundleId": self.BUNDLE}}
+        for rows in (
+            [],
+            [{"id": "DEBUG", "attributes": {"bundleId": self.BUNDLE + ".debug"}}],
+            [{"id": "NOATTRS"}],
+            [{"id": "A", **exact}, {"id": "B", **exact}],
+        ):
+            with self.subTest(rows=rows), self.assertRaises(SystemExit):
+                self.find(rows)
+
+
+class PreflightClient:
+    """Read-only App Store Connect fake: any write attempt fails the test."""
+
+    def __init__(self, versions: list[dict], *, localization: bool = True) -> None:
+        self.versions = versions
+        self.localization = localization
+        self.paths: list[str] = []
+
+    def get(self, path: str) -> dict:
+        self.paths.append(path)
+        if path.startswith("/apps?"):
+            return {"data": [{"id": APP, "attributes": {"bundleId": ios_release.BUNDLE_ID}}]}
+        if path.startswith(f"/apps/{APP}/appStoreVersions"):
+            return {"data": self.versions}
+        if path.startswith("/appStoreVersions/V1/appStoreVersionLocalizations"):
+            return {"data": [{"id": "LOC1"}] if self.localization else []}
+        raise AssertionError(f"unexpected GET {path}")
 
 
 def asc_version(state: str, version: str = VERSION) -> dict:
-    return {"id": f"V-{version}", "attributes": {"versionString": version, "appStoreState": state}}
+    return {"id": "V1", "attributes": {"versionString": version, "appStoreState": state}}
 
 
 class VersionPreflightTests(unittest.TestCase):
-    def preflight(self, fake: FakeAsc, **kwargs) -> str:
-        return quiet(ios_release.version_preflight, fake, asc_release, version=VERSION, **kwargs)
+    """IOS-REL-2: the App Store version is checked before anything is built."""
+
+    def preflight(self, client: PreflightClient, *, metadata: bool = True, submit: bool = True) -> str:
+        return quiet(
+            ios_release.version_preflight, client, asc_release,
+            version=VERSION, metadata=metadata, submit=submit,
+        )
 
     def test_versions_the_store_step_can_use_pass(self) -> None:
-        held = [{"id": "I", "relationships": {"appStoreVersion": {"data": {"id": f"V-{VERSION}"}}}}]
-        for state in sorted(asc_release.SUBMITTABLE_VERSION_STATES):
+        for state in ("PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "READY_FOR_REVIEW"):
             with self.subTest(state=state):
-                fake = FakeAsc(versions=[asc_version(state)], drafts=["D1"], draft_items={"D1": held})
-                self.assertEqual(self.preflight(fake, metadata=True, submit=True), state)
-                self.assertEqual(fake.writes(), [])
-
-    def test_a_ready_for_review_version_needs_its_draft_before_the_build(self) -> None:
-        other = [{"id": "P", "relationships": {"subscriptionVersion": {"data": {"id": "S1v2"}}}}]
-        for drafts, items in (([], {}), (["D1"], {"D1": other})):
-            fake = FakeAsc(versions=[asc_version("READY_FOR_REVIEW")], drafts=drafts, draft_items=items)
-            with self.subTest(drafts=drafts), self.assertRaisesRegex(ReleaseError, "no draft review submission holds it"):
-                self.preflight(fake, metadata=False, submit=True)
-            self.assertEqual(fake.writes(), [])
-        # Without review submission the draft does not matter.
-        self.assertEqual(self.preflight(FakeAsc(versions=[asc_version("READY_FOR_REVIEW")]), metadata=True, submit=False),
-                         "READY_FOR_REVIEW")
+                self.assertEqual(self.preflight(PreflightClient([asc_version(state)])), state)
 
     def test_missing_version_fails_with_the_fix(self) -> None:
-        fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.1")])
         err = io.StringIO()
         with redirect_stderr(err), redirect_stdout(io.StringIO()), self.assertRaises(SystemExit):
-            ios_release.version_preflight(fake, asc_release, version=VERSION, metadata=False, submit=True)
+            ios_release.version_preflight(
+                PreflightClient([asc_version("READY_FOR_SALE", "7.1")]), asc_release,
+                version=VERSION, metadata=False, submit=True,
+            )
+        self.assertIn("create the version in App Store Connect first", err.getvalue())
         self.assertIn("IOS_CREATE_VERSION", err.getvalue())
 
     def test_versions_in_review_or_released_fail(self) -> None:
-        for state in ("WAITING_FOR_REVIEW", "IN_REVIEW", "READY_FOR_SALE"):
-            with self.subTest(state=state), self.assertRaises(ReleaseError):
-                self.preflight(FakeAsc(versions=[asc_version(state)]), metadata=False, submit=True)
+        for state in ("WAITING_FOR_REVIEW", "IN_REVIEW", "PENDING_DEVELOPER_RELEASE", "READY_FOR_SALE", ""):
+            with self.subTest(state=state), self.assertRaisesRegex(ReleaseError, "Prepare for Submission"):
+                self.preflight(PreflightClient([asc_version(state)]))
+
+    def test_metadata_needs_the_locale(self) -> None:
+        with self.assertRaises(SystemExit):
+            self.preflight(PreflightClient([asc_version("PREPARE_FOR_SUBMISSION")], localization=False))
+        client = PreflightClient([asc_version("PREPARE_FOR_SUBMISSION")], localization=False)
+        self.assertEqual(self.preflight(client, metadata=False), "PREPARE_FOR_SUBMISSION")
+        self.assertFalse([p for p in client.paths if "Localizations" in p])
 
     def test_command_reads_switches_and_skips_without_store_work(self) -> None:
         import argparse
 
-        args = argparse.Namespace(version=VERSION)
-        with mock.patch.dict(os.environ, {}, clear=True), mock.patch.object(ios_release, "asc_client") as client, \
-                redirect_stdout(io.StringIO()):
-            ios_release.cmd_version_preflight(args)
+        env = {k: v for k, v in os.environ.items() if k not in {
+            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "SUBMIT_IOS_REVIEW"}}
+        with mock.patch.dict(os.environ, {**env, "UPLOAD_LISTING": "false"}, clear=True), \
+                mock.patch.object(ios_release, "asc_client") as client, redirect_stdout(io.StringIO()):
+            ios_release.cmd_version_preflight(argparse.Namespace(version=VERSION))
         client.assert_not_called()
-        fake = FakeAsc()
-        with mock.patch.dict(os.environ, {"UPLOAD_CREATIVE_ASSETS": "true"}, clear=True), mock.patch.object(
-            ios_release, "asc_client", return_value=(asc_release, fake)
-        ), redirect_stdout(io.StringIO()):
-            ios_release.cmd_version_preflight(args)
-        self.assertIn(("localizations", "list"), [c[:2] for c in fake.calls])
+        with mock.patch.dict(os.environ, {**env, "SUBMIT_IOS_REVIEW": "maybe"}, clear=True), \
+                self.assertRaises(ReleaseError):
+            ios_release.cmd_version_preflight(argparse.Namespace(version=VERSION))
+        fake = PreflightClient([asc_version("PREPARE_FOR_SUBMISSION")])
+        out = io.StringIO()
+        with mock.patch.dict(os.environ, {**env, "SUBMIT_IOS_REVIEW": "true"}, clear=True), \
+                mock.patch.object(ios_release, "asc_client", return_value=(asc_release, fake)), redirect_stdout(out):
+            ios_release.cmd_version_preflight(argparse.Namespace(version=VERSION))
+        self.assertIn("exists and is PREPARE_FOR_SUBMISSION", out.getvalue())
+
+
+class VersionCreationClient:
+    """App Store Connect stand-in for `asc_release.py --create-version` (no network).
+
+    Only the app lookup, the IOS version listing and POST /appStoreVersions are
+    expected; any other call fails the test.
+    """
+
+    def __init__(self, *, versions: list[tuple[str, str]] | None = None,
+                 app_id: str = asc_release.ASC_APP_ID, listed_after_create: bool = True) -> None:
+        # The app's IOS App Store versions as (versionString, appStoreState).
+        self.versions = [("7.1.2", "READY_FOR_SALE")] if versions is None else list(versions)
+        self.app_id = app_id
+        # False: the created version does not show up in the listing yet.
+        self.listed_after_create = listed_after_create
+        self.calls: list[tuple[str, str]] = []
+        self.bodies: list[dict] = []
+
+    def get(self, path: str) -> dict:
+        self.calls.append(("GET", path))
+        if path.startswith("/apps?"):
+            return {"data": [{"id": self.app_id, "attributes": {"bundleId": asc_release.DEFAULT_BUNDLE_ID}}]}
+        if path.startswith(f"/apps/{self.app_id}/appStoreVersions"):
+            return {"data": [{"id": f"V{i}", "attributes": {"versionString": number, "appStoreState": state}}
+                             for i, (number, state) in enumerate(self.versions)]}
+        raise AssertionError(f"unexpected GET {path}")
+
+    def post(self, path: str, body: dict) -> dict:
+        self.calls.append(("POST", path))
+        self.bodies.append(body)
+        if path != "/appStoreVersions":
+            raise AssertionError(f"unexpected POST {path}")
+        if self.listed_after_create:
+            self.versions.append((body["data"]["attributes"]["versionString"], "PREPARE_FOR_SUBMISSION"))
+        return {"data": {"id": "NEW"}}
+
+    def writes(self) -> list[tuple[str, str]]:
+        return [call for call in self.calls if call[0] != "GET"]
 
 
 class CreateVersionTests(unittest.TestCase):
-    def create(self, fake: FakeAsc, *, env: dict[str, str] | None = None, version: str = VERSION) -> int:
-        return run_main(fake, {"CREATE_IOS_VERSION": "true"} if env is None else env, ["--create-version", "--version", version])
+    """--create-version (IOS_CREATE_VERSION): add the tag's App Store version only when it is missing."""
+
+    ON = {"CREATE_IOS_VERSION": "true"}
+    FLAGS = {"CREATE_IOS_VERSION", "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS",
+             "SUBMIT_IOS_REVIEW", "PUBLIC_RELEASE"}
+
+    def create(self, fake: VersionCreationClient, env: dict[str, str] | None = None, *args: str,
+               version: str | None = VERSION) -> tuple[int, str]:
+        argv = ["asc_release.py", "--create-version", *args]
+        if version is not None:
+            argv += ["--version", version]
+        full_env = {k: v for k, v in os.environ.items() if k not in self.FLAGS}
+        full_env.update(self.ON if env is None else env)
+        out = io.StringIO()
+        code = 0
+        with mock.patch.dict(os.environ, full_env, clear=True), mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(asc_release, "client_from_environment", return_value=fake), \
+                redirect_stdout(out), redirect_stderr(out):
+            try:
+                asc_release.main()
+            except SystemExit as exc:
+                code = exc.code if isinstance(exc.code, int) else 1
+        return code, out.getvalue()
 
     def test_switch_off_makes_no_calls(self) -> None:
-        fake = FakeAsc()
-        self.assertEqual(self.create(fake, env={}), 0)
+        fake = VersionCreationClient()
+        code, output = self.create(fake, {})
+        self.assertEqual(code, 0, output)
+        self.assertIn("skipped", output)
         self.assertEqual(fake.calls, [])
 
     def test_existing_version_is_left_alone(self) -> None:
-        fake = FakeAsc(versions=[asc_version("PREPARE_FOR_SUBMISSION")])
-        self.assertEqual(self.create(fake), 0)
-        self.assertEqual(fake.writes(), [])
+        for state in ("PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "WAITING_FOR_REVIEW", "READY_FOR_SALE"):
+            with self.subTest(state=state):
+                fake = VersionCreationClient(versions=[("7.1.2", "READY_FOR_SALE"), (VERSION, state)])
+                code, output = self.create(fake)
+                self.assertEqual(code, 0, output)
+                self.assertIn(f"already exists ({state})", output)
+                self.assertEqual(fake.writes(), [])
 
     def test_missing_version_is_created_for_this_app_and_read_back(self) -> None:
-        fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.1")])
-        self.assertEqual(self.create(fake), 0)
-        create = fake.writes()[0]
-        self.assertEqual(create[:2], ("versions", "create"))
-        self.assertEqual((flag(create, "--app"), flag(create, "--version"), flag(create, "--platform")), (APP, VERSION, "IOS"))
-        self.assertEqual([c[:2] for c in fake.calls].count(("versions", "list")), 2)
+        fake = VersionCreationClient()
+        code, output = self.create(fake)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(fake.writes(), [("POST", "/appStoreVersions")])
+        body = fake.bodies[0]["data"]
+        self.assertEqual(body["type"], "appStoreVersions")
+        self.assertEqual(body["attributes"], {"platform": "IOS", "versionString": VERSION})
+        self.assertEqual(body["relationships"]["app"]["data"], {"type": "apps", "id": asc_release.ASC_APP_ID})
+        post = fake.calls.index(("POST", "/appStoreVersions"))
+        self.assertTrue(any(method == "GET" and "/appStoreVersions" in path
+                            for method, path in fake.calls[post + 1:]), "the created version must be read back")
+        self.assertIn(f"created App Store version {VERSION} (PREPARE_FOR_SUBMISSION)", output)
 
-    def test_read_back_miss_fails(self) -> None:
-        fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.1")], listed_after_create=False)
-        self.assertEqual(self.create(fake), 1)
+    def test_read_back_miss_names_the_created_version(self) -> None:
+        fake = VersionCreationClient(listed_after_create=False)
+        code, output = self.create(fake)
+        self.assertEqual(code, 1, output)
+        self.assertEqual(fake.writes(), [("POST", "/appStoreVersions")])
+        self.assertIn(f"created App Store version {VERSION} (NEW), but reading it back found 0", output)
+        self.assertNotIn("turn on IOS_CREATE_VERSION", output)
 
     def test_another_version_on_its_way_blocks_creation(self) -> None:
-        for state in ("PREPARE_FOR_SUBMISSION", "WAITING_FOR_REVIEW", "PENDING_DEVELOPER_RELEASE"):
-            fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.0"), asc_version(state, "7.1")])
+        for state in ("PREPARE_FOR_SUBMISSION", "WAITING_FOR_REVIEW", "IN_REVIEW", "PENDING_DEVELOPER_RELEASE",
+                      "DEVELOPER_REJECTED", ""):
             with self.subTest(state=state):
-                self.assertEqual(self.create(fake), 1)
+                fake = VersionCreationClient(versions=[("7.1.2", "READY_FOR_SALE"), ("7.1.3", state)])
+                code, output = self.create(fake)
+                self.assertEqual(code, 1, output)
+                self.assertIn(f"is still {state or 'in an unknown state'}", output)
+                self.assertIn("nothing was changed", output)
                 self.assertEqual(fake.writes(), [])
 
     def test_version_not_newer_than_an_existing_one_is_refused(self) -> None:
-        fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.3")])
-        self.assertEqual(self.create(fake), 1)
-        self.assertEqual(fake.writes(), [])
+        # Numeric comparison: 7.10 is newer than 7.2, and 7.2.0 is the same version.
+        for existing in ("7.3", "7.10", "7.2.0", "7.2.1", "8"):
+            with self.subTest(existing=existing):
+                fake = VersionCreationClient(versions=[(existing, "READY_FOR_SALE")])
+                code, output = self.create(fake)
+                self.assertEqual(code, 1, output)
+                self.assertIn(f"not newer than the existing version {existing}", output)
+                self.assertEqual(fake.writes(), [])
 
     def test_older_finished_versions_allow_creation(self) -> None:
-        fake = FakeAsc(versions=[asc_version("READY_FOR_SALE", "7.1"), asc_version("REPLACED_WITH_NEW_VERSION", "7.0")])
-        self.assertEqual(self.create(fake), 0)
-        self.assertEqual(fake.created_versions, [VERSION])
+        fake = VersionCreationClient(versions=[
+            ("1.0", "REPLACED_WITH_NEW_VERSION"), ("6.9", "REMOVED_FROM_SALE"),
+            ("7.0", "DEVELOPER_REMOVED_FROM_SALE"), ("7.1.10", "READY_FOR_SALE"),
+        ])
+        code, output = self.create(fake)
+        self.assertEqual(code, 0, output)
+        self.assertEqual(fake.writes(), [("POST", "/appStoreVersions")])
 
     def test_other_app_or_bad_version_fails_without_writing(self) -> None:
-        fake = FakeAsc(bundle="com.example.other", versions=[])
-        self.assertEqual(self.create(fake), 1)
+        fake = VersionCreationClient(app_id="1234567890")
+        code, output = self.create(fake)
+        self.assertEqual(code, 1)
+        self.assertIn(f"expected {asc_release.ASC_APP_ID}", output)
         self.assertEqual(fake.writes(), [])
-        fake = FakeAsc(versions=[])
-        self.assertEqual(self.create(fake, version="7.x"), 1)
-        self.assertEqual(fake.calls, [])
+        for bad in ("7.2-beta", "v7.2", "7.2.1.1", "7..2", "\u0667.\u0662"):
+            with self.subTest(bad=bad):
+                fake = VersionCreationClient()
+                code, output = self.create(fake, version=bad)
+                self.assertEqual(code, 1, output)
+                self.assertIn("must look like", output)
+                self.assertEqual(fake.calls, [])
 
     def test_ambiguous_version_fails_without_writing(self) -> None:
-        fake = FakeAsc(versions=[asc_version("PREPARE_FOR_SUBMISSION"), asc_version("PREPARE_FOR_SUBMISSION")])
-        self.assertEqual(self.create(fake), 1)
+        fake = VersionCreationClient(versions=[(VERSION, "PREPARE_FOR_SUBMISSION"), (VERSION, "READY_FOR_SALE")])
+        code, output = self.create(fake)
+        self.assertEqual(code, 1)
+        self.assertIn("ambiguous", output)
         self.assertEqual(fake.writes(), [])
 
+    def test_needs_the_version_and_the_fud_ai_bundle(self) -> None:
+        fake = VersionCreationClient()
+        code, output = self.create(fake, version=None)
+        self.assertEqual(code, 1)
+        self.assertIn("needs --version", output)
+        code, output = self.create(fake, None, "--bundle-id", "com.example.other")
+        self.assertEqual(code, 1)
+        self.assertIn("Fud AI iOS bundle", output)
+        self.assertEqual(fake.calls, [])
+
     def test_dry_run_makes_no_calls(self) -> None:
-        fake = FakeAsc(versions=[])
-        self.assertEqual(run_main(fake, {"CREATE_IOS_VERSION": "true"}, ["--create-version", "--version", VERSION, "--dry-run"]), 0)
+        fake = VersionCreationClient()
+        code, output = self.create(fake, None, "--dry-run")
+        self.assertEqual(code, 0, output)
+        self.assertIn("would create", output)
+        self.assertEqual(fake.calls, [])
+
+    def test_dry_run_rejects_a_bad_version_like_the_live_run(self) -> None:
+        fake = VersionCreationClient()
+        code, output = self.create(fake, None, "--dry-run", version="7.2-beta")
+        self.assertEqual(code, 1, output)
+        self.assertIn("must look like", output)
+        self.assertNotIn("would create", output)
         self.assertEqual(fake.calls, [])
 
 
 class MetadataRerunTests(unittest.TestCase):
-    """Re-running the store job after a partial review submission."""
+    """IOS-REL-3: re-running the store job after a partial review submission."""
 
     PNG = b"\x89PNG\r\n\x1a\n" + b"screenshot" * 4
     LISTING = {"UPLOAD_LISTING": "true", "UPLOAD_WHATS_NEW": "true"}
+    SUBMIT = {"SUBMIT_IOS_REVIEW": "true"}
 
     def setUp(self) -> None:
         tmp = tempfile.TemporaryDirectory()
@@ -1426,105 +1215,93 @@ class MetadataRerunTests(unittest.TestCase):
         (loc / "description.txt").write_text("Track food with AI\n")
         (loc / "whats_new.txt").write_text("Fixes.\n")
         self.shots = self.root / "shots"
-        for folder, _, _, _ in asc_release.SCREENSHOT_SETS:
+        for folder, _, _ in asc_release.SCREENSHOT_SETS:
             (self.shots / folder).mkdir(parents=True)
             (self.shots / folder / "01-home.png").write_bytes(self.PNG)
         self.same_text = {"description": "Track food with AI", "whatsNew": "Fixes."}
         self.same_shots = [{"fileName": "01-home.png", "fileSize": len(self.PNG),
                             "sourceFileChecksum": hashlib.md5(self.PNG).hexdigest()}]
 
-    def run_store(self, fake: FakeAsc, env: dict[str, str], *, submit: bool = False) -> int:
-        argv = ["--version", VERSION, "--metadata-dir", str(self.root / "meta"), "--screenshots-dir", str(self.shots)]
-        if submit:
-            argv += ["--build-id", "B9", "--build-number", "40"]
-            env = {**env, **SUBMIT}
-        return run_main(fake, env, argv)
+    def run_main(self, fake: FakeAsc, env: dict[str, str]) -> tuple[int, mock.Mock]:
+        products = mock.Mock(return_value=asc_release.ProductSubmitResult("SUB1", 0, False))
+        argv = ["asc_release.py", "--version", VERSION, "--build-id", "B9", "--build-number", "40",
+                "--metadata-dir", str(self.root / "meta"), "--screenshots-dir", str(self.shots)]
+        full_env = {k: v for k, v in os.environ.items() if k not in {
+            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "SUBMIT_IOS_REVIEW", "PUBLIC_RELEASE"}}
+        full_env.update(env)
+        code = 0
+        with mock.patch.dict(os.environ, full_env, clear=True), mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(asc_release, "client_from_environment", return_value=fake), \
+                mock.patch.object(asc_release, "submit_in_app_purchases", products), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
+            try:
+                asc_release.main()
+            except SystemExit as exc:
+                code = exc.code if isinstance(exc.code, int) else 1
+        return code, products
 
     def test_ready_for_review_rerun_updates_text_and_submits(self) -> None:
-        fake = FakeAsc(state="READY_FOR_REVIEW", live_text={"description": "Old", "whatsNew": "Fixes."}, drafts=["D1"],
-                       draft_items={"D1": [{"id": "I", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]})
-        self.assertEqual(self.run_store(fake, self.LISTING, submit=True), 0)
-        update = [c for c in fake.writes() if c[:2] == ("localizations", "update")][0]
-        self.assertEqual(flag(update, "--description"), "Track food with AI")
-        self.assertNotIn("--whats-new", update)
-        self.assertEqual(fake.writes()[-1][:2], ("review", "submissions-submit"))
-        self.assertNotIn("appStoreVersions", [flag(c, "--item-type") for c in fake.writes() if c[:2] == ("review", "items-add")])
+        fake = FakeAsc(state="READY_FOR_REVIEW", live_text={"description": "Old", "whatsNew": "Fixes."})
+        code, _ = self.run_main(fake, {**self.LISTING, **self.SUBMIT})
+        self.assertEqual(code, 0)
+        self.assertIn(("PATCH", "/appStoreVersionLocalizations/LOC1"), fake.calls)
+        self.assertIn(("PATCH", "/reviewSubmissions/SUB1"), fake.calls)
 
     def test_waiting_for_review_rerun_with_matching_text_is_idempotent(self) -> None:
         fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9", live_text=self.same_text)
-        self.assertEqual(self.run_store(fake, self.LISTING, submit=True), 0)
-        self.assertEqual([c for c in fake.writes() if c[:1] != ("review",)], [])
+        code, products = self.run_main(fake, {**self.LISTING, **self.SUBMIT})
+        self.assertEqual(code, 0)
+        self.assertEqual(writes(fake), [])
+        products.assert_called_once()
 
     def test_waiting_for_review_with_changed_text_fails_before_any_write(self) -> None:
-        for submit in (True, False):
-            fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9", live_text={**self.same_text, "description": "Older"})
-            with self.subTest(submit=submit):
-                self.assertEqual(self.run_store(fake, self.LISTING, submit=submit), 1)
-                self.assertEqual(fake.writes(), [])
+        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9",
+                       live_text={**self.same_text, "description": "Older copy"})
+        for env in ({**self.LISTING, **self.SUBMIT}, self.LISTING):
+            with self.subTest(env=env):
+                code, products = self.run_main(fake, env)
+                self.assertEqual(code, 1)
+                self.assertEqual(writes(fake), [])
+                products.assert_not_called()
 
     def test_locked_screenshots_are_compared_not_replaced(self) -> None:
         fake = FakeAsc(state="READY_FOR_REVIEW", live_shots=self.same_shots)
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 0)
-        self.assertEqual(fake.uploaded_sets, [])
+        code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true", **self.SUBMIT})
+        self.assertEqual(code, 0)
+        self.assertFalse([c for c in writes(fake) if "Screenshot" in c[1]])
         # A different file must stop the run before the text update writes anything.
         changed = [{**self.same_shots[0], "sourceFileChecksum": "0" * 32}]
         fake = FakeAsc(state="READY_FOR_REVIEW", live_shots=changed, live_text={"description": "Old"})
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true", **self.LISTING}), 1)
-        self.assertEqual(fake.writes(), [])
+        code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true", **self.LISTING, **self.SUBMIT})
+        self.assertEqual(code, 1)
+        self.assertEqual(writes(fake), [])
 
     def test_editable_version_skips_what_already_matches(self) -> None:
         fake = FakeAsc(live_text=self.same_text, live_shots=self.same_shots)
-        self.assertEqual(self.run_store(fake, {**self.LISTING, "UPLOAD_SCREENSHOTS": "true"}), 0)
-        self.assertEqual(fake.writes(), [])
+        code, _ = self.run_main(fake, {**self.LISTING, "UPLOAD_SCREENSHOTS": "true"})
+        self.assertEqual(code, 0)
+        self.assertEqual(writes(fake), [])
 
-    def test_editable_version_replaces_every_set_with_its_device_type(self) -> None:
+    def test_editable_version_uploads_every_set_with_its_display_type(self) -> None:
         fake = FakeAsc()
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 0)
-        self.assertEqual(fake.uploaded_sets, ["IPHONE_67", "IPAD_PRO_3GEN_129", "IPHONE_DUO"])
-        upload = [c for c in fake.writes() if c[:2] == ("screenshots", "upload")][0]
-        self.assertIn("--replace", upload)
-        self.assertIn("--confirm", upload)
-        self.assertEqual(flag(upload, "--locale"), "en-US")
-        self.assertEqual(Path(flag(upload, "--path")).name, "6.7")
-
-    def test_each_set_uploads_with_its_own_device_type(self) -> None:
-        fake = FakeAsc()
-        live = {}
-
-        def run(*args, _orig=fake.run, **kwargs):
-            if args[:2] == ("screenshots", "list"):
-                return {"sets": [{"set": {"attributes": {"screenshotDisplayType": d}}, "screenshots": [{"attributes": s} for s in shots]}
-                                 for d, shots in live.items()]}
-            if args[:2] == ("screenshots", "upload"):
-                fake.calls.append(args)
-                display = {dev: disp for _, disp, dev, _ in asc_release.SCREENSHOT_SETS}[flag(args, "--device-type")]
-                live[display] = self.same_shots
-                return {}
-            return _orig(*args, **kwargs)
-
-        fake.run = run  # type: ignore[method-assign]
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 0)
-        uploads = [flag(c, "--device-type") for c in fake.calls if c[:2] == ("screenshots", "upload")]
-        self.assertEqual(uploads, ["IPHONE_67", "IPAD_PRO_3GEN_129", "IPHONE_DUO"])
-
-    def test_an_upload_that_does_not_land_fails(self) -> None:
-        fake = FakeAsc()
-        fake_run = fake.run
-        fake.run = lambda *a, **k: {} if a[:2] == ("screenshots", "upload") else fake_run(*a, **k)  # type: ignore[method-assign]
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 1)
-
-    def test_a_screenshot_with_alpha_fails_before_any_call(self) -> None:
-        (self.shots / "ipad-13" / "02-alpha.png").write_bytes(png_header(6))
-        fake = FakeAsc()
-        self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 1)
-        self.assertEqual(fake.calls, [])
+        uploads = []
+        with mock.patch.object(asc_release, "upload_screenshot_file",
+                               lambda client, set_id, path: uploads.append((set_id, path.parent.name))):
+            code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true"})
+        self.assertEqual(code, 0)
+        displays = ["APP_IPHONE_67", "APP_IPAD_PRO_3GEN_129", "APP_IPHONE_DUO"]
+        self.assertEqual(fake.created_sets, displays)
+        self.assertEqual(uploads, [("NEW-APP_IPHONE_67", "6.7"),
+                                   ("NEW-APP_IPAD_PRO_3GEN_129", "ipad-13"),
+                                   ("NEW-APP_IPHONE_DUO", "iphone-duo")])
 
     def test_a_set_without_screenshots_fails_before_any_call(self) -> None:
-        for folder, _, _, _ in asc_release.SCREENSHOT_SETS:
+        for folder, _, _ in asc_release.SCREENSHOT_SETS:
             with self.subTest(folder=folder):
                 (self.shots / folder / "01-home.png").unlink()
                 fake = FakeAsc()
-                self.assertEqual(self.run_store(fake, {"UPLOAD_SCREENSHOTS": "true"}), 1)
+                code, _ = self.run_main(fake, {"UPLOAD_SCREENSHOTS": "true"})
+                self.assertEqual(code, 1)
                 self.assertEqual(fake.calls, [])
                 (self.shots / folder / "01-home.png").write_bytes(self.PNG)
 
@@ -1532,1081 +1309,85 @@ class MetadataRerunTests(unittest.TestCase):
         for state in ("IN_REVIEW", "READY_FOR_SALE"):
             fake = FakeAsc(state=state, live_text={"description": "Old"})
             with self.subTest(state=state):
-                self.assertEqual(self.run_store(fake, self.LISTING), 1)
-                self.assertEqual(fake.writes(), [])
+                code, _ = self.run_main(fake, self.LISTING)
+                self.assertEqual(code, 1)
+                self.assertEqual(writes(fake), [])
 
 
-class CreativeAssetTests(unittest.TestCase):
-    ENV = {"UPLOAD_CREATIVE_ASSETS": "true"}
+class InAppPurchaseOrderTests(unittest.TestCase):
+    """IOS-REL-4: catalog IAPs reach App Review only after the final build recheck."""
 
-    def setUp(self) -> None:
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        self.dir = Path(tmp.name)
-        for folder, data in (("header", png_header(width=3840, height=1646)),
-                             ("search-results", png_header(width=3840, height=2560) + b"search")):
-            (self.dir / folder).mkdir()
-            (self.dir / folder / f"{folder}.png").write_bytes(data)
+    PRODUCT = "com.apoorvdarshan.calorietracker.credits.50"
+    IAP = {"id": "IAP1", "attributes": {"name": "Credits 50", "productId": PRODUCT, "state": "READY_TO_SUBMIT"}}
 
-    def image(self, image_id: str, folder: str, state: str) -> dict:
-        path = self.dir / folder / f"{folder}.png"
-        return {"id": image_id, "attributes": {"fileName": path.name, "fileSize": path.stat().st_size, "state": state,
-                                               "createdDate": "2026-10-20"}}
-
-    def run_creative(self, fake: FakeAsc) -> int:
-        return run_main(fake, self.ENV, ["--version", VERSION, "--creative-dir", str(self.dir)])
-
-    def test_new_images_are_uploaded_and_reviewed_on_their_own(self) -> None:
-        fake = FakeAsc()
-        self.assertEqual(self.run_creative(fake), 0)
-        uploads = [Path(flag(c, "--file")).name for c in fake.writes() if c[:3] == ("asset-library", "images", "upload")]
-        self.assertEqual(uploads, ["header.png", "search-results.png"])
-        review = [c for c in fake.writes() if c[:1] == ("review",)]
-        self.assertEqual([c[:2] for c in review], [("review", "submissions-create"), ("review", "items-add"),
-                                                   ("review", "items-add"), ("review", "submissions-submit")])
-        self.assertEqual({flag(c, "--item-type") for c in review if c[:2] == ("review", "items-add")}, {"appAssetLibraryImages"})
-        self.assertFalse([c for c in fake.writes() if c[:2] == ("localizations", "placements")])
-
-    def test_images_never_take_the_empty_draft_the_version_chose(self) -> None:
-        # The version's draft is picked first; an empty leftover draft goes to the
-        # version, and the images get a submission of their own.
-        argv = [*SUBMIT_ARGS, "--creative-dir", str(self.dir)]
-        fake = FakeAsc(drafts=["EMPTY"], draft_items={"EMPTY": []})
-        self.assertEqual(run_main(fake, {**self.ENV, **SUBMIT}, argv), 0)
-        submitted = [flag(c, "--id") for c in fake.writes() if c[:2] == ("review", "submissions-submit")]
-        self.assertEqual(len(submitted), 2)
-        self.assertEqual(submitted[-1], "EMPTY")
-        image_items = {flag(c, "--submission") for c in fake.writes()
-                       if c[:2] == ("review", "items-add") and flag(c, "--item-type") == "appAssetLibraryImages"}
-        self.assertEqual(image_items, {submitted[0]})
-        self.assertNotIn("EMPTY", image_items)
-
-    def test_a_rerun_finishes_the_empty_draft_an_interrupted_review_left(self) -> None:
-        # A run stopped between creating its draft and adding the images; the
-        # rerun uses that draft instead of leaving it behind and starting another.
-        fake = FakeAsc(drafts=["EMPTY"], draft_items={"EMPTY": []})
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertNotIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
-        self.assertEqual(flag(fake.writes()[-1], "--id"), "EMPTY")
-        # A draft already holding some of the images is finished before an empty one.
-        library = [self.image("H", "header", "PREPARE_FOR_SUBMISSION"), self.image("S", "search-results", "PREPARE_FOR_SUBMISSION")]
-        held = [{"id": "I-H", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
-        fake = FakeAsc(library=library, drafts=["EMPTY", "PART"], draft_items={"EMPTY": [], "PART": held})
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertEqual({flag(c, "--submission") for c in fake.writes() if c[:2] == ("review", "items-add")}, {"PART"})
-        self.assertEqual(flag(fake.writes()[-1], "--id"), "PART")
-
-    def test_an_interrupted_upload_is_uploaded_again(self) -> None:
-        # asc never deletes the reservation an interrupted upload leaves behind.
-        fake = FakeAsc(library=[self.image("STALE", "header", "AWAITING_UPLOAD")])
-        self.assertEqual(self.run_creative(fake), 0)
-        uploads = [Path(flag(c, "--file")).name for c in fake.writes() if c[:3] == ("asset-library", "images", "upload")]
-        self.assertEqual(uploads, ["header.png", "search-results.png"])
-        added = [flag(c, "--item-id") for c in fake.writes() if c[:2] == ("review", "items-add")]
-        self.assertNotIn("STALE", added)
-
-    def test_images_in_review_are_neither_reuploaded_nor_placed(self) -> None:
-        fake = FakeAsc(library=[self.image("H", "header", "WAITING_FOR_REVIEW"), self.image("S", "search-results", "IN_REVIEW")])
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertEqual(fake.writes(), [])
-
-    def test_approved_images_are_placed_and_existing_ones_swapped(self) -> None:
-        old = {"id": "PL-old", "attributes": {"placementType": "PRODUCT_PAGE_HEADER_ASSET"},
-               "relationships": {"image": {"data": {"id": "OLDIMG"}}}}
-        fake = FakeAsc(library=[self.image("H", "header", "APPROVED"), self.image("S", "search-results", "APPROVED")],
-                       placements=[old])
-        self.assertEqual(self.run_creative(fake), 0)
-        swap = [c for c in fake.writes() if c[:3] == ("localizations", "placements", "swap")][0]
-        self.assertEqual((flag(swap, "--image-id"), flag(swap, "--placement-id")), ("H", "PL-old"))
-        self.assertIn("--confirm", swap)
-        create = [c for c in fake.writes() if c[:3] == ("localizations", "placements", "create")][0]
-        self.assertEqual((flag(create, "--image-id"), flag(create, "--placement-type"), flag(create, "--placement-group")),
-                         ("S", "APP_STORE_SEARCH_RESULTS_ASSET", "DEFAULT_PROFILE"))
-        # A second run finds both placed and writes nothing.
-        writes = len(fake.writes())
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertEqual(len(fake.writes()), writes)
-
-    def test_an_image_with_alpha_fails_before_any_call(self) -> None:
-        (self.dir / "header" / "header.png").write_bytes(png_header(6))
-        fake = FakeAsc()
-        self.assertEqual(self.run_creative(fake), 1)
-        self.assertEqual(fake.calls, [])
-
-    def test_images_apple_would_refuse_fail_before_any_call(self) -> None:
-        cases = {
-            "header": [png_header(width=3840, height=2160), jpeg_header(3840, 1646)],
-            "search-results": [png_header(width=3000, height=2000 + 1), png_header(width=1800, height=1200),
-                               jpeg_header(4000, 2666)],
-        }
-        for folder, contents in cases.items():
-            original = (self.dir / folder / f"{folder}.png").read_bytes()
-            for content in contents:
-                (self.dir / folder / f"{folder}.png").write_bytes(content)
-                fake = FakeAsc()
-                with self.subTest(folder=folder, content=content[:24]):
-                    self.assertEqual(self.run_creative(fake), 1)
-                    self.assertEqual(fake.calls, [])
-            (self.dir / folder / f"{folder}.png").write_bytes(original)
-
-    def test_sizes_apple_accepts_pass(self) -> None:
-        good = [("PRODUCT_PAGE_HEADER_ASSET", png_header(width=3840, height=1646)),
-                ("PRODUCT_PAGE_HEADER_ASSET", png_header(width=5244, height=2950)),
-                ("APP_STORE_SEARCH_RESULTS_ASSET", png_header(width=3840, height=2560)),
-                ("APP_STORE_SEARCH_RESULTS_ASSET", jpeg_header(1920, 1280)),
-                ("APP_STORE_SEARCH_RESULTS_ASSET", png_header(width=5244, height=2950))]
-        for placement, content in good:
-            path = self.dir / "probe"
-            path.write_bytes(content)
-            with self.subTest(placement=placement, content=content[:24]):
-                self.assertIsNone(asc_release.creative_size_problem(placement, path))
-
-    def test_a_rejected_image_stops_the_run(self) -> None:
-        fake = FakeAsc(library=[self.image("H", "header", "REJECTED")])
-        self.assertEqual(self.run_creative(fake), 1)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_locked_version_takes_no_new_images(self) -> None:
-        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9")
-        self.assertEqual(self.run_creative(fake), 1)
-        self.assertEqual(fake.writes(), [])
-
-    def test_an_approved_image_on_a_locked_version_waits_without_failing(self) -> None:
-        # Approval can land between the submit and a rerun of the store job.
-        library = [self.image("H", "header", "APPROVED"), self.image("S", "search-results", "IN_REVIEW")]
-        fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9", library=library)
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_locked_version_sends_nothing_to_review(self) -> None:
-        for state in ("WAITING_FOR_REVIEW", "READY_FOR_REVIEW"):
-            for image_state in ("UPLOAD_COMPLETE", "PREPARE_FOR_SUBMISSION"):
-                fake = FakeAsc(state=state, attached="B9", library=[self.image("H", "header", image_state)])
-                with self.subTest(state=state, image_state=image_state):
-                    self.assertEqual(self.run_creative(fake), 1)
-                    self.assertEqual(fake.writes(), [])
-
-    def test_a_retry_finishes_the_creative_draft_it_left_behind(self) -> None:
-        library = [self.image("H", "header", "PREPARE_FOR_SUBMISSION"), self.image("S", "search-results", "PREPARE_FOR_SUBMISSION")]
-        held = [{"id": "I-H", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
-        fake = FakeAsc(library=library, drafts=["OLD"], draft_items={"OLD": held})
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertNotIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
-        submit = fake.writes()[-1]
-        self.assertEqual(flag(submit, "--id"), "OLD")
-        # A draft holding anything else is left alone and a new one is used.
-        other = [{"id": "X", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]
-        fake = FakeAsc(library=library, drafts=["VERSION"], draft_items={"VERSION": other})
-        self.assertEqual(self.run_creative(fake), 0)
-        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "VERSION")
-
-    def test_a_creative_submission_with_other_items_is_not_submitted(self) -> None:
-        fake = FakeAsc()
-        fake_run = fake.run
-
-        def run(*args, **kwargs):
-            result = fake_run(*args, **kwargs)
-            if args[:2] == ("review", "submissions-create"):
-                fake.items[result["data"]["id"]] = [{"id": "X", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]
-            return result
-
-        fake.run = run  # type: ignore[method-assign]
-        self.assertEqual(self.run_creative(fake), 1)
-        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
-
-
-@functools.lru_cache(maxsize=None)
-def rgb_png(width: int, height: int) -> bytes:
-    """A complete, decodable RGB PNG (unlike png_header, whose image data is a stub)."""
-    import zlib
-
-    def chunk(kind: bytes, body: bytes) -> bytes:
-        return len(body).to_bytes(4, "big") + kind + body + zlib.crc32(kind + body).to_bytes(4, "big")
-
-    ihdr = width.to_bytes(4, "big") + height.to_bytes(4, "big") + bytes([8, 2, 0, 0, 0])
-    pixels = zlib.compress((b"\x00" + b"\x80" * (width * 3)) * height, 6)
-    return b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", ihdr) + chunk(b"IDAT", pixels) + chunk(b"IEND", b"")
-
-
-def full_jpeg(width: int, height: int) -> bytes:
-    """A well-formed JPEG layout: APP0, a one-component baseline frame, a scan and the end marker."""
-    app0 = b"\xff\xe0" + (16).to_bytes(2, "big") + b"JFIF\x00" + bytes(9)
-    sof0 = b"\xff\xc0" + (11).to_bytes(2, "big") + b"\x08" + height.to_bytes(2, "big") + width.to_bytes(2, "big") + b"\x01\x01\x11\x00"
-    sos = b"\xff\xda" + (8).to_bytes(2, "big") + b"\x01\x01\x00\x00\x3f\x00"
-    return b"\xff\xd8" + app0 + sof0 + sos + b"\x12\x34" * 64 + b"\xff\xd9"
-
-
-TERRITORIES = ["USA", "CAN", "GBR"]
-PRICE_GRID = {"0.99", "1.99", "2.99", "4.99", "8.99", "9.99", "69.99"}
-PID = "com.apoorvdarshan.calorietracker"
-SHOT = "store/catalog/review/shot.png"
-
-
-class ProductAsc(FakeAsc):
-    """FakeAsc plus App Store products: groups, subscriptions, in-app purchases and their parts.
-
-    Products created here land in FakeAsc's subscription and IAP lists, so the
-    review submission in asc_release sees them in the same run.
-    """
-
-    def __init__(self, *, groups: dict[str, dict[str, str]] | None = None, prices: dict[str, str] | None = None,
-                 fail_on: set[tuple[str, ...]] | None = None, stuck: bool = False, **kwargs: object) -> None:
-        super().__init__(**kwargs)  # type: ignore[arg-type]
-        # reference name -> {locale: display name}
-        self.groups = {name: dict(locales) for name, locales in (groups or {"Hosted AI": {"en-US": "Hosted AI"}}).items()}
-        self.prices = dict(prices or {})  # live id -> current USA price
-        self.parts: dict[str, dict[str, object]] = {}
-        self.fail_on = set(fail_on or set())
-        self.stuck = stuck  # App Store Connect never reports Ready to Submit
-
-    # -- helpers ------------------------------------------------------------
-    def product(self, live_id: str) -> dict:
-        return next(p for p in [*self.subscriptions, *self.iaps] if p["id"] == live_id)
-
-    def by_product_id(self, product_id: str) -> list[dict]:
-        return [p for p in [*self.subscriptions, *self.iaps] if p["attributes"]["productId"] == product_id]
-
-    def part(self, live_id: str) -> dict[str, object]:
-        return self.parts.setdefault(live_id, {})
-
-    def restate(self, live_id: str) -> None:
-        a = self.product(live_id)["attributes"]
-        if a.get("state") not in (None, "MISSING_METADATA", "READY_TO_SUBMIT"):
-            return
-        parts = self.part(live_id)
-        complete = all(parts.get(k) for k in ("localization", "availability", "screenshot")) and (
-            live_id in self.prices)
-        a["state"] = "READY_TO_SUBMIT" if complete and not self.stuck else "MISSING_METADATA"
-
-    @staticmethod
-    def conflict(args: tuple[str, ...], what: str) -> asc_cli.AscError:
-        return asc_cli.AscError(args, 5, f"existing {what} differs")
-
-    # -- asc ----------------------------------------------------------------
-    def run(self, *args: str, **kwargs: object):
-        for prefix in self.fail_on:
-            if args[:len(prefix)] == prefix:
-                self.calls.append(args)
-                raise asc_cli.AscError(args, 63, "service unavailable")
-        try:
-            handled = self.products_run(args)
-        except asc_cli.AscError:
-            self.calls.append(args)  # an attempted call that App Store Connect refused
-            raise
-        if handled is not None:
-            self.calls.append(args)
-            return handled
-        return super().run(*args, **kwargs)
-
-    def products_run(self, args: tuple[str, ...]):  # noqa: C901 - one fake endpoint per branch
-        if args[:3] == ("pricing", "territories", "list"):
-            return {"data": [{"type": "territories", "id": t} for t in TERRITORIES]}
-        if args[:2] == ("pricing", "price-points"):
-            return {"data": [{"id": f"APP-{p}", "attributes": {"customerPrice": p}} for p in sorted(PRICE_GRID | {"0.0"})]}
-        if args[:4] in {("subscriptions", "pricing", "price-points", "list"), ("iap", "pricing", "price-points", "list")}:
-            price = flag(args, "--price")
-            return {"data": [{"id": f"PP-{price}", "attributes": {"customerPrice": price}}] if price in PRICE_GRID else []}
-        if args[:3] == ("subscriptions", "groups", "list"):
-            data, included = [], []
-            for n, (name, locales) in enumerate(self.groups.items()):
-                refs = [{"type": "subscriptionGroupLocalizations", "id": f"GL{n}-{loc}"} for loc in locales]
-                data.append({"id": f"G{n}", "attributes": {"referenceName": name},
-                             "relationships": {"subscriptionGroupLocalizations": {"data": refs}}})
-                included += [{"type": "subscriptionGroupLocalizations", "id": f"GL{n}-{loc}",
-                              "attributes": {"locale": loc, "name": label}} for loc, label in locales.items()]
-            return {"data": data, "included": included}
-        if args[:3] == ("subscriptions", "pricing", "summary"):
-            live = flag(args, "--subscription-id")
-            row = {"id": live}
-            if live in self.prices:
-                row["currentPrice"] = {"amount": self.prices[live], "currency": "USD"}
-            return {"subscriptions": [row]}
-        if args[:3] == ("iap", "pricing", "summary"):
-            live = flag(args, "--iap-id")
-            if live not in self.prices:
-                raise asc_cli.AscError(args, 4, "no price schedule")
-            return {"iaps": [{"id": live, "baseTerritory": "USA", "currentPrice": {"amount": self.prices[live]}}]}
-        if args[:2] == ("subscriptions", "setup"):
-            return self.setup(args)
-        if args[:4] == ("subscriptions", "versions", "localizations", "list"):
-            loc = self.part(flag(args, "--version-id")[:-2]).get("localization")
-            return {"data": [{"id": "L", "attributes": loc}] if loc else []}
-        if args[:4] == ("subscriptions", "pricing", "availability", "view"):
-            live = flag(args, "--subscription-id")
-            availability = self.part(live).get("availability")
-            if not availability:
-                raise asc_cli.AscError(args, 4, "no availability")
-            return {"data": {"id": f"AV-{live}", "attributes": {"availableInNewTerritories": availability[1]}}}
-        if args[:4] == ("subscriptions", "pricing", "availability", "available-territories"):
-            return {"data": [{"id": t} for t in self.part(flag(args, "--availability-id")[3:])["availability"][0]]}  # type: ignore[index]
-        if args[:4] == ("subscriptions", "review", "app-store-screenshot", "view"):
-            shot = self.part(flag(args, "--subscription-id")).get("screenshot")
-            if not shot:
-                raise asc_cli.AscError(args, 4, "no screenshot")
-            return {"data": shot}
-        if args[:2] in {("subscriptions", "view"), ("iap", "view")}:
-            # App Store Connect works the state out from the parts a product has.
-            self.restate(flag(args, "--id"))
-            return {"data": self.product(flag(args, "--id"))}
-        if args[:2] == ("subscriptions", "update"):
-            self.product(flag(args, "--id"))["attributes"]["reviewNote"] = flag(args, "--review-note")
-            return {"data": {}}
-        if args[:2] == ("iap", "create"):
-            product_id = flag(args, "--product-id")
-            if self.by_product_id(product_id):
-                raise asc_cli.AscError(args, 5, "product id already exists")
-            attributes = {"name": flag(args, "--ref-name"), "productId": product_id,
-                          "inAppPurchaseType": flag(args, "--type"), "state": "MISSING_METADATA"}
-            if "--family-sharable" in args:
-                attributes["familySharable"] = True
-            new = {"id": f"IAP-{product_id.rsplit('.', 1)[-1]}", "attributes": attributes}
-            self.iaps.append(new)
-            self.parts[new["id"]] = {}
-            return {"data": new}
-        if args[:3] == ("iap", "versions", "list") and flag(args, "--iap-id") in self.parts:
-            live = flag(args, "--iap-id")
-            loc = self.part(live).get("localization")
-            version = {"id": f"{live}v1", "attributes": {"version": 1},
-                       "relationships": {"localizations": {"data": [{"id": f"{live}-loc"}] if loc else []}}}
-            included = [{"type": "inAppPurchaseLocalizations", "id": f"{live}-loc", "attributes": loc}] if loc else []
-            return {"data": [version], "included": included}
-        if args[:4] == ("iap", "versions", "localizations", "create"):
-            live = flag(args, "--version-id")[:-2]
-            self.part(live)["localization"] = {"locale": flag(args, "--locale"), "name": flag(args, "--name"),
-                                               "description": flag(args, "--description")}
-            return {"data": {"id": f"{live}-loc"}}
-        if args[:4] == ("iap", "pricing", "schedules", "create"):
-            live = flag(args, "--iap-id")
-            assert flag(args, "--base-territory") == "USA"
-            self.prices[live] = flag(args, "--price")
-            return {"data": {"id": live}}
-        if args[:4] == ("iap", "pricing", "availability", "view"):
-            availability = self.part(flag(args, "--iap-id")).get("availability")
-            if not availability:
-                raise asc_cli.AscError(args, 4, "no availability")
-            return {"data": {"id": f"AV-{flag(args, '--iap-id')}",
-                             "attributes": {"availableInNewTerritories": availability[1]}}}
-        if args[:4] == ("iap", "pricing", "availabilities", "available-territories"):
-            live = flag(args, "--id")[3:]
-            return {"data": [{"id": t} for t in self.part(live)["availability"][0]]}  # type: ignore[index]
-        if args[:4] == ("iap", "pricing", "availability", "set"):
-            live = flag(args, "--iap-id")
-            self.part(live)["availability"] = (flag(args, "--territories").split(","), "--available-in-new-territories" in args)
-            return {"data": {}}
-        if args[:3] == ("iap", "review-screenshots", "view"):
-            shot = self.part(flag(args, "--iap-id")).get("screenshot")
-            if not shot:
-                raise asc_cli.AscError(args, 4, "no screenshot")
-            return {"data": shot}
-        if args[:3] == ("iap", "review-screenshots", "create"):
-            live = flag(args, "--iap-id")
-            raw = Path(flag(args, "--file")).read_bytes()
-            self.part(live)["screenshot"] = {"id": f"SHOT-{live}", "attributes": {
-                "fileSize": len(raw), "sourceFileChecksum": hashlib.md5(raw).hexdigest(),
-                "assetDeliveryState": {"state": "COMPLETE"}}}
-            self.restate(live)
-            return {"data": self.part(live)["screenshot"]}
-        if args[:3] == ("iap", "review-screenshots", "update"):
-            # Resumes the upload reservation an interrupted run left.
-            shot_id = flag(args, "--screenshot-id")
-            live = next(k for k, v in self.parts.items() if (v.get("screenshot") or {}).get("id") == shot_id)
-            raw = Path(flag(args, "--file")).read_bytes()
-            self.part(live)["screenshot"] = {"id": shot_id, "attributes": {
-                "fileSize": len(raw), "sourceFileChecksum": hashlib.md5(raw).hexdigest(),
-                "assetDeliveryState": {"state": "COMPLETE"}}}
-            self.restate(live)
-            return {"data": self.part(live)["screenshot"]}
-        if args[:2] == ("iap", "versions"):
-            raise AssertionError(f"unexpected product call {args}")
-        return None
-
-    def setup(self, args: tuple[str, ...]):
-        """asc subscriptions setup: find or create the group and subscription, fill missing parts, stop on conflicts."""
-        group = flag(args, "--group-reference-name")
-        locales = self.groups.setdefault(group, {})
-        if "--group-display-name" in args:
-            wanted = flag(args, "--group-display-name")
-            if locales.get("en-US", wanted) != wanted:
-                raise self.conflict(args, "group localization")
-            locales["en-US"] = wanted
-        product_id = flag(args, "--product-id")
-        found = [s for s in self.subscriptions if s["attributes"]["productId"] == product_id]
-        if found:
-            sub = found[0]
-            a = sub["attributes"]
-            if (a["name"] != flag(args, "--reference-name") or a.get("subscriptionPeriod") != flag(args, "--subscription-period")
-                    or bool(a.get("familySharable")) != ("--family-sharable" in args)):
-                raise self.conflict(args, "subscription")
-        elif self.by_product_id(product_id):
-            raise asc_cli.AscError(args, 5, "product id already exists")
-        else:
-            attributes = {"name": flag(args, "--reference-name"), "productId": product_id, "state": "MISSING_METADATA",
-                          "subscriptionPeriod": flag(args, "--subscription-period")}
-            if "--family-sharable" in args:
-                attributes["familySharable"] = True
-            sub = {"id": f"SUB-{product_id.rsplit('.', 1)[-1]}", "attributes": attributes}
-            self.subscriptions.append(sub)
-        live = sub["id"]
-        parts = self.part(live)
-        wanted_parts = {
-            "localization": {"locale": flag(args, "--locale"), "name": flag(args, "--display-name"),
-                             "description": flag(args, "--description")},
-            "availability": (flag(args, "--territories").split(","), "--available-in-new-territories" in args),
-        }
-        for name, value in wanted_parts.items():
-            if parts.get(name) not in (None, value):
-                raise self.conflict(args, name)
-            parts[name] = value
-        if self.prices.get(live, flag(args, "--price")) != flag(args, "--price"):
-            raise self.conflict(args, "price")
-        self.prices[live] = flag(args, "--price")
-        if "--review-screenshot" in args:
-            raw = Path(flag(args, "--review-screenshot")).read_bytes()
-            existing = parts.get("screenshot")
-            if existing and existing["attributes"]["sourceFileChecksum"] != hashlib.md5(raw).hexdigest():  # type: ignore[index]
-                raise self.conflict(args, "review screenshot")
-            parts["screenshot"] = {"id": f"SHOT-{live}", "attributes": {
-                "sourceFileChecksum": hashlib.md5(raw).hexdigest(), "assetDeliveryState": {"state": "COMPLETE"}}}
-        self.restate(live)
-        if "--no-verify" not in args and sub["attributes"]["state"] != "READY_TO_SUBMIT":
-            raise asc_cli.AscError(args, 1, "subscriptions setup: verify_state: MISSING_METADATA")
-        return {"status": "ok", "subscriptionId": live}
-
-    def live_iap(self, product_id: str, *, state: str = "MISSING_METADATA", type_: str = "CONSUMABLE",
-                 name: str = "Probe", parts: dict | None = None, price: str | None = None) -> str:
-        """Put an existing in-app purchase (e.g. one an interrupted run left) into the fake."""
-        live = f"IAP-{product_id.rsplit('.', 1)[-1]}"
-        self.iaps.append({"id": live, "attributes": {"name": name, "productId": product_id,
-                                                      "inAppPurchaseType": type_, "state": state}})
-        self.parts[live] = dict(parts or {})
-        if price:
-            self.prices[live] = price
-        return live
-
-
-class ReadOnlyView:
-    """What the plan sees: the same fake, but any write fails the test (asc refuses writes there)."""
-
-    def __init__(self, fake: ProductAsc) -> None:
-        self.fake = fake
-
-    def run(self, *args: str, **kwargs: object):
-        if is_write(args):
-            raise AssertionError(f"the read-only plan wrote: {args}")
-        return self.fake.run(*args, **kwargs)
-
-
-def ios_item(name: str, **ios: object) -> dict:
-    base = {"reference_name": name.title(), "display_name": f"Fud AI {name.title()}",
-            "description": "Hosted AI actions", "review_screenshot": SHOT}
-    base.update(ios)
-    return base
-
-
-def product_catalog(*, subscriptions=(), consumables=(), non_consumables=(), tips=(), groups=None) -> dict:
-    catalog = {
-        "ios_subscription_groups": groups if groups is not None else [{"reference_name": "Hosted AI"}],
-        "subscriptions": list(subscriptions),
-        "consumables": list(consumables),
-        "tips": list(tips),
-    }
-    if non_consumables:
-        catalog["non_consumables"] = list(non_consumables)
-    return catalog
-
-
-def new_subscription(suffix: str = "plus.weekly", *, period: str = "P1W", price: str = "2.99", **ios: object) -> dict:
-    fields = {"review_note": "Optional hosted AI plan.", "subscription_group": "Hosted AI", **ios}
-    return {"id": f"{PID}.{suffix}", "period": period, "suggested_price_usd": price, "platforms": ["ios"],
-            "ios": ios_item(suffix.split(".")[0], **fields)}
-
-
-def new_iap(suffix: str, *, price: str = "1.99", **ios: object) -> dict:
-    return {"id": f"{PID}.{suffix}", "suggested_price_usd": price, "platforms": ["ios"],
-            "ios": ios_item(suffix.split(".")[0], **ios)}
-
-
-class ProductTestCase(unittest.TestCase):
-    def setUp(self) -> None:
-        tmp = tempfile.TemporaryDirectory()
-        self.addCleanup(tmp.cleanup)
-        self.root = Path(tmp.name)
-        (self.root / "store" / "catalog" / "review").mkdir(parents=True)
-        self.shot(SHOT)
-        self.sleeps: list[float] = []
-
-    def shot(self, relative: str, content: bytes | None = None) -> Path:
-        path = self.root / relative
-        path.write_bytes(content if content is not None else rgb_png(1290, 2796))
-        return path
-
-    def run_products(self, fake: ProductAsc, catalog: dict, command: str = "create",
-                     env: dict[str, str] | None = None) -> tuple[int, str, str]:
-        catalog_path = self.root / "products.json"
-        catalog_path.write_text(json.dumps(catalog))
-        environ = {k: v for k, v in os.environ.items() if k != "CREATE_IOS_PRODUCTS"}
-        environ.update({"CREATE_IOS_PRODUCTS": "true"} if env is None else env)
-        out, err = io.StringIO(), io.StringIO()
+    def run_submit(self, fake: FakeAsc) -> int:
+        argv = ["asc_release.py", "--version", VERSION, "--build-id", "B9", "--build-number", "40"]
+        env = {k: v for k, v in os.environ.items() if k not in {
+            "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "PUBLIC_RELEASE"}}
+        env["SUBMIT_IOS_REVIEW"] = "true"
         code = 0
-        with mock.patch.dict(os.environ, environ, clear=True), \
-                mock.patch.object(asc_release, "asc_from_environment",
-                                  side_effect=lambda read_only=False: ReadOnlyView(fake) if read_only else fake), \
-                mock.patch.object(asc_products, "ROOT", self.root), redirect_stdout(out), redirect_stderr(err):
+        with mock.patch.dict(os.environ, env, clear=True), mock.patch.object(sys, "argv", argv), \
+                mock.patch.object(asc_release, "client_from_environment", return_value=fake), \
+                mock.patch.object(asc_release, "intended_product_ids", return_value={self.PRODUCT}), \
+                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
             try:
-                asc_products.main([command, "--catalog", str(catalog_path)], sleep=self.sleeps.append)
+                asc_release.main()
             except SystemExit as exc:
                 code = exc.code if isinstance(exc.code, int) else 1
-        return code, out.getvalue(), err.getvalue()
+        return code
 
-    def writes(self, fake: ProductAsc) -> list[tuple[str, ...]]:
-        return [c[:4] if c[:2] in {("iap", "pricing"), ("iap", "versions")} else c[:3] if c[0] == "iap" else c[:2]
-                for c in fake.writes()]
+    def test_iap_is_submitted_after_the_recheck_and_before_the_version(self) -> None:
+        fake = FakeAsc(iaps=[self.IAP])
+        self.assertEqual(self.run_submit(fake), 0)
+        calls = fake.calls
+        iap = calls.index(("POST", "/inAppPurchaseSubmissions"))
+        reads = [i for i, c in enumerate(calls) if c == ("GET", "/appStoreVersions/V1/build")]
+        submit = calls.index(("PATCH", "/reviewSubmissions/SUB1"))
+        self.assertEqual(len(reads), 2)
+        self.assertTrue(reads[1] < iap < submit)
 
+    def test_failed_recheck_sends_nothing_to_app_review(self) -> None:
+        fake = FakeAsc(iaps=[self.IAP], revert_after_select=True)
+        self.assertEqual(self.run_submit(fake), 1)
+        self.assertNotIn(("POST", "/inAppPurchaseSubmissions"), fake.calls)
+        self.assertNotIn(("PATCH", "/reviewSubmissions/SUB1"), fake.calls)
 
-class ProductGateTests(unittest.TestCase):
-    def test_create_products_needs_the_master_switch_and_a_tag_run(self) -> None:
-        result = gates({"IOS_RELEASE_AUTOMATION": "true", "IOS_CREATE_PRODUCTS": "true"})
-        self.assertTrue(result["create_products"])
-        self.assertTrue(result["product_plan"])
-        self.assertFalse(result["build"])
-        self.assertFalse(result["asc"])
-        off = gates({"IOS_CREATE_PRODUCTS": "true"})
-        self.assertFalse(off["create_products"])
-        self.assertFalse(off["product_plan"])
-        self.assertTrue(any("IOS_CREATE_PRODUCTS" in note for note in off["notes"]))
-        self.assertFalse(gates({})["product_plan"])
+    def test_failed_iap_submission_keeps_the_version_out_of_review(self) -> None:
+        class Refusing(FakeAsc):
+            def post(self, path: str, body: dict) -> dict:
+                if path == "/inAppPurchaseSubmissions":
+                    self.calls.append(("POST-REFUSED", path))
+                    raise asc_release.AscHttpError(409, "conflict")
+                return super().post(path, body)
 
-    def test_invalid_values_are_rejected_even_when_the_master_is_off(self) -> None:
-        for env in ({"IOS_CREATE_PRODUCTS": "maybe"}, {"IOS_RELEASE_AUTOMATION": "true", "IOS_CREATE_PRODUCTS": "2"}):
-            with self.subTest(env=env), self.assertRaisesRegex(ReleaseError, "IOS_CREATE_PRODUCTS"):
-                gates(env)
+        fake = Refusing(iaps=[self.IAP])
+        self.assertEqual(self.run_submit(fake), 1)
+        self.assertNotIn(("PATCH", "/reviewSubmissions/SUB1"), fake.calls)
 
-    def test_validation_runs_only_plan(self) -> None:
-        env = {"IOS_RELEASE_AUTOMATION": "true", "IOS_CREATE_PRODUCTS": "true"}
-        result = gates(env, event="workflow_dispatch", ref="main")
-        self.assertFalse(result["create_products"])
-        self.assertTrue(result["product_plan"])
-        self.assertTrue(any("read-only" in note for note in result["notes"]))
-        self.assertFalse(gates({"IOS_CREATE_PRODUCTS": "true"}, event="workflow_dispatch", ref="main")["product_plan"])
-        self.assertFalse(gates({"IOS_RELEASE_AUTOMATION": "true"}, event="workflow_dispatch", ref="main")["product_plan"])
-
-    def test_print_gates_lists_the_switch(self) -> None:
-        clean = {k: v for k, v in os.environ.items() if not k.startswith(("IOS_", "ANDROID_", "STORE_"))}
-        for value, shown in (("true", "IOS_CREATE_PRODUCTS=true\n"), ("maybe", "IOS_CREATE_PRODUCTS=INVALID"),
-                             (None, "IOS_CREATE_PRODUCTS=false (unset)")):
-            env = dict(clean) if value is None else {**clean, "IOS_CREATE_PRODUCTS": value}
-            out = io.StringIO()
-            with mock.patch.dict(os.environ, env, clear=True), \
-                    mock.patch.object(sys, "argv", ["print_gates.py", "--platform", "ios"]), redirect_stdout(out):
-                print_gates.main()
-            with self.subTest(value=value):
-                self.assertIn(shown, out.getvalue())
+    def test_deferred_collection_posts_nothing(self) -> None:
+        fake = FakeAsc(iaps=[self.IAP])
+        result = quiet(asc_release.submit_in_app_purchases, fake, APP,
+                       intended_ids={self.PRODUCT}, submission_id="SUB1", defer_in_app_purchases=True)
+        self.assertEqual(writes(fake), [])
+        self.assertEqual(result.pending_in_app_purchases, [("IAP1", "Credits 50", self.PRODUCT)])
+        self.assertEqual(quiet(asc_release.submit_deferred_in_app_purchases, fake, result), 1)
+        self.assertEqual(writes(fake), [("POST", "/inAppPurchaseSubmissions")])
+        self.assertEqual(result.pending_in_app_purchases, [])
 
 
-class CatalogFieldTests(ProductTestCase):
-    def problems(self, catalog: dict) -> list[str]:
-        return asc_products.catalog_problems(catalog, self.root)
-
-    def test_the_repository_catalog_is_valid(self) -> None:
-        with redirect_stdout(io.StringIO()) as out:
-            validate_catalog.main()
-        self.assertIn("ok:", out.getvalue())
-        self.assertEqual(asc_products.catalog_problems(json.loads(validate_catalog.PRODUCTS.read_text())), [])
-        self.assertEqual(asc_release.CATALOG_PRODUCT_GROUPS, tuple(asc_products.PRODUCT_GROUPS))
-
-    def test_complete_fields_pass_and_existing_products_need_none(self) -> None:
-        catalog = product_catalog(subscriptions=[new_subscription()], consumables=[new_iap("credits.75")],
-                                  non_consumables=[new_iap("lifetime", family_sharing=True)],
-                                  tips=[{"id": f"{PID}.tip.snack", "suggested_price_usd": "0.99", "platforms": ["ios"]}])
-        self.assertEqual(self.problems(catalog), [])
-
-    def test_malformed_fields_are_reported(self) -> None:
-        cases = {
-            "unknown ios keys": new_iap("credits.75", colour="red"),
-            "only applies to subscriptions": new_iap("credits.75", review_note="Tips unlock nothing."),
-            "family sharing is only": new_iap("credits.75", family_sharing=True),
-            "ios.territories": new_iap("credits.75", territories=["US"]),
-            "ios.display_name must be 2-30": new_iap("credits.75", display_name="x" * 31),
-            "ios.description must be 1-45": new_iap("credits.75", description="x" * 46),
-            "leading or trailing whitespace": new_iap("credits.75", reference_name=" Credits"),
-            "under store/": new_iap("credits.75", review_screenshot="../shot.png"),
-            "does not exist": new_iap("credits.75", review_screenshot="store/catalog/review/missing.png"),
-            "suggested_price_usd": new_iap("credits.75", price="1.9"),
-        }
-        for expected, item in cases.items():
-            with self.subTest(expected):
-                self.assertTrue(any(expected in p for p in self.problems(product_catalog(consumables=[item]))),
-                                self.problems(product_catalog(consumables=[item])))
-        sub = new_subscription(subscription_group="Elsewhere")
-        self.assertTrue(any("not in ios_subscription_groups" in p for p in self.problems(product_catalog(subscriptions=[sub]))))
-        bad_period = {**new_subscription(), "period": "P5D"}
-        self.assertTrue(any("period must be" in p for p in self.problems(product_catalog(subscriptions=[bad_period]))))
-        android_only = {**new_iap("credits.75"), "platforms": ["android"]}
-        self.assertTrue(any("does not list ios" in p for p in self.problems(product_catalog(consumables=[android_only]))))
-
-    def test_review_screenshots_must_be_rgb_and_a_size_apple_accepts(self) -> None:
-        cases = {
-            "alpha channel": png_header(6, width=1290, height=2796),
-            "transparency": png_header(2, trns=True, width=1290, height=2796),
-            "not an iPhone or iPad screenshot size": png_header(width=1000, height=2000),
-        }
-        good = rgb_png(1290, 2796)
-        damaged = bytearray(good)
-        damaged[60] ^= 0xFF
-        cases.update({
-            "is damaged: it ends inside its IDAT chunk": good[: len(good) // 2],
-            "is damaged: it has a damaged IDAT chunk": bytes(damaged),
-        })
-        for expected, content in cases.items():
-            self.shot("store/catalog/review/bad.png", content)
-            item = new_iap("credits.75", review_screenshot="store/catalog/review/bad.png")
-            with self.subTest(expected):
-                problems = self.problems(product_catalog(consumables=[item]))
-                self.assertTrue(any("alpha channel" in p or expected in p for p in problems), problems)
-        self.shot("store/catalog/review/cut.jpg", full_jpeg(1179, 2556)[:-40])
-        problems = self.problems(product_catalog(consumables=[new_iap("credits.75", review_screenshot="store/catalog/review/cut.jpg")]))
-        self.assertTrue(any("ends before its end marker" in p for p in problems), problems)
-        self.shot("store/catalog/review/jpeg.png", jpeg_header(1179, 2556))
-        problems = self.problems(product_catalog(consumables=[new_iap("credits.75", review_screenshot="store/catalog/review/jpeg.png")]))
-        self.assertTrue(any("is a JPEG image named .png" in p for p in problems), problems)
-        for good in (rgb_png(2796, 1290), rgb_png(2064, 2752), full_jpeg(1179, 2556)):
-            name = "store/catalog/review/good.jpg" if good.startswith(b"\xff\xd8") else "store/catalog/review/good.png"
-            self.shot(name, good)
-            self.assertEqual(self.problems(product_catalog(consumables=[new_iap("credits.75", review_screenshot=name)])), [])
-
-
-class ProductCreationTests(ProductTestCase):
-    def assert_ready(self, fake: ProductAsc, product_id: str) -> dict:
-        found = fake.by_product_id(product_id)
-        self.assertEqual(len(found), 1, f"{product_id} must exist exactly once")
-        self.assertEqual(found[0]["attributes"]["state"], "READY_TO_SUBMIT")
-        return found[0]
-
-    def test_switch_off_makes_no_calls(self) -> None:
-        fake = ProductAsc()
-        code, out, _ = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]), env={})
-        self.assertEqual(code, 0)
-        self.assertIn("CREATE_IOS_PRODUCTS is off", out)
-        self.assertEqual(fake.calls, [])
-
-    def test_a_validation_run_lists_new_products_and_writes_nothing(self) -> None:
-        fake = ProductAsc()
-        catalog = product_catalog(subscriptions=[new_subscription()], consumables=[new_iap("credits.75")])
-        for env in ({}, {"CREATE_IOS_PRODUCTS": "true"}):
-            code, out, err = self.run_products(fake, catalog, command="plan", env=env)
-            with self.subTest(env=env):
-                self.assertEqual(code, 0, err)
-                self.assertIn(f"would create subscription {PID}.plus.weekly", out)
-                self.assertIn(f"would create consumable {PID}.credits.75", out)
-                self.assertIn("nothing was created", out)
-                self.assertEqual(fake.writes(), [])
-
-    def test_creates_a_subscription_in_an_existing_group(self) -> None:
-        fake = ProductAsc()
-        code, out, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]))
-        self.assertEqual(code, 0, err)
-        sub = self.assert_ready(fake, f"{PID}.plus.weekly")
-        self.assertEqual(sub["attributes"]["reviewNote"], "Optional hosted AI plan.")
-        self.assertNotIn("familySharable", sub["attributes"])
-        writes = fake.writes()
-        self.assertEqual([w[:2] for w in writes], [("subscriptions", "setup"), ("subscriptions", "update"),
-                                                   ("subscriptions", "setup")])
-        first, last = writes[0], writes[-1]
-        # The note is set while the subscription still lacks its screenshot, so it
-        # cannot reach Ready to Submit without it.
-        self.assertIn("--no-verify", first)
-        self.assertNotIn("--review-screenshot", first)
-        self.assertNotIn("--no-verify", last)
-        self.assertEqual(Path(flag(last, "--review-screenshot")), self.root / SHOT)
-        for call in (first, last):
-            self.assertEqual((flag(call, "--app"), flag(call, "--group-reference-name"), flag(call, "--subscription-period"),
-                              flag(call, "--price"), flag(call, "--price-territory"), flag(call, "--territories"),
-                              flag(call, "--locale"), flag(call, "--reference-name")),
-                             (APP, "Hosted AI", "ONE_WEEK", "2.99", "USA", "USA,CAN,GBR", "en-US", "Plus"))
-            self.assertIn("--available-in-new-territories", call)
-            self.assertNotIn("--family-sharable", call)
-            # The group already has an en-US name, which is never changed.
-            self.assertNotIn("--group-display-name", call)
-        self.assertIn("Ready to Submit", out)
-        self.assertIn("RevenueCat", out)
-
-    def test_creates_a_subscription_group_that_does_not_exist_yet(self) -> None:
-        groups = [{"reference_name": "Hosted AI"}, {"reference_name": "Coaching", "display_name": "Fud AI Coaching"}]
-        sub = new_subscription("coach.monthly", period="P1M", price="8.99", subscription_group="Coaching",
-                               family_sharing=True, territories=["USA", "CAN"])
-        fake = ProductAsc()
-        code, _, err = self.run_products(fake, product_catalog(subscriptions=[sub], groups=groups))
-        self.assertEqual(code, 0, err)
-        self.assertEqual(fake.groups["Coaching"], {"en-US": "Fud AI Coaching"})
-        created = self.assert_ready(fake, f"{PID}.coach.monthly")
-        self.assertTrue(created["attributes"]["familySharable"])
-        setup = fake.writes()[0]
-        self.assertEqual((flag(setup, "--group-display-name"), flag(setup, "--group-locale")), ("Fud AI Coaching", "en-US"))
-        self.assertEqual(flag(setup, "--territories"), "USA,CAN")
-        self.assertNotIn("--available-in-new-territories", setup)
-        self.assertIn("--family-sharable", setup)
-
-    def test_creates_each_in_app_purchase_type(self) -> None:
-        catalog = product_catalog(consumables=[new_iap("credits.75", price="2.99")], tips=[new_iap("tip.coffee", price="0.99")],
-                                  non_consumables=[new_iap("lifetime", price="69.99", family_sharing=True)])
-        fake = ProductAsc()
-        code, out, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        expected = {"credits.75": ("CONSUMABLE", "2.99", False), "tip.coffee": ("CONSUMABLE", "0.99", False),
-                    "lifetime": ("NON_CONSUMABLE", "69.99", True)}
-        for suffix, (iap_type, price, shared) in expected.items():
-            with self.subTest(suffix):
-                live = self.assert_ready(fake, f"{PID}.{suffix}")
-                self.assertEqual(live["attributes"]["inAppPurchaseType"], iap_type)
-                self.assertEqual(fake.prices[live["id"]], price)
-                self.assertEqual(bool(live["attributes"].get("familySharable")), shared)
-                calls = [c for c in fake.writes() if live["id"] in c or f"{live['id']}v1" in c or f"{PID}.{suffix}" in c]
-                kinds = [c[:4] if c[1] in {"pricing", "versions"} else c[:3] for c in calls]
-                # The screenshot, which completes the product, always goes last.
-                self.assertEqual(kinds, [("iap", "create", "--app"), ("iap", "versions", "localizations", "create"),
-                                         ("iap", "pricing", "schedules", "create"), ("iap", "pricing", "availability", "set"),
-                                         ("iap", "review-screenshots", "create")])
-                create = calls[0]
-                self.assertEqual(flag(create, "--type"), iap_type)
-                self.assertEqual("--family-sharable" in create, shared)
-                availability = calls[3]
-                self.assertEqual(flag(availability, "--territories"), "USA,CAN,GBR")
-                self.assertIn("--available-in-new-territories", availability)
-                loc = fake.parts[live["id"]]["localization"]
-                self.assertEqual(loc, {"locale": "en-US", "name": f"Fud AI {suffix.split('.')[0].title()}",
-                                       "description": "Hosted AI actions"})
-        self.assertIn("would create non-consumable", out)
-
-    def test_existing_products_are_compared_and_never_written(self) -> None:
-        subs = [{"id": "S1", "attributes": {"name": "Plus Monthly", "productId": f"{PID}.plus.monthly",
-                                            "state": "APPROVED", "subscriptionPeriod": "ONE_YEAR"}}]
-        iaps = [{"id": "I1", "attributes": {"name": "Credits 50", "productId": f"{PID}.credits.50",
-                                            "inAppPurchaseType": "NON_CONSUMABLE", "state": "APPROVED"}},
-                {"id": "I2", "attributes": {"name": "Tip", "productId": f"{PID}.tip.snack",
-                                            "inAppPurchaseType": "CONSUMABLE", "state": "MISSING_METADATA"}},
-                {"id": "I3", "attributes": {"name": "Pro", "productId": f"{PID}.pro.monthly",
-                                            "inAppPurchaseType": "NON_CONSUMABLE", "state": "APPROVED"}}]
-        fake = ProductAsc(subscriptions=subs, iaps=iaps, prices={"S1": "9.99", "I1": "1.99", "I3": "19.99"})
-        catalog = product_catalog(
-            subscriptions=[{"id": f"{PID}.plus.monthly", "period": "P1M", "suggested_price_usd": "8.99", "platforms": ["ios"]},
-                           {"id": f"{PID}.pro.monthly", "period": "P1M", "suggested_price_usd": "19.99", "platforms": ["ios"]}],
-            consumables=[{"id": f"{PID}.credits.50", "suggested_price_usd": "1.99", "platforms": ["ios"],
-                          "ios": {"family_sharing": False}}],
-            tips=[{"id": f"{PID}.tip.snack", "suggested_price_usd": "0.99", "platforms": ["ios"]}])
-        code, out, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        self.assertEqual(fake.writes(), [])
-        for text in ("period is ONE_YEAR in App Store Connect, ONE_MONTH in the catalog",
-                     "price is 9.99 in USA in App Store Connect, 8.99 in the catalog",
-                     "type is NON_CONSUMABLE in App Store Connect, CONSUMABLE in the catalog",
-                     f"{PID}.pro.monthly is an in-app purchase in App Store Connect",
-                     f"{PID}.tip.snack is Missing Metadata; give it complete ios fields",
-                     f"{PID}.tip.snack: no current price in USA"):
-            self.assertIn(text, out)
-        self.assertIn("nothing to create", out)
-
-    def test_an_interrupted_in_app_purchase_is_finished_without_a_duplicate(self) -> None:
-        catalog = product_catalog(consumables=[new_iap("credits.75")])
-        fake = ProductAsc(fail_on={("iap", "pricing", "availability", "set")})
-        code, _, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 1)
-        self.assertIn("next run finishes it", err)
-        live = fake.by_product_id(f"{PID}.credits.75")[0]
-        self.assertEqual(live["attributes"]["state"], "MISSING_METADATA")
-        fake.fail_on.clear()
-        before = len(fake.calls)
-        code, out, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        self.assertIn(f"would finish consumable {PID}.credits.75", out)
-        self.assertIn("adds: availability, screenshot", out)
-        rerun = [c for c in fake.calls[before:] if is_write(c)]
-        self.assertEqual([c[:4] if c[1] == "pricing" else c[:3] for c in rerun],
-                         [("iap", "pricing", "availability", "set"), ("iap", "review-screenshots", "create")])
-        self.assert_ready(fake, f"{PID}.credits.75")
-
-    def test_an_interrupted_subscription_is_finished_without_a_duplicate(self) -> None:
-        catalog = product_catalog(subscriptions=[new_subscription()])
-        fake = ProductAsc(fail_on={("subscriptions", "update")})
-        code, _, _ = self.run_products(fake, catalog)
-        self.assertEqual(code, 1)
-        self.assertEqual(fake.by_product_id(f"{PID}.plus.weekly")[0]["attributes"]["state"], "MISSING_METADATA")
-        fake.fail_on.clear()
-        code, out, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        self.assertIn(f"would finish subscription {PID}.plus.weekly", out)
-        sub = self.assert_ready(fake, f"{PID}.plus.weekly")
-        self.assertEqual(sub["attributes"]["reviewNote"], "Optional hosted AI plan.")
-        # A third run finds a Ready to Submit product and leaves it alone.
-        before = len(fake.writes())
-        code, out, _ = self.run_products(fake, catalog)
-        self.assertEqual((code, len(fake.writes())), (0, before))
-        self.assertIn(f"exists: subscription {PID}.plus.weekly", out)
-
-    def test_a_missing_metadata_product_unlike_the_catalog_is_left_alone(self) -> None:
-        fake = ProductAsc()
-        fake.live_iap(f"{PID}.credits.75", name="Made by hand")
-        code, out, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 0, err)
-        self.assertIn("reference name 'Made by hand'", out)
-        self.assertIn("left as it is", out)
-        self.assertEqual(fake.writes(), [])
-
-    def test_an_unfinished_part_that_differs_from_the_catalog_stops_before_writing(self) -> None:
-        loc = {"locale": "en-US", "name": "Something else", "description": "Hosted AI actions"}
-        for parts, price, expected in (({"localization": loc}, None, "display name or description differs"),
-                                       ({}, "4.99", "its price is 4.99"),
-                                       ({"availability": (["USA"], False)}, None, "availability differs")):
-            fake = ProductAsc()
-            fake.live_iap(f"{PID}.credits.75", name="Credits", parts=parts, price=price)
-            code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-            with self.subTest(expected):
-                self.assertEqual(code, 1)
-                self.assertIn(expected, err)
-                self.assertEqual(fake.writes(), [])
-
-    def test_a_subscription_part_that_differs_is_refused_and_left_unchanged(self) -> None:
-        sub = {"id": "SUB-weekly", "attributes": {"name": "Plus", "productId": f"{PID}.plus.weekly",
-                                                  "state": "MISSING_METADATA", "subscriptionPeriod": "ONE_WEEK"}}
-        # Its localization is missing (setup would add it) and its price differs:
-        # the plan stops the run, so the missing part is not written either.
-        fake = ProductAsc(subscriptions=[sub], prices={"SUB-weekly": "4.99"})
-        code, out, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]))
-        self.assertEqual(code, 1)
-        self.assertIn(f"would finish subscription {PID}.plus.weekly", out)
-        self.assertIn("its price is 4.99", err)
-        self.assertEqual(fake.writes(), [])
-        self.assertEqual(fake.prices["SUB-weekly"], "4.99")
-        self.assertNotIn("localization", fake.part("SUB-weekly"))
-        loc = {"locale": "en-US", "name": "Something else", "description": "Hosted AI actions"}
-        for parts, expected in (({"localization": loc}, "display name or description differs"),
-                                ({"availability": (["USA"], True)}, "availability differs"),
-                                ({"screenshot": {"id": "S", "attributes": {"assetDeliveryState": {"state": "FAILED"}}}},
-                                 "screenshot is FAILED"),
-                                ({"screenshot": {"id": "S", "attributes": {"sourceFileChecksum": "0" * 32,
-                                                                           "assetDeliveryState": {"state": "COMPLETE"}}}},
-                                 "screenshot (COMPLETE) differs")):
-            fake = ProductAsc(subscriptions=[json.loads(json.dumps(sub))])
-            fake.parts["SUB-weekly"] = dict(parts)
-            code, _, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]))
-            with self.subTest(expected):
-                self.assertEqual(code, 1)
-                self.assertIn(expected, err)
-                self.assertEqual(fake.writes(), [])
-        # A review note that differs is caught by the plan, before any write.
-        sub["attributes"]["reviewNote"] = "Written by hand."
-        fake = ProductAsc(subscriptions=[sub])
-        code, _, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]))
-        self.assertEqual(code, 1)
-        self.assertIn("its review note differs from the catalog", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_an_interrupted_screenshot_upload_is_resumed(self) -> None:
-        raw = (self.root / SHOT).read_bytes()
-        loc = {"locale": "en-US", "name": "Fud AI Credits", "description": "Hosted AI actions"}
-        reservation = {"id": "SHOT-1", "attributes": {"fileSize": len(raw), "uploadOperations": [{"method": "PUT"}],
-                                                      "assetDeliveryState": {"state": "AWAITING_UPLOAD"}}}
-        fake = ProductAsc()
-        live = fake.live_iap(f"{PID}.credits.75", name="Credits", price="1.99", parts={
-            "localization": loc, "availability": (TERRITORIES, True), "screenshot": reservation})
-        code, out, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 0, err)
-        self.assertIn("adds: screenshot", out)
-        self.assertEqual([c[:3] for c in fake.writes()], [("iap", "review-screenshots", "update")])
-        self.assertEqual(flag(fake.writes()[0], "--screenshot-id"), "SHOT-1")
-        self.assert_ready(fake, f"{PID}.credits.75")
-        self.assertEqual(fake.product(live)["attributes"]["state"], "READY_TO_SUBMIT")
-
-    def test_a_failed_or_different_screenshot_stops_before_writing(self) -> None:
-        raw = (self.root / SHOT).read_bytes()
-        for attributes, expected in (({"assetDeliveryState": {"state": "FAILED"}}, "screenshot is FAILED"),
-                                     ({"assetDeliveryState": {"state": "COMPLETE"}, "fileSize": len(raw),
-                                       "sourceFileChecksum": "0" * 32}, "screenshot (COMPLETE) differs")):
-            fake = ProductAsc()
-            fake.live_iap(f"{PID}.credits.75", name="Credits", parts={"screenshot": {"id": "S", "attributes": attributes}})
-            code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-            with self.subTest(expected):
-                self.assertEqual(code, 1)
-                self.assertIn(expected, err)
-                self.assertEqual(fake.writes(), [])
-        # A finish whose screenshot file is gone is an error line, not a traceback.
-        (self.root / SHOT).unlink()
-        fake = ProductAsc()
-        fake.live_iap(f"{PID}.credits.75", name="Credits", parts={"screenshot": {"id": "S", "attributes": {}}})
-        code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 1)
-        self.assertIn("does not exist", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_screenshot_still_being_processed_is_kept(self) -> None:
-        # An earlier run uploaded the screenshot and stopped while Apple was still processing it.
-        raw = (self.root / SHOT).read_bytes()
-        pending = {"id": "SHOT-1", "attributes": {"fileSize": len(raw), "sourceFileChecksum": hashlib.md5(raw).hexdigest(),
-                                                  "assetDeliveryState": {"state": "UPLOAD_COMPLETE"}}}
-        fake = ProductAsc()
-        fake.live_iap(f"{PID}.credits.75", name="Credits", parts={"screenshot": pending})
-        code, out, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 0, err)
-        self.assertIn("adds: localization, price, availability", out)
-        self.assertNotIn(("iap", "review-screenshots", "create"), [c[:3] for c in fake.writes()])
-        self.assert_ready(fake, f"{PID}.credits.75")
-
-    def test_a_failed_price_lookup_on_an_existing_product_is_only_a_warning(self) -> None:
-        iaps = [{"id": "I1", "attributes": {"name": "Credits 50", "productId": f"{PID}.credits.50",
-                                            "inAppPurchaseType": "CONSUMABLE", "state": "APPROVED"}}]
-        fake = ProductAsc(iaps=iaps, prices={"I1": "1.99"}, fail_on={("iap", "pricing", "summary")})
-        catalog = product_catalog(consumables=[{"id": f"{PID}.credits.50", "suggested_price_usd": "1.99", "platforms": ["ios"]}])
-        code, out, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        self.assertIn("could not read its price, so it was not compared", out)
-        # The same error while planning a product to finish stops the run.
-        fake = ProductAsc(fail_on={("iap", "pricing", "summary")})
-        fake.live_iap(f"{PID}.credits.75", name="Credits")
-        code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 1)
-        self.assertIn("exit 63", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_first_subscription_above_the_app_price_grid_is_created(self) -> None:
-        fake = ProductAsc()
-        code, out, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription(price="404.99")]))
-        self.assertEqual(code, 0, err)
-        self.assertIn("404.99 is above the app's price grid", out)
-        self.assert_ready(fake, f"{PID}.plus.weekly")
-        # Below the grid's top the app grid is authoritative for subscriptions too.
-        fake = ProductAsc()
-        code, _, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription(price="3.33")]))
-        self.assertEqual(code, 1)
-        self.assertIn("3.33 is not a price point in USA (checked against the app's own price grid", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_only_ios_products_are_sent_to_review(self) -> None:
-        catalog = product_catalog(consumables=[new_iap("credits.75")],
-                                  non_consumables=[{"id": f"{PID}.lifetime", "platforms": ["android"],
-                                                    "play": {"product_id": "lifetime"}}])
-        (self.root / "store" / "catalog" / "products.json").write_text(json.dumps(catalog))
-        with mock.patch.object(asc_release, "ROOT", self.root):
-            self.assertEqual(asc_release.intended_product_ids(), {f"{PID}.credits.75"})
-        # Not even a Ready to Submit App Store product with that id rides along.
-        iaps = [{"id": "LIFE", "attributes": {"name": "Lifetime", "productId": f"{PID}.lifetime", "state": "READY_TO_SUBMIT"}}]
-        fake = FakeAsc(iaps=iaps)
-        with mock.patch.object(asc_release, "ROOT", self.root), \
-                mock.patch.dict(os.environ, {"SUBMIT_IOS_REVIEW": "true"}), \
-                mock.patch.object(sys, "argv", ["asc_release.py", *SUBMIT_ARGS]), \
-                mock.patch.object(asc_release, "asc_from_environment", return_value=fake), \
-                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-            asc_release.main()
-        added = [flag(c, "--item-id") for c in fake.writes() if c[:2] == ("review", "items-add")]
-        self.assertEqual(added, ["V1"])
-
-    def test_missing_fields_stop_the_run_before_any_write(self) -> None:
-        incomplete = new_iap("credits.75")
-        del incomplete["ios"]["description"]
-        sub = new_subscription()
-        del sub["ios"]["review_note"]
-        fake = ProductAsc()
-        catalog = product_catalog(subscriptions=[sub], consumables=[incomplete, new_iap("credits.500", price="9.99")])
-        code, _, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 1)
-        self.assertIn(f"{PID}.credits.75 would be created but the catalog lacks ios.description", err)
-        self.assertIn(f"{PID}.plus.weekly would be created but the catalog lacks ios.review_note", err)
-        self.assertIn("nothing was created", err)
-        # Not even the complete product is created.
-        self.assertEqual(fake.writes(), [])
-        self.assertEqual(fake.iaps, [])
-
-    def test_a_bad_review_screenshot_stops_the_run_before_any_write(self) -> None:
-        for content in (png_header(6, width=1290, height=2796), png_header(width=1200, height=2000)):
-            self.shot(SHOT, content)
-            fake = ProductAsc()
-            code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-            with self.subTest(content=content[:30]):
-                self.assertEqual(code, 1)
-                self.assertIn("review screenshot", err)
-                self.assertEqual(fake.writes(), [])
-        (self.root / SHOT).unlink()
-        fake = ProductAsc()
-        code, _, err = self.run_products(fake, product_catalog(subscriptions=[new_subscription()]))
-        self.assertEqual(code, 1)
-        self.assertIn("does not exist", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_price_without_a_price_point_stops_the_run(self) -> None:
-        live_sub = [{"id": "S1", "attributes": {"name": "Plus", "productId": f"{PID}.plus.monthly", "state": "APPROVED",
-                                                "subscriptionPeriod": "ONE_MONTH"}}]
-        fake = ProductAsc(subscriptions=live_sub, prices={"S1": "8.99"})
-        catalog = product_catalog(subscriptions=[new_subscription(price="2.98")], consumables=[new_iap("credits.75", price="1.23")])
-        code, _, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 1)
-        self.assertIn("2.98 is not a price point in USA", err)
-        self.assertIn("1.23 is not a price point in USA (checked against the app's own price grid", err)
-        self.assertEqual(fake.writes(), [])
-        # The live subscription is asked for its price points; the app has no IAP yet, so its grid is used.
-        asked = [c for c in fake.calls if "price-points" in c]
-        self.assertTrue(any(c[:1] == ("subscriptions",) and flag(c, "--subscription-id") == "S1" for c in asked))
-        self.assertTrue(any(c[:2] == ("pricing", "price-points") for c in asked))
-
-    def test_a_new_group_needs_a_display_name_and_listed_territories_must_exist(self) -> None:
-        groups = [{"reference_name": "Hosted AI"}, {"reference_name": "Coaching"}]
-        sub = new_subscription(subscription_group="Coaching")
-        fake = ProductAsc()
-        code, _, err = self.run_products(fake, product_catalog(subscriptions=[sub], groups=groups))
-        self.assertEqual(code, 1)
-        self.assertIn("subscription group 'Coaching' needs a display_name", err)
-        code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75", territories=["USA", "XYZ"])]))
-        self.assertEqual(code, 1)
-        self.assertIn("App Store Connect has no territories XYZ", err)
-        self.assertEqual(fake.writes(), [])
-
-    def test_a_product_that_never_becomes_ready_fails_after_a_bounded_wait(self) -> None:
-        fake = ProductAsc(stuck=True)
-        code, _, err = self.run_products(fake, product_catalog(consumables=[new_iap("credits.75")]))
-        self.assertEqual(code, 1)
-        self.assertIn("state is MISSING_METADATA, expected READY_TO_SUBMIT", err)
-        self.assertEqual(self.sleeps, [asc_products.STATE_POLL_SECONDS] * (asc_products.STATE_POLLS - 1))
-
-    def test_new_products_reach_review_in_the_same_run(self) -> None:
-        catalog = product_catalog(subscriptions=[new_subscription()], non_consumables=[new_iap("lifetime", price="69.99")])
-        fake = ProductAsc()
-        code, _, err = self.run_products(fake, catalog)
-        self.assertEqual(code, 0, err)
-        sub = self.assert_ready(fake, f"{PID}.plus.weekly")
-        iap = self.assert_ready(fake, f"{PID}.lifetime")
-        self.assertTrue(is_write(("subscriptions", "setup")))
-        before = len(fake.writes())
-        catalog_file = self.root / "store" / "catalog" / "products.json"
-        catalog_file.write_text(json.dumps(catalog))
-        with mock.patch.object(asc_release, "ROOT", self.root):
-            ids = asc_release.intended_product_ids()
-        self.assertEqual(ids, {f"{PID}.plus.weekly", f"{PID}.lifetime"})
-        with mock.patch.object(asc_release, "ROOT", self.root), \
-                mock.patch.dict(os.environ, {"SUBMIT_IOS_REVIEW": "true"}), \
-                mock.patch.object(sys, "argv", ["asc_release.py", *SUBMIT_ARGS]), \
-                mock.patch.object(asc_release, "asc_from_environment", return_value=fake), \
-                redirect_stdout(io.StringIO()), redirect_stderr(io.StringIO()):
-            asc_release.main()
-        review = fake.writes()[before:]
-        added = {flag(c, "--item-id") for c in review if c[:2] == ("review", "items-add")}
-        self.assertEqual(added, {f"{sub['id']}v2", f"{iap['id']}v1", "V1"})
-        self.assertEqual(review[-1][:2], ("review", "submissions-submit"))
-
-    def test_the_workflow_plans_and_creates_in_prepare_before_the_build(self) -> None:
-        workflow = (asc_release.ROOT / ".github" / "workflows" / "ios-release.yml").read_text()
-        prepare = workflow[workflow.index("\n  prepare:\n"):workflow.index("\n  build:\n")]
-        step = prepare[prepare.index("- name: Create missing App Store products (IOS_CREATE_PRODUCTS)"):]
-        self.assertIn("if: steps.gates.outputs.product_plan == 'true'", step)
-        self.assertIn('[ "$CREATE_IOS_PRODUCTS" = true ] && command=create', step)
-        self.assertLess(prepare.index("Create missing App Store products"), prepare.index("Choose the build number"))
-        self.assertIn("IOS_CREATE_PRODUCTS: ${{ vars.IOS_CREATE_PRODUCTS }}", prepare)
-        self.assertIn("ASC_READ_ONLY: ${{ github.event_name == 'workflow_dispatch' && '1' || '' }}", prepare)
-        for path in ("ios-release.yml", "store-automation.yml"):
-            text = (asc_release.ROOT / ".github" / "workflows" / path).read_text()
-            blocks = text.split("run: python3 scripts/store/print_gates.py")[:-1]
-            self.assertTrue(blocks, path)
-            for block in blocks:
-                env = block[block.rindex("env:"):]
-                with self.subTest(path=path):
-                    self.assertIn("IOS_CREATE_PRODUCTS: ${{ vars.IOS_CREATE_PRODUCTS }}", env)
-                    self.assertIn("IOS_UPLOAD_CREATIVE_ASSETS: ${{ vars.IOS_UPLOAD_CREATIVE_ASSETS }}", env)
+class ScreenshotUploadTests(unittest.TestCase):
+    def test_upload_records_the_file_checksum(self) -> None:
+        data = b"\x89PNG\r\n\x1a\nimage"
+        client = mock.Mock()
+        client.post.return_value = {"data": {"id": "S1", "attributes": {"uploadOperations": [
+            {"url": "https://upload.example", "offset": 0, "length": len(data), "method": "PUT", "requestHeaders": []}
+        ]}}}
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "01-home.png"
+            path.write_bytes(data)
+            quiet(asc_release.upload_screenshot_file, client, "SET1", path)
+        attrs = client.patch.call_args[0][1]["data"]["attributes"]
+        self.assertEqual(attrs, {"uploaded": True, "sourceFileChecksum": hashlib.md5(data).hexdigest()})
 
 
 class RedactionTests(unittest.TestCase):
@@ -2694,10 +1475,6 @@ class PrintGatesTests(unittest.TestCase):
         self.assertIn("IOS_CREATE_VERSION=true\n", output)
         self.assertIn("one or more live gates are on", output)
         self.assertIn("IOS_CREATE_VERSION=INVALID", self.run_print({"IOS_CREATE_VERSION": "maybe"}))
-
-    def test_creative_assets_switch_is_listed(self) -> None:
-        self.assertIn("IOS_UPLOAD_CREATIVE_ASSETS=false (unset)", self.run_print({}))
-        self.assertIn("IOS_UPLOAD_CREATIVE_ASSETS=INVALID", self.run_print({"IOS_UPLOAD_CREATIVE_ASSETS": "maybe"}))
 
     def test_everything_off(self) -> None:
         output = self.run_print({"IOS_RELEASE_AUTOMATION": "false"})
