@@ -1,11 +1,18 @@
 #!/usr/bin/env python3
-"""Validate store/catalog JSON against basic IAP / RevenueCat invariants."""
+"""Validate store/catalog JSON against basic IAP / RevenueCat invariants.
+
+Also checks the App Store creation fields (`ios` blocks, `ios_subscription_groups`)
+offline, including each review screenshot file; see asc_products.py.
+"""
 from __future__ import annotations
 
 import json
 import re
 import sys
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import asc_products  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[2]
 PRODUCTS = ROOT / "store" / "catalog" / "products.json"
@@ -47,8 +54,8 @@ def require_packages(offering: dict, required: tuple[str, ...]) -> None:
 def play_ids(products: dict) -> set[str]:
     """Validates each item's `play` block and returns every RevenueCat-visible Play id."""
     seen: list[str] = []
-    for group in ("subscriptions", "consumables", "tips"):
-        for item in products[group]:
+    for group in asc_products.PRODUCT_GROUPS:
+        for item in products.get(group, []):
             pid = item["id"]
             play = item.get("play")
             if "android" not in item.get("platforms", []):
@@ -82,10 +89,14 @@ def main() -> None:
     revenuecat = json.loads(REVENUECAT.read_text())
 
     ids: list[str] = []
-    for group in ("subscriptions", "consumables", "tips"):
+    for group in asc_products.REQUIRED_GROUPS:
         if group not in products:
             fail(f"missing products.{group}")
-        for item in products[group]:
+    for group in asc_products.PRODUCT_GROUPS:
+        items = products.get(group, [])
+        if not isinstance(items, list):
+            fail(f"products.{group} must be a list")
+        for item in items:
             pid = item.get("id")
             if not pid or not isinstance(pid, str):
                 fail(f"invalid id in {group}: {item!r}")
@@ -98,6 +109,11 @@ def main() -> None:
 
     id_set = set(ids)
     play_set = play_ids(products)
+    problems = asc_products.catalog_problems(products, ROOT)
+    if problems:
+        for problem in problems:
+            print(f"error: {problem}", file=sys.stderr)
+        raise SystemExit(1)
     subscription_play_ids = {item["play"]["revenuecat_product_id"] for item in products["subscriptions"] if "play" in item}
     for ent in revenuecat.get("entitlements", []):
         eid = ent.get("id")
