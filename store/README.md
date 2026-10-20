@@ -425,7 +425,10 @@ final build and selection recheck; when the recheck fails, nothing is sent. A
 reused draft is submitted only when it holds nothing but this version and
 versions of catalog products; anything else stops the run. Drafts holding
 creative images belong to those images' own review and are never used for the
-version.
+version. The draft that already holds this version is reused; otherwise only a
+draft holding no app version is, so another version's draft is never touched. A
+`READY_FOR_REVIEW` version that no draft holds stops the run before anything is
+added.
 
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new
