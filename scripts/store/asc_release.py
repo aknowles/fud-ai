@@ -450,6 +450,7 @@ def sync_creative_assets(
     locale: str,
     creative_dir: Path,
     editable: bool,
+    reserved_draft: str | None = None,
 ) -> dict[str, str]:
     """Put the repository's header and search results images on the version.
 
@@ -524,23 +525,27 @@ def sync_creative_assets(
         outcomes[placement_type] = "placed"
         print(f"  {label}: placed {path.name} on the product page")
     if to_review:
-        submit_creative_review(asc, app_id, to_review)
+        submit_creative_review(asc, app_id, to_review, reserved_draft=reserved_draft)
     return outcomes
 
 
-def submit_creative_review(asc: asc_cli.Asc, app_id: str, images: list[tuple[str, dict[str, Any]]]) -> str:
+def submit_creative_review(
+    asc: asc_cli.Asc, app_id: str, images: list[tuple[str, dict[str, Any]]], *, reserved_draft: str | None = None
+) -> str:
     """Send not-yet-reviewed creative images to App Review in a submission of their own.
 
-    A draft an earlier attempt left behind holding only some of these images is
-    finished instead of starting another one. An empty draft is never taken:
-    the version and its products may already have chosen it.
+    A draft an earlier attempt left behind holding only some of these images, or
+    nothing yet, is finished instead of starting another one, so reruns leave no
+    extra drafts. The draft this run chose for the version and its products
+    (reserved_draft) is never taken.
     """
     wanted = {image["id"] for _, image in images}
     submission_id = None
     for draft in draft_submission_ids(asc, app_id):
-        items = submission_items(asc, draft)
-        held = {related_id(item, "appAssetLibraryImage") for item in items}
-        if items and held <= wanted:
+        if draft == reserved_draft:
+            continue
+        held = {related_id(item, "appAssetLibraryImage") for item in submission_items(asc, draft)}
+        if held <= wanted:
             submission_id = draft
             print(f"  finishing creative review submission {draft} from an earlier attempt")
             break
@@ -1146,7 +1151,7 @@ def main() -> None:
         print("syncing ASC product page header and search results images…")
         sync_creative_assets(
             asc, app_id=app_id, version_id=version_id, locale=args.locale, creative_dir=args.creative_dir,
-            editable=not screenshots_locked,
+            editable=not screenshots_locked, reserved_draft=submission_id,
         )
 
     if waiting:

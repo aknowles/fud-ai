@@ -1570,6 +1570,14 @@ class CreativeAssetTests(unittest.TestCase):
         self.assertEqual(image_items, {submitted[0]})
         self.assertNotIn("EMPTY", image_items)
 
+    def test_a_rerun_finishes_the_empty_draft_an_interrupted_review_left(self) -> None:
+        # A run stopped between creating its draft and adding the images; the
+        # rerun uses that draft instead of leaving it behind and starting another.
+        fake = FakeAsc(drafts=["EMPTY"], draft_items={"EMPTY": []})
+        self.assertEqual(self.run_creative(fake), 0)
+        self.assertNotIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
+        self.assertEqual(flag(fake.writes()[-1], "--id"), "EMPTY")
+
     def test_an_interrupted_upload_is_uploaded_again(self) -> None:
         # asc never deletes the reservation an interrupted upload leaves behind.
         fake = FakeAsc(library=[self.image("STALE", "header", "AWAITING_UPLOAD")])
