@@ -1071,6 +1071,18 @@ class CmdWaitBuildTests(unittest.TestCase):
         self.assertIs(captured["is_transient"], ios_release.is_transient_error)
         self.assertIn("build_id=B9", written)
 
+    def test_runs_alone_as_the_build_job_checks_it_out(self) -> None:
+        # The build job's sparse checkout holds ios_release.py without asc_cli.py.
+        import shutil
+        import subprocess
+
+        with tempfile.TemporaryDirectory() as tmp:
+            copy = Path(tmp) / "ios_release.py"
+            shutil.copy(Path(ios_release.__file__), copy)
+            done = subprocess.run([sys.executable, str(copy), "export-compliance", "--help"],
+                                  capture_output=True, text=True, timeout=60)
+        self.assertEqual(done.returncode, 0, done.stderr)
+
     def test_asc_errors_end_with_an_error_line_not_a_traceback(self) -> None:
         err = io.StringIO()
         with mock.patch.object(ios_release, "asc_client", side_effect=asc_cli.AscError(("apps", "view"), 3, "unauthorized")), \
