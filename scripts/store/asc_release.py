@@ -33,8 +33,16 @@ DEFAULT_BUNDLE_ID = "com.apoorvdarshan.calorietracker"
 # App Store Connect app record for DEFAULT_BUNDLE_ID. Version creation stops when
 # the bundle id lookup returns anything else.
 ASC_APP_ID = "6758935726"
-IPHONE_67_DISPLAY = "APP_IPHONE_67"
-# App Store Connect per screenshot-set limit (6.7" display type).
+# Screenshot sets in upload order: the folder under --screenshots-dir that
+# stage_screenshots.py fills, the ASC display type, and a label for logs.
+# APP_IPHONE_DUO is missing from Apple's OpenAPI spec (4.5.1), but App Store
+# Connect accepts it; one set holds both the outer and the inner screen sizes.
+SCREENSHOT_SETS = (
+    ("6.7", "APP_IPHONE_67", '6.7" iPhone'),
+    ("ipad-13", "APP_IPAD_PRO_3GEN_129", '13" iPad'),
+    ("iphone-duo", "APP_IPHONE_DUO", "iPhone Duo"),
+)
+# App Store Connect per screenshot-set limit.
 APP_SCREENSHOT_SET_MAX = 10
 EDITABLE_VERSION_STATES = {
     "PREPARE_FOR_SUBMISSION",
@@ -491,6 +499,23 @@ def find_screenshot_set(
     return None
 
 
+def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, list[Path]]]:
+    """(display type, label, PNGs) for every set; fails when a set has nothing to upload."""
+    sets = []
+    for folder, display_type, label in SCREENSHOT_SETS:
+        set_dir = screenshots_dir / folder
+        pngs = sorted(set_dir.glob("*.png")) if set_dir.is_dir() else []
+        if not pngs:
+            fail(f"no PNG screenshots for the {label} set in {set_dir}")
+        if len(pngs) > APP_SCREENSHOT_SET_MAX:
+            fail(
+                f"too many PNGs ({len(pngs)}) for the ASC {label} set "
+                f"(max {APP_SCREENSHOT_SET_MAX})"
+            )
+        sets.append((display_type, label, pngs))
+    return sets
+
+
 def upload_screenshots(
     client: AscClient,
     *,
@@ -499,38 +524,53 @@ def upload_screenshots(
     screenshots_dir: Path,
     editable: bool = True,
 ) -> bool:
-    """Replace the 6.7" screenshots unless App Store Connect already has these files.
+    """Replace each screenshot set unless App Store Connect already has its files.
 
     With editable=False (screenshots are locked once the version is in a review
-    submission) nothing is written: the step fails unless the set already holds
+    submission) nothing is written: the step fails unless every set already holds
     exactly these files, in order. Returns True when screenshots were uploaded.
     """
+    sets = staged_screenshot_sets(screenshots_dir)
     version_loc = localization_for_locale(
         client, f"/appStoreVersions/{version_id}/appStoreVersionLocalizations", locale
     )
     version_loc_id = version_loc["id"]
-    pngs = sorted(screenshots_dir.glob("*.png"))
-    if not pngs:
-        fail(f"no PNG screenshots in {screenshots_dir}")
-    if len(pngs) > APP_SCREENSHOT_SET_MAX:
-        fail(
-            f"too many PNGs ({len(pngs)}) for ASC 6.7\" set "
-            f"(max {APP_SCREENSHOT_SET_MAX})"
-        )
+    uploaded = False
+    for display_type, label, pngs in sets:
+        if upload_screenshot_set(
+            client,
+            version_loc_id=version_loc_id,
+            display_type=display_type,
+            label=f"{label} ({locale})",
+            pngs=pngs,
+            editable=editable,
+        ):
+            uploaded = True
+    return uploaded
 
-    existing = find_screenshot_set(client, version_loc_id, IPHONE_67_DISPLAY)
+
+def upload_screenshot_set(
+    client: AscClient,
+    *,
+    version_loc_id: str,
+    display_type: str,
+    label: str,
+    pngs: list[Path],
+    editable: bool,
+) -> bool:
+    existing = find_screenshot_set(client, version_loc_id, display_type)
     if existing is not None and live_screenshot_fingerprints(
         client, existing["id"]
     ) == local_screenshot_fingerprints(pngs):
-        print(f'  6.7" screenshots ({locale}) already match the repository')
+        print(f"  {label} screenshots already match the repository")
         return False
     if not editable:
         fail(
-            f'cannot replace the 6.7" screenshots ({locale}) once the version is in a review '
+            f"cannot replace the {label} screenshots once the version is in a review "
             "submission; App Store Connect differs from the repository"
         )
 
-    shot_set = existing or ensure_screenshot_set(client, version_loc_id, IPHONE_67_DISPLAY)
+    shot_set = existing or ensure_screenshot_set(client, version_loc_id, display_type)
     set_id = shot_set["id"]
 
     # Old ASC ids still on the set; pop front when deleting for capacity or final cleanup.
@@ -545,7 +585,7 @@ def upload_screenshots(
         if len(current_ids) >= APP_SCREENSHOT_SET_MAX:
             if not pending_old_ids:
                 fail(
-                    f"ASC screenshot set at capacity ({APP_SCREENSHOT_SET_MAX}) "
+                    f"ASC {label} screenshot set at capacity ({APP_SCREENSHOT_SET_MAX}) "
                     f"with no tracked old screenshots left to replace"
                 )
             delete_screenshots(client, [pending_old_ids.pop(0)])
@@ -553,7 +593,7 @@ def upload_screenshots(
 
     if pending_old_ids:
         delete_screenshots(client, pending_old_ids)
-        print(f"  removed {len(pending_old_ids)} previous ASC screenshot(s)")
+        print(f"  removed {len(pending_old_ids)} previous ASC {label} screenshot(s)")
     return True
 
 
@@ -1342,10 +1382,7 @@ def validate_local_inputs(
     if upload_whats_new and not read_text(loc_dir / WHATS_NEW_FIELD[1]):
         fail(f"What's New upload is on, but {loc_dir / WHATS_NEW_FIELD[1]} is missing or empty")
     if upload_screenshots:
-        if not screenshots_dir.is_dir():
-            fail(f"screenshots dir missing: {screenshots_dir}")
-        if not any(screenshots_dir.glob("*.png")):
-            fail(f"no PNG files in {screenshots_dir}")
+        staged_screenshot_sets(screenshots_dir)
 
 
 def main() -> None:
@@ -1359,7 +1396,9 @@ def main() -> None:
     parser.add_argument(
         "--screenshots-dir",
         type=Path,
-        default=ROOT / "store" / "metadata" / "screenshots" / "ios" / "6.7",
+        default=ROOT / "store" / "metadata" / "screenshots" / "ios",
+        help="Staged screenshots, one folder per set: "
+        + ", ".join(folder for folder, _, _ in SCREENSHOT_SETS),
     )
     parser.add_argument("--locale", default="en-US")
     parser.add_argument("--bundle-id", default=DEFAULT_BUNDLE_ID)
@@ -1490,7 +1529,7 @@ def main() -> None:
 
     # Read-only comparisons first, so a mismatch stops the run before any write.
     if do_screenshots and screenshots_locked:
-        print(f'checking ASC 6.7" screenshots (locked while the version is {state})…')
+        print(f"checking ASC screenshots (locked while the version is {state})…")
         upload_screenshots(
             client,
             version_id=version_id,
@@ -1524,7 +1563,7 @@ def main() -> None:
         )
 
     if do_screenshots and not screenshots_locked:
-        print('uploading ASC 6.7" screenshots…')
+        print("uploading ASC screenshots…")
         upload_screenshots(
             client,
             version_id=version_id,

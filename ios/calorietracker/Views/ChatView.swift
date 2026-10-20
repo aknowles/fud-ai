@@ -61,6 +61,7 @@ struct ChatView: View {
 
                 inputArea
             }
+            .readableWidth()
             .background(AppColors.appBackground)
             .navigationTitle("Coach")
             .navigationBarTitleDisplayMode(.inline)

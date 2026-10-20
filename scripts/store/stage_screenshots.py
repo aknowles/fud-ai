@@ -1,22 +1,58 @@
 #!/usr/bin/env python3
-"""Copy store/screenshots/{ios,play}/ PNGs into store/metadata/screenshots/ for ASC + Play upload."""
+"""Copy store/screenshots/ PNGs into store/metadata/screenshots/ for ASC + Play upload."""
 from __future__ import annotations
 
 import argparse
 import io
 import os
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
-IOS_SOURCE = ROOT / "store" / "screenshots" / "ios"
 PLAY_SOURCE = ROOT / "store" / "screenshots" / "play"
 PLAY_PHONE_DIR = ROOT / "store" / "metadata" / "screenshots" / "play" / "phone"
-IOS_67_DIR = ROOT / "store" / "metadata" / "screenshots" / "ios" / "6.7"
+IOS_STAGED = ROOT / "store" / "metadata" / "screenshots" / "ios"
 
-# App Store Connect 6.7" iPhone (portrait)
-ASC_IPHONE_67_ACCEPTED = ((1290, 2796), (1284, 2778))
-ASC_IPHONE_67_TARGET = ASC_IPHONE_67_ACCEPTED[0]
+
+@dataclass(frozen=True)
+class AscSet:
+    """One App Store Connect screenshot set: its source folder, staged folder and sizes."""
+
+    label: str
+    source: Path
+    dest: Path
+    # Portrait sizes ASC accepts; anything else is fitted onto the first one.
+    accepted: tuple[tuple[int, int], ...]
+
+
+# Every set the App Store listing gets, in upload order. The staged folder names
+# are the ones asc_release.py reads.
+ASC_SETS = (
+    AscSet(
+        '6.7" iPhone',
+        ROOT / "store" / "screenshots" / "ios",
+        IOS_STAGED / "6.7",
+        ((1290, 2796), (1284, 2778)),
+    ),
+    AscSet(
+        '13" iPad',
+        ROOT / "store" / "screenshots" / "ipad",
+        IOS_STAGED / "ipad-13",
+        ((2064, 2752), (2048, 2732)),
+    ),
+    # One set takes both screens: outer 1398x2034 and inner 2007x2853.
+    AscSet(
+        "iPhone Duo",
+        ROOT / "store" / "screenshots" / "iphone-duo",
+        IOS_STAGED / "iphone-duo",
+        ((1398, 2034), (2007, 2853)),
+    ),
+)
+
+# A frame that is not an accepted ASC size is fitted onto the set's first size only
+# when its shape is this close, so a frame from another device's set fails staging.
+ASC_ASPECT_TOLERANCE = 0.03
 
 # Google Play phone screenshots (portrait ~9:16)
 PLAY_MIN_SIDE = 320
@@ -80,12 +116,12 @@ def fit_and_pad_rgba(
     return canvas
 
 
-def prepare_asc_png(Image, path: Path) -> bytes:
-    target_w, target_h = ASC_IPHONE_67_TARGET
+def prepare_asc_png(Image, path: Path, asc_set: AscSet) -> bytes:
+    target_w, target_h = asc_set.accepted[0]
     with Image.open(path) as img:
         img = img.convert("RGBA")
         w, h = img.size
-        if (w, h) in ASC_IPHONE_67_ACCEPTED:
+        if (w, h) in asc_set.accepted:
             out = io.BytesIO()
             img.save(out, format="PNG")
             return out.getvalue()
@@ -119,14 +155,34 @@ def clear_destination_pngs(*dest_dirs: Path) -> None:
             stale.unlink()
 
 
-def validate_asc_png(path: Path, *, width: int, height: int) -> None:
-    if (width, height) not in ASC_IPHONE_67_ACCEPTED:
-        accepted = ", ".join(f"{w}x{h}" for w, h in ASC_IPHONE_67_ACCEPTED)
+def validate_asc_png(path: Path, asc_set: AscSet, *, width: int, height: int) -> None:
+    if (width, height) not in asc_set.accepted:
+        accepted = ", ".join(f"{w}x{h}" for w, h in asc_set.accepted)
         fail(
-            f"{path.name}: ASC 6.7\" screenshot must be {accepted} "
+            f"{path.name}: ASC {asc_set.label} screenshot must be {accepted} "
             f"(got {width}x{height}). Install Pillow (requirements-store.txt) "
             "so staging can resize automatically, or pre-export at the required size."
         )
+
+
+def asc_frame_fits(asc_set: AscSet, width: int, height: int) -> bool:
+    if (width, height) in asc_set.accepted:
+        return True
+    if width <= 0 or height <= 0:
+        return False
+    target_w, target_h = asc_set.accepted[0]
+    return abs(width / height - target_w / target_h) <= ASC_ASPECT_TOLERANCE * target_w / target_h
+
+
+def check_asc_frames(asc_set: AscSet, pngs: list[Path]) -> None:
+    for path in pngs:
+        w, h = read_png_size(path)
+        if not asc_frame_fits(asc_set, w, h):
+            accepted = ", ".join(f"{aw}x{ah}" for aw, ah in asc_set.accepted)
+            fail(
+                f"{asc_set.source.name}/{path.name}: {w}x{h} is not shaped like an ASC "
+                f"{asc_set.label} screenshot ({accepted}); is it in the wrong folder?"
+            )
 
 
 def numbered_pngs(source: Path) -> list[Path]:
@@ -147,7 +203,11 @@ def numbered_pngs(source: Path) -> list[Path]:
 
 
 def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
-    ios_pngs = numbered_pngs(IOS_SOURCE) if platform in ("ios", "all") else []
+    ios_sets = (
+        [(asc_set, numbered_pngs(asc_set.source)) for asc_set in ASC_SETS]
+        if platform in ("ios", "all")
+        else []
+    )
     play_pngs = numbered_pngs(PLAY_SOURCE) if platform in ("play", "all") else []
 
     if len(play_pngs) > PLAY_PHONE_MAX:
@@ -155,20 +215,24 @@ def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
         print(f"note: Play phone cap is {PLAY_PHONE_MAX}; not staging: {skipped}")
         play_pngs = play_pngs[:PLAY_PHONE_MAX]
 
+    for asc_set, pngs in ios_sets:
+        check_asc_frames(asc_set, pngs)
+
     will_upload = uploads_enabled()
     Image = try_import_pillow()
     if will_upload and Image is None:
         for path in play_pngs:
             w, h = read_png_size(path)
             validate_play_png(path, width=w, height=h)
-        for path in ios_pngs:
-            w, h = read_png_size(path)
-            validate_asc_png(path, width=w, height=h)
+        for asc_set, pngs in ios_sets:
+            for path in pngs:
+                w, h = read_png_size(path)
+                validate_asc_png(path, asc_set, width=w, height=h)
 
     if not dry_run:
         clear_destination_pngs(
             *([PLAY_PHONE_DIR] if play_pngs else []),
-            *([IOS_67_DIR] if ios_pngs else []),
+            *(asc_set.dest for asc_set, _ in ios_sets),
         )
 
     copied: list[Path] = []
@@ -203,31 +267,33 @@ def stage(*, dry_run: bool, platform: str = "all") -> list[Path]:
         play_dest.write_bytes(play_bytes)
         copied.append(play_dest)
 
-    for path in ios_pngs:
-        w, h = read_png_size(path)
+    for asc_set, pngs in ios_sets:
+        for path in pngs:
+            w, h = read_png_size(path)
 
-        if dry_run:
-            print(
-                f"dry-run: would stage ios/{path.name} ({w}x{h}) → "
-                f"{IOS_67_DIR.relative_to(ROOT)}"
-            )
-            continue
+            if dry_run:
+                print(
+                    f"dry-run: would stage {asc_set.source.name}/{path.name} ({w}x{h}) → "
+                    f"{asc_set.dest.relative_to(ROOT)}"
+                )
+                continue
 
-        ios_dest = IOS_67_DIR / path.name
-        if Image is not None:
-            ios_bytes = prepare_asc_png(Image, path)
-        elif will_upload:
-            validate_asc_png(path, width=w, height=h)
-            ios_bytes = path.read_bytes()
-        else:
-            ios_bytes = path.read_bytes()
-        ios_dest.write_bytes(ios_bytes)
-        copied.append(ios_dest)
+            ios_dest = asc_set.dest / path.name
+            if Image is not None:
+                ios_bytes = prepare_asc_png(Image, path, asc_set)
+            elif will_upload:
+                validate_asc_png(path, asc_set, width=w, height=h)
+                ios_bytes = path.read_bytes()
+            else:
+                ios_bytes = path.read_bytes()
+            ios_dest.write_bytes(ios_bytes)
+            copied.append(ios_dest)
 
     if not dry_run:
-        print(
-            f"staged {len(play_pngs)} Play phone + {len(ios_pngs)} ASC 6.7\" screenshot(s)"
+        ios_counts = "".join(
+            f" + {len(pngs)} ASC {asc_set.label}" for asc_set, pngs in ios_sets
         )
+        print(f"staged {len(play_pngs)} Play phone{ios_counts} screenshot(s)")
     return copied
 
 

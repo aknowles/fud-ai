@@ -201,7 +201,7 @@ run, even when the platform's master switch is off.
 | `IOS_UPLOAD_BUILD` | Build, sign and upload the binary to App Store Connect, then wait for processing |
 | `IOS_UPLOAD_LISTING` | Description, keywords, promotional text, marketing/support URLs from `APPSTORE.md`, checked before the build. Off: never read |
 | `IOS_UPLOAD_WHATS_NEW` | What's New text from `APPSTORE.md`, checked before the build. Off: never read |
-| `IOS_UPLOAD_SCREENSHOTS` | 6.7" screenshots (see below) |
+| `IOS_UPLOAD_SCREENSHOTS` | 6.7" iPhone, 13" iPad and iPhone Duo screenshots (see below) |
 | `IOS_SUBMIT_REVIEW` | Select this run's build and submit the version **and** Ready-to-Submit IAPs / subscriptions for review. Requires `IOS_UPLOAD_BUILD` |
 | `IOS_PUBLIC_RELEASE` | Release automatically after approval. Off = manual release. Requires `IOS_SUBMIT_REVIEW` |
 | `IOS_BUILD_POLL_SECONDS` | Poll interval, default 30 (10–600) |
@@ -353,9 +353,9 @@ Later for catalog automation:
 | [`scripts/store/prepare_listing_text.py`](../scripts/store/prepare_listing_text.py) | `APPSTORE.md` / `PLAYSTORE.md` → `store/metadata/` |
 | [`scripts/store/prepare_whats_new.py`](../scripts/store/prepare_whats_new.py) | What's New for Play + iOS (`APPSTORE.md` / `PLAYSTORE.md`), with the store length and plain-text checks |
 | [`scripts/release_notes.py`](../scripts/release_notes.py) | The tag's `RELEASE_NOTES.md` section for the GitHub Release; `--if-present` prints nothing when there is none; duplicate sections fail |
-| [`scripts/store/stage_screenshots.py`](../scripts/store/stage_screenshots.py) | `store/screenshots/{ios,play}/*.png` → `store/metadata/screenshots/` (`--platform ios\|play\|all`) |
+| [`scripts/store/stage_screenshots.py`](../scripts/store/stage_screenshots.py) | `store/screenshots/{ios,ipad,iphone-duo,play}/*.png` → `store/metadata/screenshots/` (`--platform ios\|play\|all`) |
 | [`scripts/store/ios_release.py`](../scripts/store/ios_release.py) | iOS switches, export compliance check (project and archived app), build number, read-only App Store version preflight, wait for this run's build |
-| [`scripts/store/asc_release.py`](../scripts/store/asc_release.py) | App Store version creation (`--create-version`), ASC listing, What's New, 6.7" screenshots, build selection, submit for review (re-runnable) |
+| [`scripts/store/asc_release.py`](../scripts/store/asc_release.py) | App Store version creation (`--create-version`), ASC listing, What's New, 6.7" iPhone / 13" iPad / iPhone Duo screenshots, build selection, submit for review (re-runnable) |
 | [`scripts/store/redact_credential_ids.py`](../scripts/store/redact_credential_ids.py) | Removes the ASC key and issuer IDs from failure logs before they are uploaded |
 | [`scripts/store/print_gates.py`](../scripts/store/print_gates.py) | Prints the switches as configured; an invalid value shows as `INVALID` |
 | [`scripts/store/test_ios_release.py`](../scripts/store/test_ios_release.py) | Offline tests: disabled/invalid switches, export compliance, timeouts, failures, mismatches, version creation, the version preflight, re-runs, IAP order, optional release notes, iOS What's New checks, log redaction. Run by every iOS release before anything is built |
@@ -415,6 +415,9 @@ Source of truth for product IDs stays aligned with [`docs/HOSTED_AI_REVENUECAT.m
 ```
 store/screenshots/     # listing images, as live on the stores (source of truth)
   ios/                 # 10 App Store iPhone screenshots, 1290×2796, NN-name.png
+  ipad/                # 7 App Store iPad screenshots, 2064×2752
+  iphone-duo/          # 7 App Store iPhone Duo screenshots, outer screen 1398×2034
+                       # (the same set also takes inner-screen 2007×2853 frames)
   play/                # 8 Play phone screenshots, 1290×2796 (padded to 9:16 when staged)
   watch/               # Apple Watch screenshot (uploaded by hand)
 store/graphics/
@@ -425,13 +428,19 @@ store/metadata/
   screenshots/
     play/phone/        # Play phoneScreenshots (staged from store/screenshots/play)
     ios/6.7/           # ASC APP_IPHONE_67 slot (staged from store/screenshots/ios)
+    ios/ipad-13/       # ASC APP_IPAD_PRO_3GEN_129 slot (staged from store/screenshots/ipad)
+    ios/iphone-duo/    # ASC APP_IPHONE_DUO slot (staged from store/screenshots/iphone-duo)
 ```
 
 Release workflows run `stage_screenshots.py --platform ios` when
 `IOS_UPLOAD_SCREENSHOTS` is true and `--platform play` when
 `ANDROID_UPLOAD_SCREENSHOTS` is true. Staging copies the numbered PNGs, in file
 name order, into `store/metadata/screenshots/`, and each upload replaces that
-store's whole screenshot set. To change a listing, replace the files in
+store's whole screenshot set. Every iOS set needs at least one numbered PNG, so a
+missing set stops staging before anything is replaced. The app supports iPad, and
+App Store Connect will not submit a version without 13" iPad screenshots. iPhone
+Duo screenshots are optional until April 2027. `APP_IPHONE_DUO` is not in Apple's
+OpenAPI spec yet, but App Store Connect accepts it. To change a listing, replace the files in
 `store/screenshots/` first, so turning a switch on never uploads an older set.
 The Watch screenshot and the Play feature graphic have no automated upload.
 Upload them in App Store Connect and Play Console by hand.
