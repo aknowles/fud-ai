@@ -429,6 +429,11 @@ def sync_creative_assets(
             print(f"  uploaded {path.name} to the Asset Library ({image['id']})")
         state = attrs(image).get("state") or ""
         if state in CREATIVE_UNSUBMITTED_STATES or not state:
+            if not editable:
+                fail(
+                    f"cannot send the {label} image {path.name} to App Review while the version waits for "
+                    "review; re-run once the version can be edited, or submit it in App Store Connect"
+                )
             to_review.append((label, image))
             outcomes[placement_type] = "submitted for review"
             continue
@@ -469,9 +474,22 @@ def sync_creative_assets(
 
 
 def submit_creative_review(asc: asc_cli.Asc, app_id: str, images: list[tuple[str, dict[str, Any]]]) -> str:
-    """Send not-yet-reviewed creative images to App Review in a submission of their own."""
-    submission = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
-    submission_id = submission.get("id")
+    """Send not-yet-reviewed creative images to App Review in a submission of their own.
+
+    A draft an earlier attempt left behind holding only some of these images
+    (or nothing yet) is finished instead of starting another one.
+    """
+    wanted = {image["id"] for _, image in images}
+    submission_id = None
+    for draft in draft_submission_ids(asc, app_id):
+        held = {related_id(item, "appAssetLibraryImage") for item in submission_items(asc, draft)}
+        if held <= wanted:
+            submission_id = draft
+            print(f"  finishing creative review submission {draft} from an earlier attempt")
+            break
+    if submission_id is None:
+        submission = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
+        submission_id = submission.get("id")
     if not submission_id:
         fail("asc did not report the new review submission's id")
     for label, image in images:
@@ -481,7 +499,7 @@ def submit_creative_review(asc: asc_cli.Asc, app_id: str, images: list[tuple[str
         )
         print(f"  {label}: {attrs(image).get('fileName')} added to creative review submission {submission_id}")
     items = submission_items(asc, submission_id)
-    unexpected = [item["id"] for item in items if not related_id(item, "appAssetLibraryImage")]
+    unexpected = [item["id"] for item in items if related_id(item, "appAssetLibraryImage") not in wanted]
     if unexpected or len(items) != len(images):
         fail(f"review submission {submission_id} holds unexpected items {unexpected}; not submitting it")
     call(asc, "review", "submissions-submit", "--id", submission_id, "--confirm")
@@ -508,8 +526,18 @@ class ProductSubmitError(Exception):
 class ProductSubmitResult:
     """Outcome of attaching products to a review submission."""
 
-    def __init__(self, submission_id: str, attached: int, added_items: bool, has_products: bool = False) -> None:
+    def __init__(
+        self,
+        submission_id: str,
+        attached: int,
+        added_items: bool,
+        has_products: bool = False,
+        allowed_versions: set[str] | None = None,
+    ) -> None:
         self.submission_id = submission_id
+        # Every version of every catalog product: the only product items a
+        # draft may hold when it is submitted.
+        self.allowed_versions = allowed_versions or set()
         # Intended products the draft now holds (attached now or by an earlier run).
         self.attached = attached
         self.added_items = added_items
@@ -527,9 +555,13 @@ def draft_submission_ids(asc: asc_cli.Asc, app_id: str) -> list[str]:
 
 
 def get_or_create_draft_submission(asc: asc_cli.Asc, app_id: str) -> str:
-    """Return the app's READY_FOR_REVIEW draft review submission, creating one."""
+    """Return the app's READY_FOR_REVIEW draft for the version and products, creating one.
+
+    A draft holding creative images belongs to their own review and is skipped.
+    """
     for submission_id in draft_submission_ids(asc, app_id):
-        return submission_id
+        if not any(related_id(item, "appAssetLibraryImage") for item in submission_items(asc, submission_id)):
+            return submission_id
     created = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
     if not created.get("id"):
         fail("asc did not report the new review submission's id")
@@ -600,15 +632,22 @@ def attach_products(
     failures: list[str] = []
 
     candidates: list[tuple[str, str, str, str, list[dict[str, Any]]]] = []
+    allowed: set[str] = set()
     for sub in rows(call(asc, "subscriptions", "list", "--app", app_id, "--paginate")):
         a = attrs(sub)
-        if a.get("productId") in intended_ids and a.get("state") in SUBMITTABLE_PRODUCT_STATES:
-            versions = rows(call(asc, "subscriptions", "versions", "list", "--subscription-id", sub["id"], "--paginate"))
+        if a.get("productId") not in intended_ids:
+            continue
+        versions = rows(call(asc, "subscriptions", "versions", "list", "--subscription-id", sub["id"], "--paginate"))
+        allowed |= {v["id"] for v in versions}
+        if a.get("state") in SUBMITTABLE_PRODUCT_STATES:
             candidates.append(("subscription", "subscriptionVersions", a.get("name") or sub["id"], a["productId"], versions))
     for iap in rows(call(asc, "iap", "list", "--app", app_id, "--paginate")):
         a = attrs(iap)
-        if a.get("productId") in intended_ids and a.get("state") == "READY_TO_SUBMIT":
-            versions = rows(call(asc, "iap", "versions", "list", "--iap-id", iap["id"], "--paginate"))
+        if a.get("productId") not in intended_ids:
+            continue
+        versions = rows(call(asc, "iap", "versions", "list", "--iap-id", iap["id"], "--paginate"))
+        allowed |= {v["id"] for v in versions}
+        if a.get("state") == "READY_TO_SUBMIT":
             candidates.append(("in-app purchase", "inAppPurchaseVersions", a.get("name") or iap["id"], a["productId"], versions))
 
     for kind, item_type, name, pid, versions in candidates:
@@ -638,7 +677,31 @@ def attach_products(
             + "; ".join(failures)
             + ". Resolve them in App Store Connect and rerun the release."
         )
-    return ProductSubmitResult(submission_id, attached, added, attached > 0)
+    return ProductSubmitResult(submission_id, attached, added, attached > 0, allowed)
+
+
+def check_draft_items(
+    asc: asc_cli.Asc, submission_id: str, *, version_id: str | None, allowed_products: set[str]
+) -> None:
+    """Refuse to submit a draft holding anything but this version and catalog products.
+
+    A reused draft can hold items added by hand or by another tool; they must
+    not ride along into App Review.
+    """
+    unexpected = []
+    for item in submission_items(asc, submission_id):
+        app_version = related_id(item, "appStoreVersion")
+        product = related_id(item, "subscriptionVersion") or related_id(item, "inAppPurchaseVersion")
+        if app_version and app_version == version_id:
+            continue
+        if product and not app_version and product in allowed_products:
+            continue
+        unexpected.append(item.get("id"))
+    if unexpected:
+        fail(
+            f"review submission {submission_id} holds items this release did not choose ({', '.join(map(str, unexpected))}); "
+            "remove them in App Store Connect and rerun"
+        )
 
 
 def submit_draft(asc: asc_cli.Asc, submission_id: str) -> None:
@@ -1005,6 +1068,7 @@ def main() -> None:
             if result.has_products:
                 if draft_holds_app_version(asc, draft):
                     fail("refusing to submit a draft that contains an app version; remove it in App Store Connect and rerun")
+                check_draft_items(asc, draft, version_id=None, allowed_products=result.allowed_versions)
                 submit_draft(asc, draft)
         print("ASC release step finished")
         return
@@ -1026,6 +1090,7 @@ def main() -> None:
         # must still be this run's processed build.
         verify_build(asc, args.build_id, args.version, args.build_number)
         confirm_selected_build(asc, version_id, args.build_id)
+        check_draft_items(asc, submission_id, version_id=version_id, allowed_products=result.allowed_versions)
         print("submitting for App Store review…")
         submit_draft(asc, submission_id)
         print(f"  {result.attached} product(s) went out with the version")

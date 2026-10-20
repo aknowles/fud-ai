@@ -656,6 +656,27 @@ class AscRunnerTests(unittest.TestCase):
         with self.assertRaises(SystemExit):
             asc_cli.platform_key("Windows", "x86_64")
 
+    def test_only_the_pinned_binary_receives_credentials(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            binary = Path(tmp) / "asc"
+            binary.write_bytes(b"pinned-binary")
+            pinned = {asc_cli.platform_key(): hashlib.sha256(b"pinned-binary").hexdigest()}
+            with mock.patch.dict(asc_cli.ASC_SHA256, pinned), mock.patch.object(asc_cli.shutil, "which", return_value=str(binary)):
+                self.assertEqual(asc_cli.verified_binary("asc"), str(binary))
+                binary.write_bytes(b"something else")
+                with self.assertRaises(asc_cli.AscError) as caught:
+                    asc_cli.verified_binary("asc")
+                self.assertEqual(caught.exception.exit_code, 126)
+                # A real run checks the binary before anything is executed.
+                with mock.patch.object(asc_cli.subprocess, "run") as run, self.assertRaises(asc_cli.AscError):
+                    asc_cli.Asc().run("apps", "view", "--id", APP)
+                run.assert_not_called()
+            with mock.patch.object(asc_cli.shutil, "which", return_value=None), self.assertRaises(asc_cli.AscError):
+                asc_cli.verified_binary("asc")
+        # No environment variable can point the release at another executable.
+        with mock.patch.dict(os.environ, {"ASC_BIN": "/tmp/evil"}):
+            self.assertEqual(asc_cli.Asc().binary, "asc")
+
     def test_a_leading_at_sign_is_escaped(self) -> None:
         self.assertEqual(asc_release.asc_value("@apoorvdarshan on X"), "@@apoorvdarshan on X")
         self.assertEqual(asc_release.asc_value("Track food"), "Track food")
@@ -803,9 +824,13 @@ class FakeAsc:
             relation = {"appStoreVersions": "appStoreVersion", "subscriptionVersions": "subscriptionVersion",
                         "inAppPurchaseVersions": "inAppPurchaseVersion",
                         "appAssetLibraryImages": "appAssetLibraryImage"}[item_type]
-            self.items.setdefault(flag(args, "--submission"), []).append(
-                {"id": f"ITEM-{item_id}", "relationships": {relation: {"data": {"id": item_id}}}}
-            )
+            held = self.items.setdefault(flag(args, "--submission"), [])
+            if any(related == item_id for item in held
+                   for related in [((item.get("relationships") or {}).get(relation) or {}).get("data", {}).get("id")]):
+                if flag(args, "--if-exists") != "skip":
+                    raise asc_cli.AscError(args, 5, "already on the submission")
+                return {"data": {}}
+            held.append({"id": f"ITEM-{item_id}", "relationships": {relation: {"data": {"id": item_id}}}})
             return {"data": {}}
         if head == ("review", "submissions-submit"):
             return {"data": {}}
@@ -1106,7 +1131,26 @@ class LiveSubmitFlowTests(unittest.TestCase):
         self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
         added = [flag(c, "--item-type") for c in fake.writes() if c[:2] == ("review", "items-add")]
         self.assertEqual(added, ["appStoreVersions"])
-        self.assertFalse([c for c in fake.calls if c[:3] in {("subscriptions", "versions", "list"), ("iap", "versions", "list")}])
+        self.assertFalse([c for c in fake.calls if "S9" in c], "a product outside the catalog was read")
+
+    def test_a_reused_draft_with_items_this_release_did_not_choose_is_not_submitted(self) -> None:
+        stray = [{"id": "STRAY", "relationships": {"inAppPurchaseVersion": {"data": {"id": "OTHER-IAPv1"}}}}]
+        fake = FakeAsc(drafts=["D1"], draft_items={"D1": stray})
+        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 1)
+        self.assertNotIn(("review", "submissions-submit"), [c[:2] for c in fake.writes()])
+        # A catalog product's version (in any state) and this version are fine.
+        iaps = [{"id": "IAP1", "attributes": {"name": "Credits", "productId": CREDITS, "state": "APPROVED"}}]
+        held = [{"id": "OK", "relationships": {"inAppPurchaseVersion": {"data": {"id": "IAP1v1"}}}}]
+        fake = FakeAsc(iaps=iaps, drafts=["D1"], draft_items={"D1": held})
+        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
+        self.assertEqual(fake.writes()[-1][:2], ("review", "submissions-submit"))
+
+    def test_a_creative_draft_is_never_used_for_the_version(self) -> None:
+        creative = [{"id": "IMG", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
+        fake = FakeAsc(drafts=["CREATIVE"], draft_items={"CREATIVE": creative})
+        self.assertEqual(run_main(fake, SUBMIT, SUBMIT_ARGS), 0)
+        self.assertIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
+        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "CREATIVE")
 
     def test_public_release_sets_after_approval(self) -> None:
         fake = FakeAsc()
@@ -1417,6 +1461,28 @@ class CreativeAssetTests(unittest.TestCase):
         fake = FakeAsc(state="WAITING_FOR_REVIEW", attached="B9")
         self.assertEqual(self.run_creative(fake), 1)
         self.assertEqual(fake.writes(), [])
+
+    def test_a_locked_version_sends_nothing_to_review(self) -> None:
+        for state in ("WAITING_FOR_REVIEW", "READY_FOR_REVIEW"):
+            for image_state in ("UPLOAD_COMPLETE", "PREPARE_FOR_SUBMISSION"):
+                fake = FakeAsc(state=state, attached="B9", library=[self.image("H", "header", image_state)])
+                with self.subTest(state=state, image_state=image_state):
+                    self.assertEqual(self.run_creative(fake), 1)
+                    self.assertEqual(fake.writes(), [])
+
+    def test_a_retry_finishes_the_creative_draft_it_left_behind(self) -> None:
+        library = [self.image("H", "header", "PREPARE_FOR_SUBMISSION"), self.image("S", "search-results", "PREPARE_FOR_SUBMISSION")]
+        held = [{"id": "I-H", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
+        fake = FakeAsc(library=library, drafts=["OLD"], draft_items={"OLD": held})
+        self.assertEqual(self.run_creative(fake), 0)
+        self.assertNotIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
+        submit = fake.writes()[-1]
+        self.assertEqual(flag(submit, "--id"), "OLD")
+        # A draft holding anything else is left alone and a new one is used.
+        other = [{"id": "X", "relationships": {"appStoreVersion": {"data": {"id": "V1"}}}}]
+        fake = FakeAsc(library=library, drafts=["VERSION"], draft_items={"VERSION": other})
+        self.assertEqual(self.run_creative(fake), 0)
+        self.assertNotEqual(flag(fake.writes()[-1], "--id"), "VERSION")
 
     def test_a_creative_submission_with_other_items_is_not_submitted(self) -> None:
         fake = FakeAsc()

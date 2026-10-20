@@ -61,7 +61,9 @@ that runs it:
 - It is pinned to one release (`ASC_VERSION`) and installed by
   `asc_cli.py install`, which refuses a binary whose SHA-256 differs from the
   pinned value for that platform (`linux_amd64` and `macOS_arm64`). Every job
-  runs `asc_cli.py check` before using it.
+  runs `asc_cli.py check`, and every run re-checks the checksum of the `asc` on
+  `PATH` before handing it credentials; no environment variable can point the
+  scripts at another executable.
 - Credentials come only from the `APP_STORE_CONNECT_*` secrets, through asc's
   own environment variables; the keychain and asc config files are bypassed,
   and `ASC_STRICT_AUTH` rejects credentials mixed from several sources.
@@ -417,7 +419,11 @@ in-app purchase in one review submission. Each product attaches through its
 current version (`subscriptionVersions` / `inAppPurchaseVersions` review items,
 via `asc review items-add`), so a first-time subscription ships with the
 version. Nothing reaches App Review until the draft is submitted, after the
-final build and selection recheck; when the recheck fails, nothing is sent.
+final build and selection recheck; when the recheck fails, nothing is sent. A
+reused draft is submitted only when it holds nothing but this version and
+versions of catalog products; anything else stops the run. Drafts holding
+creative images belong to those images' own review and are never used for the
+version.
 
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new

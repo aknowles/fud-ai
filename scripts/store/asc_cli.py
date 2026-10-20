@@ -99,16 +99,46 @@ def asc_environment(base: Mapping[str, str] | None = None, *, read_only: bool = 
     return env
 
 
-class Asc:
-    """Runs `asc` and returns its JSON output. Tests replace `runner`."""
+def verified_binary(name: str = "asc") -> str:
+    """The absolute path of `name` on PATH, after checking it is the pinned build.
 
-    def __init__(self, *, binary: str | None = None, read_only: bool = False, runner: Any = None) -> None:
-        self.binary = binary or os.environ.get("ASC_BIN") or "asc"
+    Credentials are only ever handed to an executable whose SHA-256 matches the
+    pinned release for this machine, whatever its version string claims.
+    """
+    path = shutil.which(name)
+    if not path:
+        raise AscError((name,), 127, f"{name} not found; install it with asc_cli.py install")
+    digest = hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    expected = ASC_SHA256[platform_key()]
+    if digest != expected:
+        raise AscError((name,), 126, f"{path} is not the pinned asc {ASC_VERSION} (sha256 {digest[:12]}…)")
+    return path
+
+
+class Asc:
+    """Runs `asc` and returns its JSON output.
+
+    Real runs use the asc on PATH only after verified_binary() has checked its
+    checksum. Tests inject `runner` (and may name a fake `binary`); nothing else
+    can redirect the executable.
+    """
+
+    def __init__(self, *, binary: str = "asc", read_only: bool = False, runner: Any = None) -> None:
+        self.binary = binary
         self.read_only = read_only
         self._runner = runner or subprocess.run
+        self._verify = runner is None
+        self._path: str | None = None
+
+    def executable(self) -> str:
+        if not self._verify:
+            return self.binary
+        if self._path is None:
+            self._path = verified_binary(self.binary)
+        return self._path
 
     def run(self, *args: str, read_only: bool | None = None, timeout: int = DEFAULT_TIMEOUT_SECONDS) -> Any:
-        argv = [self.binary, *args]
+        argv = [self.executable(), *args]
         if "--output" not in args:
             argv += ["--output", "json"]
         env = asc_environment(read_only=self.read_only if read_only is None else read_only)
@@ -131,10 +161,13 @@ class Asc:
 
 
 def check_version(asc: Asc) -> str:
-    """Fail unless the asc on PATH is the pinned release."""
+    """Fail unless the asc on PATH has the pinned checksum and reports the pinned version."""
     try:
-        done = subprocess.run([asc.binary, "version"], capture_output=True, text=True, check=True, timeout=60,
+        path = asc.executable()
+        done = subprocess.run([path, "version"], capture_output=True, text=True, check=True, timeout=60,
                               env=asc_environment())
+    except AscError as exc:
+        raise SystemExit(f"error: {exc}") from None
     except (OSError, subprocess.SubprocessError) as exc:
         raise SystemExit(f"error: cannot run {asc.binary}: {exc}") from None
     reported = (done.stdout or "").strip().split()[0] if done.stdout.strip() else ""
