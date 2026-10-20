@@ -585,6 +585,17 @@ def version_preflight(
     if metadata:
         # Fails with a clear message when the locale the listing step edits is missing.
         asc.version_localization(client, record["id"], locale)
+    if submit and state == "READY_FOR_REVIEW":
+        # The store step needs the draft holding this version; finding out after
+        # the build and upload would be too late.
+        draft = asc.find_draft_submission(client, app_id, record["id"])
+        if draft is None or not any(
+            asc.related_id(item, "appStoreVersion") == record["id"] for item in asc.submission_items(client, draft)
+        ):
+            raise ReleaseError(
+                f"App Store version {version} is READY_FOR_REVIEW, but no draft review submission holds it; "
+                "remove the version from its submission in App Store Connect and rerun"
+            )
     return state
 
 
