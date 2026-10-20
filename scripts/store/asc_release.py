@@ -534,22 +534,27 @@ def submit_creative_review(
 ) -> str:
     """Send not-yet-reviewed creative images to App Review in a submission of their own.
 
-    A draft an earlier attempt left behind holding only some of these images, or
-    nothing yet, is finished instead of starting another one, so reruns leave no
-    extra drafts. The draft this run chose for the version and its products
-    (reserved_draft) is never taken.
+    A draft an earlier attempt left behind holding only some of these images is
+    finished first, else an empty one, instead of starting another, so reruns
+    leave no extra drafts. The draft this run chose for the version and its
+    products (reserved_draft) is never taken.
     """
     wanted = {image["id"] for _, image in images}
-    submission_id = None
+    partial = empty = None
     for draft in draft_submission_ids(asc, app_id):
         if draft == reserved_draft:
             continue
+        # A version or product item adds None, which is never wanted.
         held = {related_id(item, "appAssetLibraryImage") for item in submission_items(asc, draft)}
-        if held <= wanted:
-            submission_id = draft
-            print(f"  finishing creative review submission {draft} from an earlier attempt")
+        if not held:
+            empty = empty or draft
+        elif held <= wanted:
+            partial = draft
             break
-    if submission_id is None:
+    submission_id = partial or empty
+    if submission_id:
+        print(f"  finishing creative review submission {submission_id} from an earlier attempt")
+    else:
         submission = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
         submission_id = submission.get("id")
     if not submission_id:

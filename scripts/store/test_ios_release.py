@@ -1577,6 +1577,13 @@ class CreativeAssetTests(unittest.TestCase):
         self.assertEqual(self.run_creative(fake), 0)
         self.assertNotIn(("review", "submissions-create"), [c[:2] for c in fake.writes()])
         self.assertEqual(flag(fake.writes()[-1], "--id"), "EMPTY")
+        # A draft already holding some of the images is finished before an empty one.
+        library = [self.image("H", "header", "PREPARE_FOR_SUBMISSION"), self.image("S", "search-results", "PREPARE_FOR_SUBMISSION")]
+        held = [{"id": "I-H", "relationships": {"appAssetLibraryImage": {"data": {"id": "H"}}}}]
+        fake = FakeAsc(library=library, drafts=["EMPTY", "PART"], draft_items={"EMPTY": [], "PART": held})
+        self.assertEqual(self.run_creative(fake), 0)
+        self.assertEqual({flag(c, "--submission") for c in fake.writes() if c[:2] == ("review", "items-add")}, {"PART"})
+        self.assertEqual(flag(fake.writes()[-1], "--id"), "PART")
 
     def test_an_interrupted_upload_is_uploaded_again(self) -> None:
         # asc never deletes the reservation an interrupted upload leaves behind.
