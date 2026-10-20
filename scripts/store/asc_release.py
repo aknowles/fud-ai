@@ -29,6 +29,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+import zlib
 from pathlib import Path
 from typing import Any
 
@@ -167,8 +168,12 @@ def related_id(row: dict[str, Any], name: str) -> str | None:
 def png_chunks(raw: bytes, *, strict: bool = True) -> list[tuple[bytes, bytes]]:
     """(type, data) of every chunk of a PNG, up to IEND.
 
-    Raises ValueError when the bytes are not a PNG with an IHDR header, or (when
-    strict) when a chunk runs past the end of the file; otherwise reading stops there.
+    Raises ValueError when the bytes are not a PNG with an IHDR header. Strict
+    (the default) also requires a well-formed file: every chunk complete with a
+    matching CRC, image data that decompresses to the rows the header describes,
+    and a final IEND, so a truncated or corrupt file fails before anything is
+    uploaded. Lenient reading (staging without Pillow, which only needs the
+    header) stops at the first chunk that runs past the end of the file.
     """
     if not raw.startswith(PNG_SIGNATURE):
         raise ValueError("not a PNG")
@@ -178,17 +183,64 @@ def png_chunks(raw: bytes, *, strict: bool = True) -> list[tuple[bytes, bytes]]:
         length = int.from_bytes(raw[offset : offset + 4], "big")
         kind = raw[offset + 4 : offset + 8]
         start = offset + 8
-        if start + length > len(raw):
+        end = start + length
+        if end + (4 if strict else 0) > len(raw):
             if strict or not chunks:
                 raise ValueError(f"truncated {kind.decode('latin-1')!r} chunk")
             break
-        chunks.append((kind, raw[start : start + length]))
-        offset = start + length + 4  # data, then the CRC
+        data = raw[start:end]
+        if strict and zlib.crc32(kind + data) != int.from_bytes(raw[end : end + 4], "big"):
+            raise ValueError(f"the {kind.decode('latin-1')!r} chunk fails its CRC check")
+        chunks.append((kind, data))
+        offset = end + 4  # data, then the CRC
         if kind == b"IEND":
             break
     if not chunks or chunks[0][0] != b"IHDR" or len(chunks[0][1]) < 13:
         raise ValueError("no IHDR header")
+    if strict:
+        if chunks[-1][0] != b"IEND":
+            raise ValueError("no IEND chunk (the file is truncated)")
+        check_png_image_data(chunks)
     return chunks
+
+
+# Samples per pixel for each PNG colour type.
+PNG_CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
+
+
+def check_png_image_data(chunks: list[tuple[bytes, bytes]]) -> None:
+    """Raises ValueError unless the IDAT data is one complete zlib stream of the header's size.
+
+    Decompresses in bounded steps; the size is checked for non-interlaced images
+    (Pillow writes those), an interlaced image only needs a complete stream.
+    """
+    header = chunks[0][1]
+    width, height = png_size(chunks)
+    bit_depth, colour_type, interlace = header[8], header[9], header[12]
+    if colour_type not in PNG_CHANNELS:
+        raise ValueError(f"unknown PNG colour type {colour_type}")
+    idat = [data for kind, data in chunks if kind == b"IDAT"]
+    if not idat:
+        raise ValueError("no image data (IDAT)")
+    inflater = zlib.decompressobj()
+    size = 0
+    try:
+        for data in idat:
+            pending = data
+            while pending:
+                size += len(inflater.decompress(pending, 1 << 20))
+                pending = inflater.unconsumed_tail
+        size += len(inflater.flush())
+    except zlib.error as exc:
+        raise ValueError(f"the image data does not decompress ({exc})") from None
+    if not inflater.eof:
+        raise ValueError("the image data ends early (the file is truncated)")
+    if interlace == 0:
+        expected = height * (1 + (width * PNG_CHANNELS[colour_type] * bit_depth + 7) // 8)
+        if size != expected:
+            raise ValueError(
+                f"the image data holds {size} bytes, not the {expected} a {width}x{height} image needs"
+            )
 
 
 def png_size(chunks: list[tuple[bytes, bytes]]) -> tuple[int, int]:
@@ -672,7 +724,10 @@ def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, list[P
         pngs = sorted(set_dir.glob("*.png")) if set_dir.is_dir() else []
         if not pngs:
             fail(f"no PNG screenshots for the {label} set in {set_dir}")
+        for path in pngs:
+            staged_png(path, label)
         sets.append((display_type, label, pngs))
+    # staged_watch_sets checks each Watch frame while it reads its size.
     sets.extend(staged_watch_sets(screenshots_dir / WATCH_FOLDER))
     for _, label, pngs in sets:
         if len(pngs) > APP_SCREENSHOT_SET_MAX:
@@ -680,8 +735,6 @@ def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, list[P
                 f"too many PNGs ({len(pngs)}) for the ASC {label} set "
                 f"(max {APP_SCREENSHOT_SET_MAX})"
             )
-        for path in pngs:
-            staged_png(path, label)
     return sets
 
 
@@ -1293,15 +1346,15 @@ def get_or_create_draft_submission(client: AscClient, app_id: str) -> str:
     return find_draft_submission(client, app_id) or create_draft_submission(client, app_id)
 
 
-def reserve_version_draft(
+def version_draft(
     client: AscClient, app_id: str, version_id: str, version_state: str
 ) -> str | None:
-    """Pick and check the version's draft before anything is written.
+    """Read-only: pick and check the draft the version and its products go out in.
 
-    The returned draft (None: there is none yet, one is created at submit) is
-    reserved for the version and its products: creative images never take it.
-    A READY_FOR_REVIEW version already sits in a draft; when no usable draft
-    holds it, the run stops here instead of submitting another draft.
+    None means there is none yet (one is created at submit). A READY_FOR_REVIEW
+    version already sits in a draft; when no usable draft holds it, this stops
+    the run instead of submitting another draft. The version preflight runs it
+    before the build, and the store step again before its first write.
     """
     draft = find_draft_submission(client, app_id, version_id)
     if version_state == "READY_FOR_REVIEW" and (
@@ -1312,6 +1365,17 @@ def reserve_version_draft(
             "without header or search results images holds it; remove the version from its "
             "submission in App Store Connect and re-run"
         )
+    return draft
+
+
+def reserve_version_draft(
+    client: AscClient, app_id: str, version_id: str, version_state: str
+) -> str | None:
+    """Pick and check the version's draft before anything is written, and reserve it.
+
+    The draft is kept for the version and its products: creative images never take it.
+    """
+    draft = version_draft(client, app_id, version_id, version_state)
     if draft:
         print(f"  review submission {draft} is kept for the version and its products")
     return draft

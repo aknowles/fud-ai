@@ -24,12 +24,15 @@ ios-vX.Y tag ─► iOS unit + UI tests (ios-tests.yml) ─┐
   └─ on:
        IOS_UPLOAD_LISTING / IOS_UPLOAD_WHATS_NEW ─► check that APPSTORE.md text
        IOS_UPLOAD_CREATIVE_ASSETS ─► check the header / search results images
-                                     (size, format, no alpha)
+                                     (size, format, no alpha, well-formed file)
        IOS_CREATE_VERSION ─► create App Store version X.Y if it is missing
                              (refuses while another version is on its way to the
                              store, or when X.Y is not newer than every version)
        any App Store Connect switch ─► read-only: App Store version X.Y exists and
-                                       can take the release (see Release procedure)
+                                       can take the release (see Release procedure),
+                                       a READY_FOR_REVIEW version's draft (with
+                                       IOS_SUBMIT_REVIEW) and the images' Asset
+                                       Library state (with IOS_UPLOAD_CREATIVE_ASSETS)
        IOS_UPLOAD_BUILD ─► next build number from App Store Connect
                         ─► archive Release ─► verify app id/version/build in every bundle
                                                   and the app's export compliance
@@ -465,7 +468,9 @@ profile (ICC profile, sRGB, gamma and chromaticity chunks). The files in
 `store/screenshots/` are only read, never rewritten. Without Pillow, staging
 copies the files as they are and refuses one that stores alpha. Right before
 upload, `asc_release.py` refuses any staged file that still stores alpha (PNG
-colour type 4 or 6, or a `tRNS` chunk), before anything is sent.
+colour type 4 or 6, or a `tRNS` chunk) or is not a well-formed PNG (complete
+chunks with matching CRCs, image data of the size its header gives, a final
+`IEND`), before anything is sent.
 
 Apple Watch screenshots go with the other sets when `store/screenshots/watch/`
 exists. Each frame's size picks its set: 416×496 `APP_WATCH_SERIES_10`, 422×514
@@ -484,8 +489,11 @@ The Play feature graphic has no automated upload; upload it in Play Console by h
 With `IOS_UPLOAD_CREATIVE_ASSETS` on, the images in `store/creative/ios/` go to
 the App Store product page: `header/` takes one PNG of exactly 3840×1646, and
 `search-results/` one PNG or JPEG in 3:2, from 1920×1280 to 3840×2560. Neither
-may store alpha. `prepare` checks sizes, formats and alpha before anything is
-built. A slot without an image is left alone; with neither image the run fails.
+may store alpha. `prepare` checks sizes, formats, alpha and that each file is
+a complete, well-formed image before anything is built, then (read-only) each
+image's Asset Library state the way the store step plans it, so an image the
+version cannot take now fails before the build. A slot without an image is left
+alone; with neither image the run fails.
 
 They live in the app's Asset Library and are reviewed on their own, apart from
 the version:
@@ -516,8 +524,9 @@ With `IOS_SUBMIT_REVIEW` on, the run picks the version's draft review submission
 before anything is written: the draft that already holds the version, else a
 draft holding no app version, never one holding header or search results images.
 That draft is reserved for the version and its products, so image reviews never
-take it. A `READY_FOR_REVIEW` version that no such draft holds stops the run
-before any write.
+take it. A `READY_FOR_REVIEW` version that no such draft holds stops the run in
+`prepare`, before the build, and the store step checks it again before its first
+write.
 
 Fud AI's header (`fud-ai-header-orb-horizon.png`) and search results image
 (`fud-ai-search-voice.png`) were approved and placed on the live 7.1.2 page on

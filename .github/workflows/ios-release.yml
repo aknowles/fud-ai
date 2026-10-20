@@ -52,7 +52,9 @@
 #              and search results images' sizes, formats and alpha, creating
 #              App Store version X.Y when IOS_CREATE_VERSION is on and it is
 #              missing, and, when any App Store Connect switch is on, that X.Y
-#              exists in a state that can take the release (read-only)
+#              exists in a state that can take the release (read-only; with
+#              review submission its draft, with creative assets their Asset
+#              Library state)
 #
 # Jobs (tag run)
 #   ios-tests + quality + prepare → build (archive, upload) → wait-for-build →
@@ -197,8 +199,9 @@ jobs:
         run: python3 scripts/store/prepare_whats_new.py --platform ios --tag "$GITHUB_REF_NAME" --out "$RUNNER_TEMP/whats-new-check"
 
       # Local files only: a header that is not a 3840x1646 PNG, a search results
-      # image that is not 3:2 PNG/JPEG from 1920 to 3840 wide, or an image that
-      # stores alpha fails here, before anything is built.
+      # image that is not 3:2 PNG/JPEG from 1920 to 3840 wide, an image that
+      # stores alpha, or a truncated or corrupt file fails here, before anything
+      # is built. Their Asset Library state is checked by the version check below.
       - name: Check header and search results images
         if: steps.gates.outputs.creative == 'true'
         env:
@@ -230,7 +233,9 @@ jobs:
       # Read-only, tag runs with a listing/What's New/screenshot/creative/review switch on
       # (`asc` is never on for validation runs). Fails now, before the archive and
       # upload, when X.Y is missing (turn on IOS_CREATE_VERSION or create it in App
-      # Store Connect first) or already in review.
+      # Store Connect first) or already in review, when a READY_FOR_REVIEW version
+      # has no usable draft (IOS_SUBMIT_REVIEW), or when the header / search results
+      # images cannot go on the version now (IOS_UPLOAD_CREATIVE_ASSETS).
       - name: Check the App Store version (read-only)
         if: steps.gates.outputs.asc == 'true'
         env:

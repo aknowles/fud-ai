@@ -989,6 +989,12 @@ class PreflightClient:
             return {"data": self.versions}
         if path.startswith("/appStoreVersions/V1/appStoreVersionLocalizations"):
             return {"data": [{"id": "LOC1"}] if self.localization else []}
+        # A READY_FOR_REVIEW version sits in its draft, as in App Store Connect.
+        if path.startswith(f"/apps/{APP}/reviewSubmissions"):
+            return {"data": [{"id": "D1"}]}
+        if path.startswith("/reviewSubmissions/D1/items"):
+            return {"data": [{"id": "I1", "relationships": {
+                "appStoreVersion": {"data": {"type": "appStoreVersions", "id": "V1"}}}}]}
         raise AssertionError(f"unexpected GET {path}")
 
 
@@ -1462,13 +1468,23 @@ class CreativeGateTests(unittest.TestCase):
 
         env = {k: v for k, v in os.environ.items() if k not in {
             "UPLOAD_LISTING", "UPLOAD_WHATS_NEW", "UPLOAD_SCREENSHOTS", "UPLOAD_CREATIVE_ASSETS", "SUBMIT_IOS_REVIEW"}}
-        fake = PreflightClient([asc_version("PREPARE_FOR_SUBMISSION")])
+        # The repository's images, approved and placed: the preflight passes without writing.
+        library, placements = [], {}
+        for image_id, folder, placement in (("HDR", "header", "PRODUCT_PAGE_HEADER_ASSET"),
+                                            ("SRCH", "search-results", "APP_STORE_SEARCH_RESULTS_ASSET")):
+            path, = sorted((asc_release.DEFAULT_CREATIVE_DIR / folder).glob("*.png"))
+            library.append({"id": image_id, "attributes": {"fileName": path.name, "fileSize": path.stat().st_size,
+                                                           "state": "APPROVED"}})
+            placements[f"PL-{image_id}"] = {"type": placement, "image": image_id, "loc": "LOC1"}
+        fake = CreativeFake(library=library, placements=placements)
         with mock.patch.dict(os.environ, {**env, "UPLOAD_CREATIVE_ASSETS": "true"}, clear=True), \
                 mock.patch.object(ios_release, "asc_client", return_value=(asc_release, fake)), \
                 redirect_stdout(io.StringIO()):
             ios_release.cmd_version_preflight(argparse.Namespace(version=VERSION))
-        # The images go on the version's localization, so the preflight checks it exists.
-        self.assertTrue([p for p in fake.paths if "appStoreVersionLocalizations" in p])
+        # The images go on the version's localization, so the preflight checks it, and their library state.
+        self.assertTrue([c for c in fake.calls if "appStoreVersionLocalizations" in c[1]])
+        self.assertIn(("GET", f"/apps/{APP}/assetLibrary"), fake.calls)
+        self.assertEqual(writes(fake), [])
         with mock.patch.dict(os.environ, {**env, "UPLOAD_CREATIVE_ASSETS": "maybe"}, clear=True), \
                 self.assertRaises(ReleaseError):
             ios_release.cmd_version_preflight(argparse.Namespace(version=VERSION))
@@ -1501,11 +1517,38 @@ class ScreenshotAlphaGuardTests(unittest.TestCase):
             with self.subTest(label):
                 self.assertEqual(asc_release.png_stores_alpha(asc_release.png_chunks(raw)), alpha)
 
+    def test_truncated_or_corrupt_pngs_are_refused(self) -> None:
+        good = make_png(8, 8)
+        ihdr_end = 8 + 12 + 13
+        idat = good.index(b"IDAT") - 4
+        corrupt_crc = bytearray(good)
+        corrupt_crc[idat + 8] ^= 0xFF  # first byte of the IDAT data; its CRC no longer matches
+        cases = {
+            "signature and IHDR only": good[:ihdr_end],
+            "cut in the image data": good[: idat + 10],
+            "no IEND": good[:-12],
+            "IEND without its CRC": good[:-4],
+            "bad CRC": bytes(corrupt_crc),
+            "no IDAT": good[:ihdr_end] + good[-12:],
+            "image data is not zlib": make_png(8, 8)[:idat] + self.chunk(b"IDAT", b"not zlib") + good[-12:],
+            "image data for another size": make_png(8, 8)[:idat] + make_png(4, 4)[make_png(4, 4).index(b"IDAT") - 4:],
+        }
+        for label, raw in cases.items():
+            with self.subTest(label), self.assertRaises(ValueError):
+                asc_release.png_chunks(raw)
+        self.assertEqual([kind for kind, _ in asc_release.png_chunks(good)], [b"IHDR", b"IDAT", b"IEND"])
+        # Lenient reading (staging without Pillow) only needs the header.
+        self.assertEqual(asc_release.png_chunks(good[:ihdr_end], strict=False)[0][0], b"IHDR")
+
+    @staticmethod
+    def chunk(kind: bytes, data: bytes) -> bytes:
+        return len(data).to_bytes(4, "big") + kind + data + zlib.crc32(kind + data).to_bytes(4, "big")
+
     def test_staged_files_with_alpha_or_not_png_are_refused(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "01-home.png"
             for raw in (make_png(4, 4, 6), make_png(4, 4, 4), make_png(4, 4, 2, chunks=((b"tRNS", b"\x00" * 6),)),
-                        b"\x89PNG\r\n\x1a\n" + b"screenshot" * 4, b"GIF89a"):
+                        b"\x89PNG\r\n\x1a\n" + b"screenshot" * 4, b"GIF89a", make_png(4, 4)[:-12]):
                 path.write_bytes(raw)
                 with self.subTest(raw=raw[:30]), redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
                     asc_release.staged_png(path, '6.7" iPhone')
@@ -2064,6 +2107,10 @@ class CreativeAssetTests(unittest.TestCase):
             (self.search, make_png(1920, 1280, 2, chunks=((b"tRNS", b"\x00" * 6),)), "search.png"),
             (self.search, jpeg(4000, 2666), "search.jpg"),
             (self.search, b"GIF89a", "search.png"),
+            # Truncated or corrupt files with the right header fail too.
+            (self.header, creative_png(3840, 1646)[:-12], "header.png"),
+            (self.header, creative_png(3840, 1646)[:8 + 25], "header.png"),
+            (self.search, creative_png(1920, 1280)[: len(creative_png(1920, 1280)) // 2], "search.png"),
         ]
         for path, raw, name in cases:
             original = path.read_bytes()
@@ -2111,6 +2158,48 @@ class CreativeAssetTests(unittest.TestCase):
                           ("APP_STORE_SEARCH_RESULTS_ASSET", "fud-ai-search-voice.png")])
         # The sizes the live Asset Library records for them (matched by name and size).
         self.assertEqual([path.stat().st_size for _, _, path in sources], [1763332, 2670930])
+
+    def preflight(self, fake: FakeAsc, *, submit: bool = False) -> str:
+        return quiet(ios_release.version_preflight, fake, asc_release, version=VERSION, metadata=True,
+                     submit=submit, creative=True, creative_dir=self.dir)
+
+    def test_the_preflight_stops_before_the_build_when_the_version_cannot_take_the_images(self) -> None:
+        # In a review submission the version takes no new image: found before the build, not after.
+        for library in ([], [self.image("H", self.header, "PREPARE_FOR_SUBMISSION")]):
+            fake = CreativeFake(state="READY_FOR_REVIEW", library=library,
+                                drafts=["MINE"], draft_items={"MINE": [version_item()]})
+            with self.subTest(library=bool(library)), self.assertRaises(SystemExit):
+                self.preflight(fake)
+            self.assertEqual(writes(fake), [])
+        # A rejected image stops it in any state.
+        rejected = [self.image("H", self.header, "REJECTED"), self.image("S", self.search, "APPROVED")]
+        with self.assertRaises(SystemExit):
+            self.preflight(CreativeFake(library=rejected))
+
+    def test_the_preflight_passes_what_the_store_step_can_do(self) -> None:
+        cases = [
+            # An editable version takes new images (uploaded by the store step, not here).
+            ("PREPARE_FOR_SUBMISSION", []),
+            # Images in review or approved wait for a later run without failing.
+            ("READY_FOR_REVIEW", [self.image("H", self.header, "IN_REVIEW"), self.image("S", self.search, "APPROVED")]),
+        ]
+        for state, library in cases:
+            fake = CreativeFake(state=state, library=library, drafts=["MINE"], draft_items={"MINE": [version_item()]})
+            with self.subTest(state=state):
+                self.assertEqual(self.preflight(fake, submit=True), state)
+                self.assertEqual(writes(fake), [])
+
+    def test_the_preflight_checks_a_ready_for_review_versions_draft(self) -> None:
+        library = [self.image("H", self.header, "APPROVED"), self.image("S", self.search, "IN_REVIEW")]
+        placements = {"P": {"type": "PRODUCT_PAGE_HEADER_ASSET", "image": "H", "loc": "LOC1"}}
+        for drafts, items in (([], {}), (["MIXED"], {"MIXED": [version_item(), image_item("X")]})):
+            fake = CreativeFake(state="READY_FOR_REVIEW", library=library, placements=placements,
+                                drafts=drafts, draft_items=items)
+            with self.subTest(drafts=drafts), self.assertRaises(SystemExit):
+                self.preflight(fake, submit=True)
+            self.assertEqual(writes(fake), [])
+            # Without review submission the draft does not matter.
+            self.assertEqual(self.preflight(fake, submit=False), "READY_FOR_REVIEW")
 
     def test_dry_run_checks_the_images_without_calls(self) -> None:
         out = io.StringIO()

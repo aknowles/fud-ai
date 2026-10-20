@@ -564,7 +564,9 @@ def version_preflight(
     version: str,
     metadata: bool,
     submit: bool,
+    creative: bool = False,
     locale: str = "en-US",
+    creative_dir: Path | None = None,
 ) -> str:
     """Read-only: fail before anything is built when the App Store version cannot
     take this release. Returns the version's state.
@@ -576,6 +578,12 @@ def version_preflight(
     READY_FOR_REVIEW (a draft submission left by an earlier attempt); any other
     state (waiting for or in review, released) cannot take a new build or
     listing change.
+
+    With review submission on, a READY_FOR_REVIEW version's draft is checked
+    here too. With creative assets on, their Asset Library state is checked the
+    way the store step plans it, so an image the version cannot take now
+    (rejected, or needing upload or review while the version sits in a review
+    submission) stops the run before the build instead of after it.
     """
     app_id = asc.find_app(client, BUNDLE_ID)
     record = asc.get_ios_app_store_version(client, app_id, version)
@@ -592,6 +600,19 @@ def version_preflight(
         # Fails with a clear message when the locale the listing step edits is missing.
         asc.localization_for_locale(
             client, f"/appStoreVersions/{record['id']}/appStoreVersionLocalizations", locale
+        )
+    if submit and state == "READY_FOR_REVIEW":
+        # The store step submits the draft holding this version; finding out
+        # after the build and upload that there is none would be too late.
+        asc.version_draft(client, app_id, record["id"], state)
+    if creative:
+        asc.plan_creative_assets(
+            client,
+            app_id=app_id,
+            version_id=record["id"],
+            locale=locale,
+            creative_dir=creative_dir or asc.DEFAULT_CREATIVE_DIR,
+            editable=state in asc.EDITABLE_VERSION_STATES,
         )
     return state
 
@@ -612,6 +633,7 @@ def cmd_version_preflight(args: argparse.Namespace) -> None:
         version=args.version,
         metadata=listing or whats_new or screenshots or creative,
         submit=submit,
+        creative=creative,
     )
     print(f"App Store version {args.version} exists and is {state}: it can take this release")
 
