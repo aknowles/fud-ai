@@ -3,7 +3,8 @@
 # (including the commit-SHA-pinned GitHub Actions) do not go stale.
 #
 # Every ecosystem is grouped into a single weekly PR so the Quality checks /
-# CodeQL runs on that one PR validate the whole batch at once.
+# CodeQL runs on that one PR validate the whole batch at once. The one exception
+# is the store-release pins, which get a PR of their own (see below).
 
 version: 2
 updates:
@@ -15,8 +16,19 @@ updates:
       time: "06:00"
       timezone: Asia/Kolkata
     groups:
+      # The release callers' pins (one SHA in all three files, with its "# vX.Y.Z"
+      # comment). Declared before the catch-all: a dependency joins the first group
+      # it matches, so a store-release bump always gets its own PR.
+      store-release:
+        patterns: ["apoorvdarshan/store-release*"]
       github-actions:
         patterns: ["*"]
+    # store-release pins run with the app's signing and store credentials: a new
+    # release waits seven days before Dependabot proposes it. Security updates are
+    # never delayed by a cooldown.
+    cooldown:
+      default-days: 7
+      include: ["apoorvdarshan/store-release*"]
     commit-message:
       prefix: "CI"
 
@@ -69,27 +81,9 @@ updates:
     commit-message:
       prefix: "Scripts"
 
-  # Store release tooling (requirements-store.in → hash-locked requirements-store.txt),
-  # installed by the release jobs that hold the App Store Connect and Play credentials.
-  - package-ecosystem: pip
-    directory: /
-    # Only the two root-level files above. Dependabot's pip support also reads
-    # requirements files one folder down, so without this it bumped
-    # scripts/requirements-workout-repair.txt here as well, duplicating the
-    # /scripts entry's PR under a "Store" title. "*/**" is everything inside any
-    # folder; a Python folder gets its own entry, like /scripts.
-    exclude-paths:
-      - "*/**"
-    schedule:
-      interval: weekly
-      day: monday
-      time: "06:00"
-      timezone: Asia/Kolkata
-    groups:
-      store-tooling:
-        patterns: ["*"]
-    commit-message:
-      prefix: "Store"
+  # The store release tooling and its hash-locked Python dependencies live in
+  # apoorvdarshan/store-release, which keeps them up to date; the store-release
+  # group above moves this repository to each new release.
 
   # Not covered: the iOS app's Swift packages (RevenueCat, argmax, swift-argument-
   # parser) are pinned by the Xcode project's Package.resolved. Dependabot's swift
