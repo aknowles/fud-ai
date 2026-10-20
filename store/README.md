@@ -442,7 +442,7 @@ is built.
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new
 submission clears it, so no manual step is required; only products listed in
-`store/catalog/products.json` are submitted, and the script stops before
+`store/catalog/products.json` for `ios` are submitted, and the script stops before
 submitting the version (non-zero exit) if a required product cannot be added.
 
 If the app version is already `WAITING_FOR_REVIEW`, a product attached to a
@@ -470,7 +470,7 @@ App Store Connect by product ID:
 | In App Store Connect | What a tag run does |
 |---|---|
 | Missing | Creates it and brings it to Ready to Submit |
-| Missing Metadata, with the catalog's reference name, type (or period) and family sharing | Finishes it: an interrupted run left it there. Only missing parts are added; a part that is already set and differs from the catalog stops the run without changing it (the plan finds this for in-app purchases before any write; for a subscription, asc's `subscriptions setup` refuses before touching it) |
+| Missing Metadata, with the catalog's reference name, type (or period) and family sharing | Finishes it: an interrupted run left it there. Only missing parts are added; a part that is already set and differs from the catalog (localization, price, availability, review note, or a failed or different review screenshot) stops the run in the plan, before any write. A screenshot that matches the file is kept even while Apple is still processing it |
 | Anything else | Never changed. Price (United States), period, type and family sharing (when the catalog sets it) are compared, and differences are printed as warnings |
 
 What a created product gets, all from the catalog:
@@ -480,16 +480,18 @@ What a created product gets, all from the catalog:
 | Reference name | `ios.reference_name` (up to 64 characters) |
 | Type | the catalog group (above) |
 | Subscription group and period | `ios.subscription_group` (a `reference_name` from the top-level `ios_subscription_groups`) and `period` (`P1W`, `P1M`, `P2M`, `P3M`, `P6M`, `P1Y`) |
-| Base price | `suggested_price_usd` in the United States (`USA`); App Store Connect derives the other territories' prices from it (Apple's equalized prices) |
+| Base price | `suggested_price_usd` in the United States (`USA`); App Store Connect derives the other territories' prices from it (Apple's equalized prices). The plan checks it is a price point by asking a live product of the same kind; an app without one is checked against its own price grid, except a first subscription priced above that grid's top ($400; only subscriptions go higher), which App Store Connect checks while creating it (a warning says so) |
 | Availability | `ios.territories`: `"all"` (the default) is every current territory plus new ones automatically; a list of alpha-3 codes (`["USA", "CAN"]`) is exactly those |
 | en-US display name and description | `ios.display_name` (2–30 characters), `ios.description` (up to 45) |
-| App Review screenshot | `ios.review_screenshot`: a path under `store/` (keep them in `store/catalog/review/`), a PNG or JPEG named for its format, RGB without alpha, at an iPhone or iPad screenshot size (e.g. 1290×2796 or 2064×2752) |
+| App Review screenshot | `ios.review_screenshot`: a path under `store/` (keep them in `store/catalog/review/`), a PNG or JPEG named for its format, RGB without alpha, at an iPhone or iPad screenshot size (e.g. 1290×2796 or 2064×2752), and complete (a PNG is fully decoded; a JPEG must reach its end marker) |
 | Review note | `ios.review_note` (subscriptions only, up to 4,000 characters) |
 | Family sharing | `ios.family_sharing`, default `false`. It can never be turned off again, so it is only sent when the catalog says `true` (subscriptions and non-consumables only) |
 
 A new subscription group also needs `display_name` in its `ios_subscription_groups`
 entry (its en-US name); a group App Store Connect already names is never renamed.
 Products that already exist need none of these fields; nothing is invented for them.
+Comparing an existing product's price is only a warning, so an App Store Connect
+error while reading it is reported and the release goes on.
 `validate_catalog.py` checks every `ios` block offline (including the screenshot
 file), and the plan checks, read-only, that each product to create has every
 field, that its price is a price point in the United States, and that its

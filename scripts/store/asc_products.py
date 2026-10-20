@@ -30,10 +30,11 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
+import math
 import re
 import sys
 import time
+import zlib
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -167,6 +168,68 @@ def ios_products(catalog: dict[str, Any]) -> list[CatalogProduct]:
     return found
 
 
+PNG_CHANNELS = {0: 1, 2: 3, 3: 1, 4: 2, 6: 4}
+
+
+def png_data_problem(raw: bytes) -> str | None:
+    """Why a PNG's data is damaged (bad chunk, truncated or short image data), or None."""
+    pos, idat, header = 8, [], b""
+    while True:
+        if pos + 12 > len(raw):
+            return "ends before its IEND chunk (truncated)"
+        length = int.from_bytes(raw[pos:pos + 4], "big")
+        kind, body = raw[pos + 4:pos + 8], raw[pos + 8:pos + 8 + length]
+        crc = raw[pos + 8 + length:pos + 12 + length]
+        if len(body) != length or len(crc) != 4:
+            return f"ends inside its {kind.decode('latin-1')} chunk (truncated)"
+        if zlib.crc32(kind + body).to_bytes(4, "big") != crc:
+            return f"has a damaged {kind.decode('latin-1')} chunk (checksum mismatch)"
+        if kind == b"IHDR":
+            header = body
+        elif kind == b"IDAT":
+            idat.append(body)
+        elif kind == b"IEND":
+            break
+        pos += 12 + length
+    if len(header) != 13 or not idat:
+        return "has no image header or image data"
+    width, height = int.from_bytes(header[:4], "big"), int.from_bytes(header[4:8], "big")
+    depth, colour, interlace = header[8], header[9], header[12]
+    inflater = zlib.decompressobj()
+    try:
+        pixels = inflater.decompress(b"".join(idat)) + inflater.flush()
+    except zlib.error as exc:
+        return f"has damaged image data ({exc})"
+    if not inflater.eof:
+        return "has truncated image data"
+    if interlace == 0 and colour in PNG_CHANNELS:
+        stride = 1 + math.ceil(width * depth * PNG_CHANNELS[colour] / 8)
+        if len(pixels) != stride * height:
+            return "has truncated image data"
+        if any(pixels[row * stride] > 4 for row in range(height)):
+            return "has damaged image data (unknown row filter)"
+    return None
+
+
+def jpeg_data_problem(raw: bytes) -> str | None:
+    """Why a JPEG is damaged (no frame or scan, or cut off before its end marker), or None."""
+    pos, frame = 2, False
+    while pos + 4 <= len(raw):
+        if raw[pos] != 0xFF:
+            return "has a damaged segment"
+        marker = raw[pos + 1]
+        if marker == 0xFF:
+            pos += 1
+            continue
+        if marker == 0xDA:  # start of scan: the entropy-coded data runs to the end marker
+            if not frame:
+                return "has no frame header"
+            return None if raw.rstrip(b"\x00").endswith(b"\xff\xd9") else "ends before its end marker (truncated)"
+        frame = frame or (0xC0 <= marker <= 0xCF and marker not in (0xC4, 0xC8, 0xCC))
+        pos += 2 + int.from_bytes(raw[pos + 2:pos + 4], "big")
+    return "ends before its image data (truncated)"
+
+
 def screenshot_problem(path: Path) -> str | None:
     """Why App Store Connect would refuse this App Review screenshot, or None."""
     if path.suffix.lower() not in SCREENSHOT_EXTENSIONS:
@@ -182,7 +245,11 @@ def screenshot_problem(path: Path) -> str | None:
         return f"is a {kind.upper()} image named {path.suffix.lower()}; App Store Connect refuses a name that does not match the format"
     if (width, height) not in REVIEW_SCREENSHOT_SIZES:
         return f"is {width}x{height}, which is not an iPhone or iPad screenshot size (e.g. 1290x2796 or 2064x2752)"
-    return None
+    # The header alone can look right on a damaged file, which App Store
+    # Connect would only refuse after the product was created.
+    raw = path.read_bytes()
+    damage = png_data_problem(raw) if kind == "png" else jpeg_data_problem(raw)
+    return f"is damaged: it {damage}" if damage else None
 
 
 def _text_problem(name: str, value: Any) -> str | None:
@@ -325,16 +392,27 @@ class Plan:
 
 
 def run_optional(asc: Any, *args: str) -> Any | None:
-    """asc output, or None when App Store Connect has no such resource (asc exit 4)."""
+    """asc output, or None when App Store Connect has no such resource (asc exit 4).
+
+    Any other asc failure raises AscError, for the caller to stop on or report.
+    """
     try:
         payload = asc.run(*args)
     except asc_cli.AscError as exc:
         if exc.exit_code == 4:
             return None
-        fail(str(exc))
+        raise
     if isinstance(payload, dict) and "data" in payload and not payload.get("data"):
         return None
     return payload
+
+
+def required(fn: Callable[..., Any], *args: Any) -> Any:
+    """fn(*args), stopping the run with asc's error when it fails."""
+    try:
+        return fn(*args)
+    except asc_cli.AscError as exc:
+        fail(str(exc))
 
 
 def same_price(live: Any, wanted: str | None) -> bool:
@@ -359,13 +437,15 @@ def live_price(asc: Any, product: CatalogProduct, live_id: str) -> tuple[str | N
 
 
 def price_grid_has(asc: Any, app_id: str, kind: str, price: str, reference: str | None,
-                   cache: dict[tuple[str, str], bool]) -> bool:
-    """Read-only: does `price` exist as a price point in PRICE_TERRITORY?
+                   cache: dict[tuple[str, str], bool | None]) -> bool | None:
+    """Read-only: is `price` a price point in PRICE_TERRITORY? None when it cannot be told yet.
 
     Price points belong to each product, so a live product of the same kind is
     asked. An app without one is checked against its own price grid, which has
-    the same customer prices as in-app purchases and a subset of subscription
-    prices (subscriptions go higher).
+    the same customer prices as in-app purchases, and the subscription prices up
+    to its highest one (subscription-only prices all lie above it; checked on
+    App Store Connect, October 2026). A first subscription priced above that
+    cannot be checked before it exists.
     """
     key = (kind, price)
     if key not in cache:
@@ -378,8 +458,13 @@ def price_grid_has(asc: Any, app_id: str, kind: str, price: str, reference: str 
         else:
             payload = asc_release.call(asc, "pricing", "price-points", "--app", app_id, "--territory",
                                        PRICE_TERRITORY, "--paginate")
-        cache[key] = any(same_price(asc_release.attrs(row).get("customerPrice"), price)
-                         for row in asc_release.rows(payload))
+        prices = [asc_release.attrs(row).get("customerPrice") for row in asc_release.rows(payload)]
+        found: bool | None = any(same_price(live, price) for live in prices)
+        if not found and not reference and kind == "subscription":
+            top = max((Decimal(str(live)) for live in prices if live is not None), default=Decimal(0))
+            if Decimal(price) > top:
+                found = None
+        cache[key] = found
     return cache[key]
 
 
@@ -405,7 +490,12 @@ def drift_warnings(asc: Any, product: CatalogProduct, live: dict[str, Any], live
             f"Connect, {'on' if product.family_sharing else 'off'} in the catalog"
         )
     if product.price:
-        amount, _ = live_price(asc, product, live["id"])
+        try:
+            amount, _ = live_price(asc, product, live["id"])
+        except asc_cli.AscError as exc:
+            # Only a warning is at stake, so an App Store Connect error does not stop the release.
+            warnings.append(f"{product.product_id}: could not read its price, so it was not compared ({exc})")
+            return warnings
         if amount is None:
             warnings.append(f"{product.product_id}: no current price in {PRICE_TERRITORY} in App Store Connect")
         elif not same_price(amount, product.price):
@@ -449,6 +539,69 @@ def iap_version(asc: Any, iap_id: str) -> tuple[str | None, dict[str, dict[str, 
     return version_id, locales
 
 
+def screenshot_conflict(pid: str, record: dict[str, Any], raw: bytes | None, shot: str) -> str | None:
+    """Why an existing App Review screenshot cannot be kept for this product, or None.
+
+    A failed delivery, or a different file, has to be deleted by hand. A file
+    that matches is kept even while App Store Connect is still processing it;
+    the readback after the run waits for that.
+    """
+    a = asc_release.attrs(record)
+    state = ((a.get("assetDeliveryState") or {}).get("state") or "").upper()
+    if state == "FAILED":
+        return f"{pid}: its App Review screenshot is FAILED; delete it in App Store Connect and re-run"
+    if raw is not None and (a.get("sourceFileChecksum") or "").lower() != asc_release.file_checksum(raw):
+        return f"{pid}: its App Review screenshot ({state or 'unknown state'}) differs from {shot}"
+    return None
+
+
+def plan_subscription_parts(asc: Any, item: Planned, live: dict[str, Any], errors: list[str], root: Path) -> None:
+    """For a subscription being finished: does every part it already has match the catalog?
+
+    asc's `subscriptions setup` refuses a differing part too, but only after it
+    may have added others; checking here keeps a conflict from writing anything.
+    """
+    product, sub_id = item.product, item.live_id
+    pid = product.product_id
+    note = asc_release.attrs(live).get("reviewNote") or ""
+    if note not in ("", product.ios["review_note"]):
+        errors.append(f"{pid}: its review note differs from the catalog")
+    versions = asc_release.rows(asc_release.call(asc, "subscriptions", "versions", "list", "--subscription-id", sub_id,
+                                                 "--paginate"))
+    if versions:
+        locales = {
+            asc_release.attrs(row).get("locale"): asc_release.attrs(row)
+            for row in asc_release.rows(asc_release.call(
+                asc, "subscriptions", "versions", "localizations", "list", "--version-id",
+                asc_release.current_version_id(versions), "--paginate"))
+        }
+        loc = locales.get(LOCALE)
+        if loc and (loc.get("name") != product.ios["display_name"]
+                    or (loc.get("description") or "") != product.ios["description"]):
+            errors.append(f"{pid}: its {LOCALE} display name or description differs from the catalog")
+    amount, _ = required(live_price, asc, product, sub_id)
+    if amount is not None and not same_price(amount, product.price):
+        errors.append(f"{pid}: its price is {amount}, the catalog has {product.price} in {PRICE_TERRITORY}")
+    availability = required(run_optional, asc, "subscriptions", "pricing", "availability", "view", "--subscription-id", sub_id)
+    if availability is not None:
+        record = asc_release.data(availability) or {}
+        live_territories = {row["id"] for row in asc_release.rows(asc_release.call(
+            asc, "subscriptions", "pricing", "availability", "available-territories", "--availability-id",
+            record.get("id", ""), "--paginate"))}
+        if (set(item.territories) != live_territories
+                or bool(asc_release.attrs(record).get("availableInNewTerritories")) != item.new_territories):
+            errors.append(f"{pid}: its availability differs from the catalog's territories")
+    shot = required(run_optional, asc, "subscriptions", "review", "app-store-screenshot", "view", "--subscription-id", sub_id)
+    if shot is not None:
+        try:
+            raw: bytes | None = (root / product.ios["review_screenshot"]).read_bytes()
+        except OSError:
+            raw = None  # catalog_problems already reports the missing file
+        conflict = screenshot_conflict(pid, asc_release.data(shot) or {}, raw, product.ios["review_screenshot"])
+        if conflict:
+            errors.append(conflict)
+
+
 def plan_iap_steps(asc: Any, item: Planned, errors: list[str], root: Path) -> None:
     """For an in-app purchase being finished: which parts are missing, and whether the rest matches."""
     product, iap_id = item.product, item.live_id
@@ -460,13 +613,13 @@ def plan_iap_steps(asc: Any, item: Planned, errors: list[str], root: Path) -> No
     elif loc.get("name") != product.ios["display_name"] or (loc.get("description") or "") != product.ios["description"]:
         errors.append(f"{pid}: its {LOCALE} display name or description differs from the catalog")
 
-    amount, base = live_price(asc, product, iap_id)  # type: ignore[arg-type]
+    amount, base = required(live_price, asc, product, iap_id)
     if amount is None:
         item.steps.append("price")
     elif base != PRICE_TERRITORY or not same_price(amount, product.price):
         errors.append(f"{pid}: its price is {amount} (base territory {base}), the catalog has {product.price} in {PRICE_TERRITORY}")
 
-    availability = run_optional(asc, "iap", "pricing", "availability", "view", "--iap-id", iap_id)
+    availability = required(run_optional, asc, "iap", "pricing", "availability", "view", "--iap-id", iap_id)
     if availability is None:
         item.steps.append("availability")
     else:
@@ -479,27 +632,24 @@ def plan_iap_steps(asc: Any, item: Planned, errors: list[str], root: Path) -> No
                 or bool(asc_release.attrs(record).get("availableInNewTerritories")) != item.new_territories):
             errors.append(f"{pid}: its availability differs from the catalog's territories")
 
-    shot = run_optional(asc, "iap", "review-screenshots", "view", "--iap-id", iap_id)
+    shot = required(run_optional, asc, "iap", "review-screenshots", "view", "--iap-id", iap_id)
     if shot is None:
         item.steps.append("screenshot")
     else:
         record = asc_release.data(shot) or {}
         a = asc_release.attrs(record)
-        state = ((a.get("assetDeliveryState") or {}).get("state") or "").upper()
         try:
             raw = (root / product.ios["review_screenshot"]).read_bytes()
         except OSError:
             return  # catalog_problems already reports the missing file
         if a.get("uploadOperations") and a.get("fileSize") == len(raw):
+            # A reservation an interrupted run left: resume the upload.
             item.steps.append("screenshot")
             item.screenshot_id = record.get("id")
-        elif state != "COMPLETE":
-            errors.append(
-                f"{pid}: its App Review screenshot is {state or 'in an unknown state'}; delete it in App Store "
-                "Connect and re-run"
-            )
-        elif (a.get("sourceFileChecksum") or "").lower() != asc_release.file_checksum(raw):
-            errors.append(f"{pid}: its App Review screenshot differs from {product.ios['review_screenshot']}")
+        else:
+            conflict = screenshot_conflict(pid, record, raw, product.ios["review_screenshot"])
+            if conflict:
+                errors.append(conflict)
 
 
 def plan_products(asc: Any, catalog: dict[str, Any], *, root: Path = ROOT) -> Plan:
@@ -558,7 +708,7 @@ def plan_products(asc: Any, catalog: dict[str, Any], *, root: Path = ROOT) -> Pl
             "subscription": next(iter(subs.values()), {}).get("id"),
             "iap": next(iter(iaps.values()), {}).get("id"),
         }
-        price_cache: dict[tuple[str, str], bool] = {}
+        price_cache: dict[tuple[str, str], bool | None] = {}
         for item in writing:
             product = item.product
             pid = product.product_id
@@ -574,7 +724,13 @@ def plan_products(asc: Any, catalog: dict[str, Any], *, root: Path = ROOT) -> Pl
                 if unknown:
                     errors.append(f"{pid}: App Store Connect has no territories {', '.join(unknown)}")
                 item.territories, item.new_territories = list(wanted), False
-            if not price_grid_has(asc, app_id, product.kind, product.price, reference[product.kind], price_cache):  # type: ignore[arg-type]
+            priced = price_grid_has(asc, app_id, product.kind, product.price, reference[product.kind], price_cache)  # type: ignore[arg-type]
+            if priced is None:
+                warnings.append(
+                    f"{pid}: {product.price} is above the app's price grid, so it cannot be checked before the app's "
+                    "first subscription exists; App Store Connect checks it while creating the subscription"
+                )
+            elif not priced:
                 where = "" if reference[product.kind] else (
                     " (checked against the app's own price grid: the app has no live product of this kind to ask yet)")
                 errors.append(f"{pid}: {product.price} is not a price point in {PRICE_TERRITORY}{where}")
@@ -594,9 +750,7 @@ def plan_products(asc: Any, catalog: dict[str, Any], *, root: Path = ROOT) -> Pl
                         "App Store Connect, unlike the catalog; the existing group is left as it is"
                     )
                 if item.action == "finish":
-                    note = asc_release.attrs(subs[pid]).get("reviewNote") or ""
-                    if note not in ("", product.ios["review_note"]):
-                        errors.append(f"{pid}: its review note differs from the catalog")
+                    plan_subscription_parts(asc, item, subs[pid], errors, root)
             elif item.action == "finish":
                 plan_iap_steps(asc, item, errors, root)
             else:

@@ -579,13 +579,13 @@ CATALOG_PRODUCT_GROUPS = ("subscriptions", "consumables", "non_consumables", "ti
 
 
 def intended_product_ids() -> set[str]:
-    """Product IDs the release is allowed to submit, from the canonical catalog."""
+    """Product IDs the release is allowed to submit: the canonical catalog's iOS products."""
     catalog = json.loads((ROOT / "store" / "catalog" / "products.json").read_text(encoding="utf-8"))
     ids: set[str] = set()
     for group in CATALOG_PRODUCT_GROUPS:
         for item in catalog.get(group) or []:
             pid = item.get("id")
-            if isinstance(pid, str) and pid:
+            if isinstance(pid, str) and pid and "ios" in (item.get("platforms") or []):
                 ids.add(pid)
     return ids
 
