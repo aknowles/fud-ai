@@ -492,7 +492,8 @@ The Watch screenshot and the Play feature graphic have no automated upload.
 Upload them in App Store Connect and Play Console by hand.
 
 A creative image is matched in the Asset Library by file name and size, so
-give a changed image a new file name. Apple reviews each new image on its own
+give a changed image a new file name. A reservation left by an interrupted upload
+(`AWAITING_UPLOAD`) is ignored and the image is uploaded again. Apple reviews each new image on its own
 (the app already has an approved version), and a later run places it once it is
 approved; a rejected image stops the run with Apple's reason. Sizes, formats and
 alpha are checked before the build, so a wrong file stops the run early. An
