@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""App Store Connect metadata, screenshots, and submit-for-review (gated in CI).
+"""App Store Connect metadata, screenshots, creative assets and review (gated in CI).
 
-Submitting for review covers both the App Store version and any Ready-to-Submit
-subscriptions. As of the 2026 workflow, subscriptions attach to the review
-submission through the `subscriptionVersion` relationship on Review Submission
-Items; they must go out with the version for a first-time subscription
-submission or App Review rejects the build.
+Every App Store Connect call goes through the pinned App Store Connect CLI
+(`asc`, see asc_cli.py); this script decides what may change and checks the
+results.
+
+Submitting for review covers the App Store version and the Ready-to-Submit
+subscriptions and in-app purchases in store/catalog/products.json. They are
+added to one draft review submission, and nothing reaches App Review until that
+draft is submitted, right after this run's build is re-checked. A first-time
+subscription must ship with the version, so a product that cannot be added stops
+the whole submission.
 
 `--create-version` (IOS_CREATE_VERSION) runs first on a release run, before the
 read-only version preflight: it adds the App Store version for the tag when App
@@ -20,30 +25,41 @@ import json
 import os
 import re
 import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
 from pathlib import Path
 from typing import Any
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import asc_cli  # noqa: E402
+
 ROOT = Path(__file__).resolve().parents[2]
-ASC_BASE = "https://api.appstoreconnect.apple.com/v1"
 DEFAULT_BUNDLE_ID = "com.apoorvdarshan.calorietracker"
-# App Store Connect app record for DEFAULT_BUNDLE_ID. Version creation stops when
-# the bundle id lookup returns anything else.
+# App Store Connect app record for DEFAULT_BUNDLE_ID. Every run checks that this
+# record carries exactly that bundle id before touching anything.
 ASC_APP_ID = "6758935726"
+PLATFORM = "IOS"
 # Screenshot sets in upload order: the folder under --screenshots-dir that
-# stage_screenshots.py fills, the ASC display type, and a label for logs.
-# APP_IPHONE_DUO is missing from Apple's OpenAPI spec (4.5.1), but App Store
-# Connect accepts it; one set holds both the outer and the inner screen sizes.
+# stage_screenshots.py fills, the ASC display type, asc's --device-type, and a
+# label for logs. APP_IPHONE_DUO is missing from Apple's OpenAPI spec (4.5.1),
+# but App Store Connect accepts it; one set holds both the outer and the inner
+# screen sizes.
 SCREENSHOT_SETS = (
-    ("6.7", "APP_IPHONE_67", '6.7" iPhone'),
-    ("ipad-13", "APP_IPAD_PRO_3GEN_129", '13" iPad'),
-    ("iphone-duo", "APP_IPHONE_DUO", "iPhone Duo"),
+    ("6.7", "APP_IPHONE_67", "IPHONE_67", '6.7" iPhone'),
+    ("ipad-13", "APP_IPAD_PRO_3GEN_129", "IPAD_PRO_3GEN_129", '13" iPad'),
+    ("iphone-duo", "APP_IPHONE_DUO", "IPHONE_DUO", "iPhone Duo"),
 )
 # App Store Connect per screenshot-set limit.
 APP_SCREENSHOT_SET_MAX = 10
+# Product page creative assets: the folder under --creative-dir, the placement
+# type, and a label for logs. Each folder holds at most one image.
+CREATIVE_SLOTS = (
+    ("header", "PRODUCT_PAGE_HEADER_ASSET", "product page header"),
+    ("search-results", "APP_STORE_SEARCH_RESULTS_ASSET", "search results"),
+)
+CREATIVE_EXTENSIONS = {".png", ".jpg", ".jpeg"}
+# Library image states: still being reviewed, or finished without approval.
+CREATIVE_PENDING_STATES = {"WAITING_FOR_REVIEW", "IN_REVIEW", "ACCEPTED"}
+CREATIVE_UNSUBMITTED_STATES = {"PREPARE_FOR_SUBMISSION", "READY_FOR_REVIEW", "COMPLETE", "UPLOAD_COMPLETE"}
+CREATIVE_DEAD_STATES = {"REJECTED", "FAILED", "ARCHIVED"}
 EDITABLE_VERSION_STATES = {
     "PREPARE_FOR_SUBMISSION",
     "DEVELOPER_REJECTED",
@@ -70,19 +86,15 @@ FINISHED_VERSION_STATES = {
     "REMOVED_FROM_SALE",
     "DEVELOPER_REMOVED_FROM_SALE",
 }
+# Subscription states in which a version can still be (re)attached to a review.
+SUBMITTABLE_PRODUCT_STATES = {"READY_TO_SUBMIT", "DEVELOPER_REJECTED", "READY_FOR_REVIEW"}
+RELEASE_TYPE_PUBLIC = "AFTER_APPROVAL"
+RELEASE_TYPE_MANUAL = "MANUAL"
 
 
 def fail(msg: str) -> None:
     print(f"error: {msg}", file=sys.stderr)
     raise SystemExit(1)
-
-
-class AscHttpError(SystemExit):
-    """An App Store Connect HTTP error; exits like fail() unless a caller retries."""
-
-    def __init__(self, status: int, message: str) -> None:
-        super().__init__(f"error: {message}")
-        self.status = status
 
 
 def truthy(name: str) -> bool:
@@ -96,106 +108,26 @@ def read_text(path: Path) -> str | None:
     return text or None
 
 
-class AscClient:
-    # JWTs are minted for 20 minutes; refresh well before that during long waits.
-    TOKEN_MAX_AGE_SECONDS = 600
-
-    def __init__(
-        self, token: str | None = None, *, token_factory: Any | None = None
-    ) -> None:
-        if token is None and token_factory is None:
-            raise ValueError("AscClient needs a token or a token_factory")
-        self._token_factory = token_factory
-        self._token = token if token is not None else token_factory()
-        self._token_minted = time.monotonic()
-
-    def _authorization(self) -> str:
-        if (
-            self._token_factory is not None
-            and time.monotonic() - self._token_minted > self.TOKEN_MAX_AGE_SECONDS
-        ):
-            self._token = self._token_factory()
-            self._token_minted = time.monotonic()
-        return f"Bearer {self._token}"
-
-    def request(
-        self,
-        method: str,
-        path: str,
-        *,
-        body: dict[str, Any] | None = None,
-        raw_body: bytes | None = None,
-        content_type: str = "application/json",
-        accept: str = "application/json",
-    ) -> dict[str, Any] | None:
-        url = path if path.startswith("http") else f"{ASC_BASE}{path}"
-        headers = {
-            "Authorization": self._authorization(),
-            "Accept": accept,
-        }
-        data: bytes | None = None
-        if body is not None:
-            data = json.dumps(body).encode("utf-8")
-            headers["Content-Type"] = content_type
-        elif raw_body is not None:
-            data = raw_body
-            headers["Content-Type"] = content_type
-
-        req = urllib.request.Request(url, data=data, method=method, headers=headers)
-        try:
-            with urllib.request.urlopen(req, timeout=120) as resp:
-                payload = resp.read()
-                if not payload:
-                    return None
-                if accept != "application/json":
-                    return {"raw": payload}
-                return json.loads(payload.decode("utf-8"))
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            print(f"error: ASC {method} {path} → HTTP {exc.code}: {detail[:2000]}", file=sys.stderr)
-            raise AscHttpError(exc.code, f"ASC {method} {path} → HTTP {exc.code}") from None
-
-    def get(self, path: str) -> dict[str, Any]:
-        result = self.request("GET", path)
-        assert result is not None
-        return result
-
-    def patch(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
-        result = self.request("PATCH", path, body=body)
-        assert result is not None
-        return result
-
-    def post(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
-        result = self.request("POST", path, body=body)
-        assert result is not None
-        return result
-
-    def upload_bytes(
-        self, url: str, data: bytes, headers: dict[str, str], *, method: str = "PUT"
-    ) -> None:
-        req = urllib.request.Request(
-            url, data=data, method=method.upper(), headers=headers
-        )
-        try:
-            with urllib.request.urlopen(req, timeout=300):
-                return
-        except urllib.error.HTTPError as exc:
-            detail = exc.read().decode("utf-8", errors="replace")
-            fail(f"ASC asset upload → HTTP {exc.code}: {detail[:1000]}")
+def data(payload: Any) -> Any:
+    return (payload or {}).get("data") if isinstance(payload, dict) else None
 
 
-def make_asc_token(key_id: str, issuer_id: str, private_key: str) -> str:
-    import jwt
+def rows(payload: Any) -> list[dict[str, Any]]:
+    value = data(payload)
+    return value if isinstance(value, list) else []
 
-    now = int(time.time())
-    payload = {
-        "iss": issuer_id,
-        "iat": now,
-        "exp": now + 1200,
-        "aud": "appstoreconnect-v1",
-    }
-    headers = {"kid": key_id, "typ": "JWT"}
-    return jwt.encode(payload, private_key, algorithm="ES256", headers=headers)
+
+def attrs(row: dict[str, Any] | None) -> dict[str, Any]:
+    return (row or {}).get("attributes") or {}
+
+
+def related_id(row: dict[str, Any], name: str) -> str | None:
+    return (((row.get("relationships") or {}).get(name) or {}).get("data") or {}).get("id")
+
+
+def asc_value(text: str) -> str:
+    """A flag value for asc, which reads a leading @ as @file:/@env: (escaped as @@)."""
+    return "@" + text if text.startswith("@") else text
 
 
 def load_credentials() -> tuple[str, str, str]:
@@ -207,62 +139,40 @@ def load_credentials() -> tuple[str, str, str]:
             "missing ASC credentials — set APP_STORE_CONNECT_API_KEY_ID, "
             "APP_STORE_CONNECT_ISSUER_ID, APP_STORE_CONNECT_API_KEY_P8"
         )
-    key_p8 = key_p8.replace("\\n", "\n")
     return key_id, issuer_id, key_p8
 
 
-def client_from_environment() -> AscClient:
-    """Client whose JWT is re-minted automatically during long-running steps."""
-    key_id, issuer_id, key_p8 = load_credentials()
-    return AscClient(token_factory=lambda: make_asc_token(key_id, issuer_id, key_p8))
+def asc_from_environment(*, read_only: bool = False) -> asc_cli.Asc:
+    load_credentials()
+    return asc_cli.Asc(read_only=read_only)
 
 
-def find_app(client: AscClient, bundle_id: str) -> str:
-    """The id of the one App Store Connect app with exactly this bundle id.
-
-    The bundle-id filter is not trusted on its own: every returned app must carry
-    the exact bundle id, and anything but one match stops the release.
-    """
-    query = urllib.parse.urlencode({"filter[bundleId]": bundle_id})
-    payload = client.get(f"/apps?{query}")
-    data = [
-        row
-        for row in payload.get("data") or []
-        if (row.get("attributes") or {}).get("bundleId") == bundle_id
-    ]
-    if not data:
-        fail(f"no App Store Connect app for bundle id {bundle_id}")
-    if len(data) > 1:
-        ids = ", ".join(str(row.get("id")) for row in data)
-        fail(f"ambiguous: {len(data)} App Store Connect apps for bundle id {bundle_id} ({ids})")
-    return data[0]["id"]
+def call(asc: asc_cli.Asc, *args: str) -> Any:
+    """Run asc and stop the release with a readable error when it fails."""
+    try:
+        return asc.run(*args)
+    except asc_cli.AscError as exc:
+        fail(str(exc))
 
 
-def list_ios_app_store_versions(client: AscClient, app_id: str) -> list[dict[str, Any]]:
-    # Prefer the app relationship listing — some ASC API keys cannot
-    # GET_COLLECTION on /appStoreVersions with filter[app]=… (403).
-    rows: list[dict[str, Any]] = []
-    path: str | None = (
-        f"/apps/{app_id}/appStoreVersions?"
-        + urllib.parse.urlencode({"limit": "50", "filter[platform]": "IOS"})
-    )
-    while path:
-        payload = client.get(path)
-        rows.extend(payload.get("data") or [])
-        next_url = (payload.get("links") or {}).get("next")
-        if not next_url:
-            break
-        path = next_url
-    return rows
+def find_app(asc: asc_cli.Asc, bundle_id: str, app_id: str = ASC_APP_ID) -> str:
+    """The pinned App Store Connect app, after checking it carries exactly bundle_id."""
+    record = data(call(asc, "apps", "view", "--id", app_id)) or {}
+    if record.get("id") != app_id:
+        fail(f"App Store Connect returned app {record.get('id')!r}, expected {app_id}")
+    found = attrs(record).get("bundleId")
+    if found != bundle_id:
+        fail(f"App Store Connect app {app_id} has bundle id {found!r}, expected {bundle_id}")
+    return app_id
 
 
-def get_ios_app_store_version(
-    client: AscClient, app_id: str, version_string: str
-) -> dict[str, Any]:
+def list_ios_app_store_versions(asc: asc_cli.Asc, app_id: str) -> list[dict[str, Any]]:
+    return rows(call(asc, "versions", "list", "--app", app_id, "--platform", PLATFORM, "--paginate"))
+
+
+def get_ios_app_store_version(asc: asc_cli.Asc, app_id: str, version_string: str) -> dict[str, Any]:
     matches = [
-        row
-        for row in list_ios_app_store_versions(client, app_id)
-        if (row.get("attributes") or {}).get("versionString") == version_string
+        row for row in list_ios_app_store_versions(asc, app_id) if attrs(row).get("versionString") == version_string
     ]
     if not matches:
         fail(
@@ -270,43 +180,29 @@ def get_ios_app_store_version(
             "(turn on IOS_CREATE_VERSION, or create the version in App Store Connect first)"
         )
     if len(matches) > 1:
-        fail(
-            f"ambiguous App Store versions for {version_string!r} on IOS — "
-            f"got {len(matches)} records"
-        )
+        fail(f"ambiguous App Store versions for {version_string!r} on IOS — got {len(matches)} records")
     return matches[0]
 
 
-def localization_for_locale(
-    client: AscClient, collection_path: str, locale: str
-) -> dict[str, Any]:
-    query = urllib.parse.urlencode({"filter[locale]": locale, "limit": "1"})
-    payload = client.get(f"{collection_path}?{query}")
-    data = payload.get("data") or []
-    if not data:
-        fail(f"no localization {locale} at {collection_path}")
-    return data[0]
-
-
-def get_app_info_localization(client: AscClient, app_id: str, locale: str) -> dict[str, Any]:
-    infos = client.get(f"/apps/{app_id}/appInfos")
-    info_rows = infos.get("data") or []
-    if not info_rows:
-        fail("app has no appInfos")
-    info_id = info_rows[0]["id"]
-    return localization_for_locale(
-        client, f"/appInfos/{info_id}/appInfoLocalizations", locale
-    )
+def version_localization(asc: asc_cli.Asc, version_id: str, locale: str) -> dict[str, Any]:
+    found = [
+        row
+        for row in rows(call(asc, "localizations", "list", "--version", version_id, "--locale", locale))
+        if attrs(row).get("locale") == locale
+    ]
+    if not found:
+        fail(f"App Store version {version_id} has no {locale} localization")
+    return found[0]
 
 
 LISTING_FIELDS = (
-    ("description", "description.txt"),
-    ("keywords", "keywords.txt"),
-    ("promotionalText", "promotional_text.txt"),
-    ("marketingUrl", "marketing_url.txt"),
-    ("supportUrl", "support_url.txt"),
+    ("description", "description.txt", "--description"),
+    ("keywords", "keywords.txt", "--keywords"),
+    ("promotionalText", "promotional_text.txt", "--promotional-text"),
+    ("marketingUrl", "marketing_url.txt", "--marketing-url"),
+    ("supportUrl", "support_url.txt", "--support-url"),
 )
-WHATS_NEW_FIELD = ("whatsNew", "whats_new.txt")
+WHATS_NEW_FIELD = ("whatsNew", "whats_new.txt", "--whats-new")
 
 
 def same_text(live: Any, wanted: str) -> bool:
@@ -317,9 +213,8 @@ def same_text(live: Any, wanted: str) -> bool:
 
 
 def upload_listing(
-    client: AscClient,
+    asc: asc_cli.Asc,
     *,
-    app_id: str,
     version_id: str,
     locale: str,
     metadata_dir: Path,
@@ -332,83 +227,33 @@ def upload_listing(
     Only fields that differ from App Store Connect are sent, so a re-run changes
     nothing that is already right. With editable=False (the version waits for
     review) nothing is written: the step fails unless every field already matches.
-    Returns the fields that were updated.
+    App info (name, subtitle, privacy URL) stays locked while a version is live,
+    so it is never edited. Returns the fields that were updated.
     """
-    del app_id  # app info (name/subtitle/privacy) locked while prior version is live
     loc_dir = metadata_dir / "ios" / locale
-
-    version_loc = localization_for_locale(
-        client, f"/appStoreVersions/{version_id}/appStoreVersionLocalizations", locale
-    )
-    live = version_loc.get("attributes") or {}
-    fields = (LISTING_FIELDS if include_listing else ()) + (
-        (WHATS_NEW_FIELD,) if include_whats_new else ()
-    )
-    version_attrs: dict[str, str] = {}
-    for field, filename in fields:
+    version_loc = version_localization(asc, version_id, locale)
+    live = attrs(version_loc)
+    fields = (LISTING_FIELDS if include_listing else ()) + ((WHATS_NEW_FIELD,) if include_whats_new else ())
+    changes: list[tuple[str, str, str]] = []
+    for field, filename, flag in fields:
         value = read_text(loc_dir / filename)
         if value and not same_text(live.get(field), value):
-            version_attrs[field] = value
-    if not version_attrs:
+            changes.append((field, flag, value))
+    if not changes:
         print(f"  version localization ({locale}) already matches the repository")
         return []
+    names = [field for field, _, _ in changes]
     if not editable:
         fail(
-            f"cannot change {', '.join(version_attrs)} ({locale}) while the version waits for "
+            f"cannot change {', '.join(names)} ({locale}) while the version waits for "
             "review; App Store Connect differs from the repository"
         )
-    client.patch(
-        f"/appStoreVersionLocalizations/{version_loc['id']}",
-        {
-            "data": {
-                "type": "appStoreVersionLocalizations",
-                "id": version_loc["id"],
-                "attributes": version_attrs,
-            }
-        },
-    )
-    print(f"  updated version localization ({locale}): {', '.join(version_attrs)}")
-    return list(version_attrs)
-
-
-def screenshot_sets_for_localization(
-    client: AscClient, version_loc_id: str
-) -> list[dict[str, Any]]:
-    payload = client.get(
-        f"/appStoreVersionLocalizations/{version_loc_id}/appScreenshotSets"
-    )
-    return payload.get("data") or []
-
-
-def ensure_screenshot_set(
-    client: AscClient, version_loc_id: str, display_type: str
-) -> dict[str, Any]:
-    for item in screenshot_sets_for_localization(client, version_loc_id):
-        if (item.get("attributes") or {}).get("screenshotDisplayType") == display_type:
-            return item
-    created = client.post(
-        "/appScreenshotSets",
-        {
-            "data": {
-                "type": "appScreenshotSets",
-                "attributes": {"screenshotDisplayType": display_type},
-                "relationships": {
-                    "appStoreVersionLocalization": {
-                        "data": {
-                            "type": "appStoreVersionLocalizations",
-                            "id": version_loc_id,
-                        }
-                    }
-                },
-            }
-        },
-    )
-    return created["data"]
-
-
-def list_screenshot_ids(client: AscClient, screenshot_set_id: str) -> list[str]:
-    payload = client.get(f"/appScreenshotSets/{screenshot_set_id}/appScreenshots")
-    return [shot["id"] for shot in payload.get("data") or []]
+    args = ["localizations", "update", "--id", version_loc["id"]]
+    for _, flag, value in changes:
+        args += [flag, asc_value(value)]
+    call(asc, *args)
+    print(f"  updated version localization ({locale}): {', '.join(names)}")
+    return names
 
 
 def file_checksum(raw: bytes) -> str:
@@ -424,101 +269,41 @@ def local_screenshot_fingerprints(pngs: list[Path]) -> list[tuple[str, int, str]
     return fingerprints
 
 
-def live_screenshot_fingerprints(
-    client: AscClient, screenshot_set_id: str
-) -> list[tuple[Any, Any, Any]]:
-    payload = client.get(f"/appScreenshotSets/{screenshot_set_id}/appScreenshots")
-    return [
-        (
-            (shot.get("attributes") or {}).get("fileName"),
-            (shot.get("attributes") or {}).get("fileSize"),
-            (shot.get("attributes") or {}).get("sourceFileChecksum"),
-        )
-        for shot in payload.get("data") or []
-    ]
-
-
-def delete_screenshots(client: AscClient, screenshot_ids: list[str]) -> None:
-    for shot_id in screenshot_ids:
-        client.request("DELETE", f"/appScreenshots/{shot_id}")
-
-
-def upload_screenshot_file(
-    client: AscClient, screenshot_set_id: str, image_path: Path
-) -> None:
-    raw = image_path.read_bytes()
-    reserved = client.post(
-        "/appScreenshots",
-        {
-            "data": {
-                "type": "appScreenshots",
-                "attributes": {
-                    "fileName": image_path.name,
-                    "fileSize": len(raw),
-                },
-                "relationships": {
-                    "appScreenshotSet": {
-                        "data": {"type": "appScreenshotSets", "id": screenshot_set_id}
-                    }
-                },
-            }
-        },
-    )
-    shot = reserved["data"]
-    shot_id = shot["id"]
-    upload_ops = (shot.get("attributes") or {}).get("uploadOperations") or []
-    if not upload_ops:
-        fail(f"ASC returned no uploadOperations for {image_path.name}")
-    for op in upload_ops:
-        offset = int(op.get("offset", 0))
-        length = int(op["length"])
-        chunk = raw[offset : offset + length]
-        headers = {h["name"]: h["value"] for h in op.get("requestHeaders") or []}
-        method = (op.get("method") or "PUT").upper()
-        client.upload_bytes(op["url"], chunk, headers, method=method)
-    # The checksum lets a later run see that App Store Connect already has this file.
-    client.patch(
-        f"/appScreenshots/{shot_id}",
-        {
-            "data": {
-                "type": "appScreenshots",
-                "id": shot_id,
-                "attributes": {"uploaded": True, "sourceFileChecksum": file_checksum(raw)},
-            }
-        },
-    )
-    print(f"  uploaded screenshot {image_path.name}")
-
-
-def find_screenshot_set(
-    client: AscClient, version_loc_id: str, display_type: str
-) -> dict[str, Any] | None:
-    for item in screenshot_sets_for_localization(client, version_loc_id):
-        if (item.get("attributes") or {}).get("screenshotDisplayType") == display_type:
-            return item
-    return None
-
-
-def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, list[Path]]]:
-    """(display type, label, PNGs) for every set; fails when a set has nothing to upload."""
+def staged_screenshot_sets(screenshots_dir: Path) -> list[tuple[str, str, str, list[Path]]]:
+    """(display type, device type, label, PNGs) for every set; fails when a set has nothing to upload."""
     sets = []
-    for folder, display_type, label in SCREENSHOT_SETS:
+    for folder, display_type, device_type, label in SCREENSHOT_SETS:
         set_dir = screenshots_dir / folder
         pngs = sorted(set_dir.glob("*.png")) if set_dir.is_dir() else []
         if not pngs:
             fail(f"no PNG screenshots for the {label} set in {set_dir}")
         if len(pngs) > APP_SCREENSHOT_SET_MAX:
-            fail(
-                f"too many PNGs ({len(pngs)}) for the ASC {label} set "
-                f"(max {APP_SCREENSHOT_SET_MAX})"
-            )
-        sets.append((display_type, label, pngs))
+            fail(f"too many PNGs ({len(pngs)}) for the ASC {label} set (max {APP_SCREENSHOT_SET_MAX})")
+        sets.append((display_type, device_type, label, pngs))
     return sets
 
 
+def live_screenshot_sets(
+    asc: asc_cli.Asc, *, app_id: str, version_id: str, locale: str
+) -> dict[str, list[tuple[Any, Any, Any]]]:
+    """Display type -> the (fileName, fileSize, sourceFileChecksum) App Store Connect holds, in order."""
+    payload = call(
+        asc, "screenshots", "list", "--app", app_id, "--version-id", version_id, "--locale", locale, "--platform", PLATFORM
+    )
+    live: dict[str, list[tuple[Any, Any, Any]]] = {}
+    for entry in (payload or {}).get("sets") or []:
+        display_type = attrs(entry.get("set")).get("screenshotDisplayType")
+        live[display_type] = [
+            (attrs(shot).get("fileName"), attrs(shot).get("fileSize"), attrs(shot).get("sourceFileChecksum"))
+            for shot in entry.get("screenshots") or []
+        ]
+    return live
+
+
 def upload_screenshots(
-    client: AscClient,
+    asc: asc_cli.Asc,
     *,
+    app_id: str,
     version_id: str,
     locale: str,
     screenshots_dir: Path,
@@ -531,90 +316,182 @@ def upload_screenshots(
     exactly these files, in order. Returns True when screenshots were uploaded.
     """
     sets = staged_screenshot_sets(screenshots_dir)
-    version_loc = localization_for_locale(
-        client, f"/appStoreVersions/{version_id}/appStoreVersionLocalizations", locale
-    )
-    version_loc_id = version_loc["id"]
+    live = live_screenshot_sets(asc, app_id=app_id, version_id=version_id, locale=locale)
     uploaded = False
-    for display_type, label, pngs in sets:
-        if upload_screenshot_set(
-            client,
-            version_loc_id=version_loc_id,
-            display_type=display_type,
-            label=f"{label} ({locale})",
-            pngs=pngs,
-            editable=editable,
-        ):
-            uploaded = True
+    for display_type, device_type, label, pngs in sets:
+        wanted = local_screenshot_fingerprints(pngs)
+        if live.get(display_type) == wanted:
+            print(f"  {label} ({locale}) screenshots already match the repository")
+            continue
+        if not editable:
+            fail(
+                f"cannot replace the {label} ({locale}) screenshots once the version is in a review "
+                "submission; App Store Connect differs from the repository"
+            )
+        # --replace deletes the set's screenshots before uploading. If an upload
+        # fails part-way, fix the error and re-run: the set is replaced again.
+        call(
+            asc,
+            "screenshots", "upload", "--app", app_id, "--version-id", version_id, "--locale", locale,
+            "--path", str(pngs[0].parent), "--device-type", device_type, "--replace", "--confirm",
+        )
+        after = live_screenshot_sets(asc, app_id=app_id, version_id=version_id, locale=locale)
+        if after.get(display_type) != wanted:
+            fail(f"after uploading, App Store Connect's {label} ({locale}) set does not match the repository")
+        print(f"  uploaded {len(pngs)} {label} ({locale}) screenshot(s)")
+        uploaded = True
     return uploaded
 
 
-def upload_screenshot_set(
-    client: AscClient,
-    *,
-    version_loc_id: str,
-    display_type: str,
-    label: str,
-    pngs: list[Path],
-    editable: bool,
-) -> bool:
-    existing = find_screenshot_set(client, version_loc_id, display_type)
-    if existing is not None and live_screenshot_fingerprints(
-        client, existing["id"]
-    ) == local_screenshot_fingerprints(pngs):
-        print(f"  {label} screenshots already match the repository")
-        return False
-    if not editable:
+def creative_sources(creative_dir: Path) -> list[tuple[str, str, Path]]:
+    """(placement type, label, image) for every creative slot that has an image."""
+    found = []
+    for folder, placement_type, label in CREATIVE_SLOTS:
+        slot_dir = creative_dir / folder
+        images = sorted(
+            p for p in slot_dir.glob("*") if p.is_file() and p.suffix.lower() in CREATIVE_EXTENSIONS
+        ) if slot_dir.is_dir() else []
+        if len(images) > 1:
+            fail(f"the {label} slot takes one image; {slot_dir} has {len(images)}")
+        if images:
+            found.append((placement_type, label, images[0]))
+    if not found:
+        fail(f"creative asset upload is on, but {creative_dir} has no header or search results image")
+    return found
+
+
+def library_images(asc: asc_cli.Asc, library_id: str) -> list[dict[str, Any]]:
+    return rows(
+        call(asc, "asset-library", "images", "list", "--library-id", library_id, "--category", "CREATIVE_ASSETS", "--paginate")
+    )
+
+
+def library_image_for(images: list[dict[str, Any]], path: Path) -> dict[str, Any] | None:
+    """The newest usable library image uploaded from this exact file (name and size)."""
+    size = path.stat().st_size
+    matches = [
+        image
+        for image in images
+        if attrs(image).get("fileName") == path.name
+        and attrs(image).get("fileSize") == size
+        and attrs(image).get("state") not in CREATIVE_DEAD_STATES
+    ]
+    rejected = [
+        image
+        for image in images
+        if attrs(image).get("fileName") == path.name
+        and attrs(image).get("fileSize") == size
+        and attrs(image).get("state") == "REJECTED"
+    ]
+    if not matches and rejected:
         fail(
-            f"cannot replace the {label} screenshots once the version is in a review "
-            "submission; App Store Connect differs from the repository"
+            f"App Review rejected {path.name}; replace the image (a new file name) and re-run. "
+            f"Details: {json.dumps(attrs(rejected[0]).get('stateDetails'))}"
         )
-
-    shot_set = existing or ensure_screenshot_set(client, version_loc_id, display_type)
-    set_id = shot_set["id"]
-
-    # Old ASC ids still on the set; pop front when deleting for capacity or final cleanup.
-    pending_old_ids = list_screenshot_ids(client, set_id)
-
-    # Upload replacements one at a time. ASC rejects new reservations when the set is
-    # at capacity, so delete one pending old screenshot before each upload when full.
-    # If a mid-run upload fails, the live set may be mixed (some olds removed, some news
-    # uploaded); fix the error and re-run, or restore screenshots in App Store Connect.
-    for path in pngs:
-        current_ids = list_screenshot_ids(client, set_id)
-        if len(current_ids) >= APP_SCREENSHOT_SET_MAX:
-            if not pending_old_ids:
-                fail(
-                    f"ASC {label} screenshot set at capacity ({APP_SCREENSHOT_SET_MAX}) "
-                    f"with no tracked old screenshots left to replace"
-                )
-            delete_screenshots(client, [pending_old_ids.pop(0)])
-        upload_screenshot_file(client, set_id, path)
-
-    if pending_old_ids:
-        delete_screenshots(client, pending_old_ids)
-        print(f"  removed {len(pending_old_ids)} previous ASC {label} screenshot(s)")
-    return True
+    return max(matches, key=lambda image: attrs(image).get("createdDate") or "") if matches else None
 
 
-def iter_collection(client: AscClient, path: str) -> list[dict[str, Any]]:
-    """Return every record in an ASC collection, following links.next."""
-    rows: list[dict[str, Any]] = []
-    while path:
-        payload = client.get(path)
-        rows.extend(payload.get("data") or [])
-        next_url = (payload.get("links") or {}).get("next")
-        if not next_url:
-            break
-        path = next_url
-    return rows
+def sync_creative_assets(
+    asc: asc_cli.Asc,
+    *,
+    app_id: str,
+    version_id: str,
+    locale: str,
+    creative_dir: Path,
+    editable: bool,
+) -> dict[str, str]:
+    """Put the repository's header and search results images on the version.
+
+    An image is uploaded to the Asset Library once (matched by file name and size)
+    and reviewed on its own. Only approved images are placed, because a version
+    that is already approved only takes approved assets; one that is still in
+    review or not yet submitted is placed on a later run. Placements change only
+    while the version is editable. Returns placement type -> outcome.
+    """
+    sources = creative_sources(creative_dir)
+    library_id = (data(call(asc, "asset-library", "view", "--app", app_id)) or {}).get("id")
+    if not library_id:
+        fail(f"App Store Connect returned no Asset Library for app {app_id}")
+    images = library_images(asc, library_id)
+    version_loc = version_localization(asc, version_id, locale)
+    outcomes: dict[str, str] = {}
+    to_review: list[tuple[str, dict[str, Any]]] = []
+    for placement_type, label, path in sources:
+        image = library_image_for(images, path)
+        if image is None:
+            if not editable:
+                fail(f"cannot upload the {label} image while the version waits for review")
+            # asc waits for processing and prints a receipt (imageId, ready, state).
+            receipt = call(asc, "asset-library", "images", "upload", "--library-id", library_id, "--file", str(path))
+            if not receipt.get("imageId") or not receipt.get("ready"):
+                fail(f"Apple did not finish processing the {label} image {path.name}: {json.dumps(receipt)}")
+            image = {"id": receipt["imageId"], "attributes": {"fileName": path.name, "state": receipt.get("state")}}
+            print(f"  uploaded {path.name} to the Asset Library ({image['id']})")
+        state = attrs(image).get("state") or ""
+        if state in CREATIVE_UNSUBMITTED_STATES or not state:
+            to_review.append((label, image))
+            outcomes[placement_type] = "submitted for review"
+            continue
+        if state in CREATIVE_PENDING_STATES:
+            outcomes[placement_type] = f"in App Review ({state}); placed on a later run"
+            print(f"  {label}: {path.name} is {state}; it is placed once App Review approves it")
+            continue
+        if state != "APPROVED":
+            fail(f"the {label} image {path.name} is {state}; resolve it in App Store Connect")
+        current = rows(
+            call(
+                asc, "localizations", "placements", "list", "--localization-id", version_loc["id"],
+                "--placement-type", placement_type, "--include", "image",
+            )
+        )
+        if any(related_id(row, "image") == image["id"] for row in current):
+            outcomes[placement_type] = "already placed"
+            print(f"  {label}: {path.name} is already on the product page")
+            continue
+        if not editable:
+            fail(f"cannot change the {label} while the version waits for review")
+        if current:
+            call(
+                asc, "localizations", "placements", "swap", "--localization-id", version_loc["id"],
+                "--image-id", image["id"], "--placement-type", placement_type, "--placement-id", current[0]["id"],
+                "--confirm",
+            )
+        else:
+            call(
+                asc, "localizations", "placements", "create", "--localization-id", version_loc["id"],
+                "--image-id", image["id"], "--placement-type", placement_type, "--placement-group", "DEFAULT_PROFILE",
+            )
+        outcomes[placement_type] = "placed"
+        print(f"  {label}: placed {path.name} on the product page")
+    if to_review:
+        submit_creative_review(asc, app_id, to_review)
+    return outcomes
+
+
+def submit_creative_review(asc: asc_cli.Asc, app_id: str, images: list[tuple[str, dict[str, Any]]]) -> str:
+    """Send not-yet-reviewed creative images to App Review in a submission of their own."""
+    submission = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
+    submission_id = submission.get("id")
+    if not submission_id:
+        fail("asc did not report the new review submission's id")
+    for label, image in images:
+        call(
+            asc, "review", "items-add", "--submission", submission_id, "--item-type", "appAssetLibraryImages",
+            "--item-id", image["id"], "--if-exists", "skip",
+        )
+        print(f"  {label}: {attrs(image).get('fileName')} added to creative review submission {submission_id}")
+    items = submission_items(asc, submission_id)
+    unexpected = [item["id"] for item in items if not related_id(item, "appAssetLibraryImage")]
+    if unexpected or len(items) != len(images):
+        fail(f"review submission {submission_id} holds unexpected items {unexpected}; not submitting it")
+    call(asc, "review", "submissions-submit", "--id", submission_id, "--confirm")
+    print(f"  submitted {len(images)} creative image(s) for App Review ({submission_id})")
+    return submission_id
 
 
 def intended_product_ids() -> set[str]:
     """Product IDs the release is allowed to submit, from the canonical catalog."""
-    catalog = json.loads(
-        (ROOT / "store" / "catalog" / "products.json").read_text(encoding="utf-8")
-    )
+    catalog = json.loads((ROOT / "store" / "catalog" / "products.json").read_text(encoding="utf-8"))
     ids: set[str] = set()
     for group in ("subscriptions", "consumables", "tips"):
         for item in catalog.get(group) or []:
@@ -631,661 +508,258 @@ class ProductSubmitError(Exception):
 class ProductSubmitResult:
     """Outcome of attaching products to a review submission."""
 
-    def __init__(
-        self,
-        submission_id: str,
-        submitted: int,
-        added_items: bool,
-        has_products: bool = False,
-        pending_in_app_purchases: list[tuple[str, str, str]] | None = None,
-    ) -> None:
+    def __init__(self, submission_id: str, attached: int, added_items: bool, has_products: bool = False) -> None:
         self.submission_id = submission_id
-        self.submitted = submitted
+        # Intended products the draft now holds (attached now or by an earlier run).
+        self.attached = attached
         self.added_items = added_items
-        # True when the draft holds intended products (attached now or in an
-        # earlier run), so a catch-up retry can still submit the draft.
+        # True when the draft holds intended products, so a catch-up retry can
+        # still submit the draft even when nothing new was attached.
         self.has_products = has_products
-        # Ready-to-Submit catalog IAPs (id, name, product id) not sent yet; the
-        # version submit path sends them only after its final build recheck.
-        self.pending_in_app_purchases = pending_in_app_purchases or []
 
 
-# States that mean the product can still be (re)attached to a review.
-SUBMITTABLE_PRODUCT_STATES = {
-    "READY_TO_SUBMIT",
-    "DEVELOPER_REJECTED",
-    "READY_FOR_REVIEW",
-}
+def draft_submission_ids(asc: asc_cli.Asc, app_id: str) -> list[str]:
+    payload = call(
+        asc, "review", "submissions-list", "--app", app_id, "--platform", PLATFORM, "--state", "READY_FOR_REVIEW",
+        "--paginate",
+    )
+    return [row["id"] for row in rows(payload)]
 
 
-def get_or_create_draft_submission(client: AscClient, app_id: str) -> str:
+def get_or_create_draft_submission(asc: asc_cli.Asc, app_id: str) -> str:
     """Return the app's READY_FOR_REVIEW draft review submission, creating one."""
-    existing = client.get(
-        f"/apps/{app_id}/reviewSubmissions?"
-        + urllib.parse.urlencode({"filter[state]": "READY_FOR_REVIEW", "limit": "5"})
-    )
-    for row in existing.get("data") or []:
-        return row["id"]
-    submission = client.post(
-        "/reviewSubmissions",
-        {
-            "data": {
-                "type": "reviewSubmissions",
-                "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
-            }
-        },
-    )
-    return submission["data"]["id"]
+    for submission_id in draft_submission_ids(asc, app_id):
+        return submission_id
+    created = data(call(asc, "review", "submissions-create", "--app", app_id, "--platform", PLATFORM)) or {}
+    if not created.get("id"):
+        fail("asc did not report the new review submission's id")
+    return created["id"]
 
 
-def draft_item_relationships(client: AscClient, submission_id: str) -> list[dict[str, Any]]:
-    """Return the draft's items with their version relationships populated.
+ITEM_RELATIONSHIPS = ("appStoreVersion", "subscriptionVersion", "inAppPurchaseVersion", "appAssetLibraryImage")
 
-    App Store Connect omits `relationships` from Review Submission Items unless
-    they are requested with `include`, so both relationship readers must ask for
-    the version relationships explicitly.
-    """
-    return iter_collection(
-        client,
-        f"/reviewSubmissions/{submission_id}/items"
-        "?limit=50&include=subscriptionVersion,appStoreVersion",
+
+def submission_items(asc: asc_cli.Asc, submission_id: str) -> list[dict[str, Any]]:
+    """The submission's items with their related ids (asc asks for them explicitly)."""
+    return rows(
+        call(
+            asc, "review", "items-list", "--submission", submission_id, "--include", ",".join(ITEM_RELATIONSHIPS),
+            "--paginate",
+        )
     )
 
 
-def draft_item_version_ids(client: AscClient, submission_id: str) -> set[str]:
-    """Return the subscription/app version ids already attached to a draft."""
+def draft_item_version_ids(asc: asc_cli.Asc, submission_id: str) -> set[str]:
+    """The app, subscription and in-app purchase version ids already in a draft."""
     ids: set[str] = set()
-    for item in draft_item_relationships(client, submission_id):
-        relationships = item.get("relationships") or {}
-        for name in ("subscriptionVersion", "appStoreVersion", "inAppPurchaseVersion"):
-            related = (relationships.get(name) or {}).get("data") or {}
-            if related.get("id"):
-                ids.add(related["id"])
+    for item in submission_items(asc, submission_id):
+        for name in ITEM_RELATIONSHIPS[:3]:
+            found = related_id(item, name)
+            if found:
+                ids.add(found)
     return ids
 
 
-def draft_holds_app_version(client: AscClient, submission_id: str) -> bool:
-    """Return True if any item in the draft references an app store version."""
-    for item in draft_item_relationships(client, submission_id):
-        related = (
-            ((item.get("relationships") or {}).get("appStoreVersion") or {}).get("data")
-            or {}
-        )
-        if related.get("id"):
-            return True
-    return False
+def draft_holds_app_version(asc: asc_cli.Asc, submission_id: str) -> bool:
+    return any(related_id(item, "appStoreVersion") for item in submission_items(asc, submission_id))
 
 
-def submit_product_draft(client: AscClient, submission_id: str) -> None:
-    """Submit a draft review submission.
-
-    Used on the catch-up path when the app version is already under review and a
-    late Ready-to-Submit product was attached to a new draft: the draft is
-    submitted on its own so the product actually reaches review. Callers must
-    ensure the draft holds only products intended for this release.
-    """
-    client.request(
-        "PATCH",
-        f"/reviewSubmissions/{submission_id}",
-        body={
-            "data": {
-                "type": "reviewSubmissions",
-                "id": submission_id,
-                "attributes": {"submitted": True},
-            }
-        },
-    )
-    print(f"  submitted product review submission {submission_id}")
-
-
-def current_subscription_version(
-    client: AscClient, subscription_id: str
-) -> str | None:
-    """Return the subscription's current in-flight version id, if any.
-
-    App Store Connect allows only one in-flight version per subscription, so the
-    highest-numbered version in a submittable state is the one to attach.
-    """
-    versions = iter_collection(client, f"/subscriptions/{subscription_id}/versions")
-    candidates = [v for v in versions if (v.get("attributes") or {}).get("version")]
-    if not candidates:
+def current_version_id(versions: list[dict[str, Any]]) -> str | None:
+    """The highest-numbered version (App Store Connect allows one in flight per product)."""
+    numbered = [v for v in versions if attrs(v).get("version") is not None]
+    if not numbered:
         return versions[0]["id"] if versions else None
-    return max(candidates, key=lambda v: v["attributes"]["version"])["id"]
+    return max(numbered, key=lambda v: int(attrs(v)["version"]))["id"]
 
 
-def post_in_app_purchase_submission(client: AscClient, iap_id: str) -> None:
-    """Send one catalog IAP to App Review (an immediate, standalone submission)."""
-    client.post(
-        "/inAppPurchaseSubmissions",
-        {
-            "data": {
-                "type": "inAppPurchaseSubmissions",
-                "relationships": {
-                    "inAppPurchaseV2": {"data": {"type": "inAppPurchases", "id": iap_id}}
-                },
-            }
-        },
-    )
-
-
-def submit_deferred_in_app_purchases(client: AscClient, result: ProductSubmitResult) -> int:
-    """Send the IAPs a deferred submit_in_app_purchases() call collected.
-
-    Raises ProductSubmitError (after trying every product) when any of them fails,
-    so the caller can stop before submitting the app version.
-    """
-    failures: list[str] = []
-    sent = 0
-    for iap_id, name, pid in result.pending_in_app_purchases:
-        try:
-            post_in_app_purchase_submission(client, iap_id)
-        except SystemExit:
-            failures.append(f"in-app purchase {name} ({pid})")
-            continue
-        sent += 1
-        print(f"  in-app purchase {name}: submitted for review")
-    result.pending_in_app_purchases = []
-    result.submitted += sent
-    if failures:
-        raise ProductSubmitError(
-            "these required products were not added to App Review: "
-            + "; ".join(failures)
-            + ". Resolve them in App Store Connect and rerun the release."
-        )
-    return sent
-
-
-def submit_in_app_purchases(
-    client: AscClient,
+def attach_products(
+    asc: asc_cli.Asc,
     app_id: str,
     *,
+    submission_id: str,
     intended_ids: set[str] | None = None,
-    submission_id: str | None = None,
-    defer_in_app_purchases: bool = False,
 ) -> ProductSubmitResult:
-    """Attach Ready-to-Submit subscriptions / IAPs to App Review.
+    """Add the catalog's Ready-to-Submit subscriptions and in-app purchases to a draft.
 
-    As of the 2026 App Store Connect workflow, subscriptions are added to the
-    app's review submission through the `subscriptionVersion` relationship on
-    Review Submission Items — not the `subscription` relationship, which the API
-    rejects. Attaching the current in-flight version also clears a
-    `DEVELOPER_REJECTED` state left by a prior submission (for example when a
-    plan was removed from an earlier review). Consumables and tips use the
-    separate `inAppPurchaseSubmissions` endpoint.
-
-    Only products listed in `store/catalog/products.json` are considered, so an
-    unrelated Ready-to-Submit plan, credit pack, or tip is not dragged into this
-    release.
-
-    An IAP submission goes to App Review immediately, so with
-    defer_in_app_purchases the IAPs are only collected (see
-    submit_deferred_in_app_purchases); subscriptions are still attached to the
-    draft, which nothing submits before the caller's final checks.
+    Subscriptions attach through their current version; a version left
+    DEVELOPER_REJECTED by an earlier submission is attached again. In-app
+    purchases attach through their current version the same way. Only products
+    in store/catalog/products.json are considered, so an unrelated
+    Ready-to-Submit product is never dragged into a release. Nothing reaches App
+    Review until the caller submits the draft.
     """
     if intended_ids is None:
         intended_ids = intended_product_ids()
-
     if not intended_ids:
         print("  catalog has no products to submit")
-        return ProductSubmitResult(submission_id or "", 0, False)
-
-    if submission_id is None:
-        submission_id = get_or_create_draft_submission(client, app_id)
-
-    # Idempotency: a retry reuses the same draft, so skip anything already
-    # attached instead of posting a duplicate that App Store Connect rejects.
-    already_attached = draft_item_version_ids(client, submission_id)
-
-    submitted = 0
-    added_items = False
-    has_products = False
+        return ProductSubmitResult(submission_id, 0, False)
+    # A retry reuses the same draft: skip what is already attached.
+    already = draft_item_version_ids(asc, submission_id)
+    attached = 0
+    added = False
     failures: list[str] = []
 
-    for group in iter_collection(
-        client, f"/apps/{app_id}/subscriptionGroups?limit=200"
-    ):
-        for sub in iter_collection(
-            client, f"/subscriptionGroups/{group['id']}/subscriptions?limit=200"
-        ):
-            attrs = sub.get("attributes") or {}
-            pid = attrs.get("productId") or ""
-            if pid not in intended_ids:
-                continue
-            if attrs.get("state") not in SUBMITTABLE_PRODUCT_STATES:
-                continue
-            name = attrs.get("name") or sub["id"]
-            version_id = current_subscription_version(client, sub["id"])
-            if not version_id:
-                failures.append(f"subscription {name} ({pid}): no version to submit")
-                continue
-            if version_id in already_attached:
-                submitted += 1
-                has_products = True
-                print(f"  subscription {name}: already attached (idempotent)")
-                continue
-            try:
-                client.post(
-                    "/reviewSubmissionItems",
-                    {
-                        "data": {
-                            "type": "reviewSubmissionItems",
-                            "relationships": {
-                                "reviewSubmission": {
-                                    "data": {
-                                        "type": "reviewSubmissions",
-                                        "id": submission_id,
-                                    }
-                                },
-                                "subscriptionVersion": {
-                                    "data": {
-                                        "type": "subscriptionVersions",
-                                        "id": version_id,
-                                    }
-                                },
-                            },
-                        }
-                    },
-                )
-            except SystemExit:
-                failures.append(f"subscription {name} ({pid})")
-                continue
-            submitted += 1
-            added_items = True
-            has_products = True
-            print(f"  subscription {name}: attached to review submission")
+    candidates: list[tuple[str, str, str, str, list[dict[str, Any]]]] = []
+    for sub in rows(call(asc, "subscriptions", "list", "--app", app_id, "--paginate")):
+        a = attrs(sub)
+        if a.get("productId") in intended_ids and a.get("state") in SUBMITTABLE_PRODUCT_STATES:
+            versions = rows(call(asc, "subscriptions", "versions", "list", "--subscription-id", sub["id"], "--paginate"))
+            candidates.append(("subscription", "subscriptionVersions", a.get("name") or sub["id"], a["productId"], versions))
+    for iap in rows(call(asc, "iap", "list", "--app", app_id, "--paginate")):
+        a = attrs(iap)
+        if a.get("productId") in intended_ids and a.get("state") == "READY_TO_SUBMIT":
+            versions = rows(call(asc, "iap", "versions", "list", "--iap-id", iap["id"], "--paginate"))
+            candidates.append(("in-app purchase", "inAppPurchaseVersions", a.get("name") or iap["id"], a["productId"], versions))
 
-    pending: list[tuple[str, str, str]] = []
-    for iap in iter_collection(client, f"/apps/{app_id}/inAppPurchasesV2?limit=200"):
-        attrs = iap.get("attributes") or {}
-        pid = attrs.get("productId") or ""
-        if pid not in intended_ids:
+    for kind, item_type, name, pid, versions in candidates:
+        version_id = current_version_id(versions)
+        if not version_id:
+            failures.append(f"{kind} {name} ({pid}): no version to submit")
             continue
-        if attrs.get("state") != "READY_TO_SUBMIT":
-            continue
-        name = attrs.get("name") or iap["id"]
-        if defer_in_app_purchases:
-            pending.append((iap["id"], name, pid))
-            print(f"  in-app purchase {name}: will be submitted after the final build check")
+        if version_id in already:
+            attached += 1
+            print(f"  {kind} {name}: already attached (idempotent)")
             continue
         try:
-            post_in_app_purchase_submission(client, iap["id"])
-        except SystemExit:
-            failures.append(f"in-app purchase {name} ({pid})")
+            asc.run(
+                "review", "items-add", "--submission", submission_id, "--item-type", item_type, "--item-id", version_id,
+                "--if-exists", "skip",
+            )
+        except asc_cli.AscError as exc:
+            failures.append(f"{kind} {name} ({pid}): {exc}")
             continue
-        submitted += 1
-        print(f"  in-app purchase {name}: submitted for review")
-
-    print(f"  in-app purchases / subscriptions submitted: {submitted}")
+        attached += 1
+        added = True
+        print(f"  {kind} {name}: attached to review submission")
+    print(f"  in-app purchases / subscriptions in the draft: {attached}")
     if failures:
         raise ProductSubmitError(
             "these required products were not added to App Review: "
             + "; ".join(failures)
             + ". Resolve them in App Store Connect and rerun the release."
         )
-    return ProductSubmitResult(submission_id, submitted, added_items, has_products, pending)
+    return ProductSubmitResult(submission_id, attached, added, attached > 0)
 
 
-def submit_for_review(
-    client: AscClient,
-    app_id: str,
-    version_id: str,
-    version_state: str = "",
-    *,
-    submission_id: str | None = None,
-) -> None:
-    # Reuse a draft submission when one already exists (an earlier attempt can
-    # leave a READY_FOR_REVIEW submission that was never submitted).
-    if submission_id is None:
-        submission_id = get_or_create_draft_submission(client, app_id)
+def submit_draft(asc: asc_cli.Asc, submission_id: str) -> None:
+    call(asc, "review", "submissions-submit", "--id", submission_id, "--confirm")
+    print(f"  submitted review submission {submission_id}")
 
-    items_versions = draft_item_version_ids(client, submission_id)
-    # READY_FOR_REVIEW means the version is already held by this draft submission.
-    already_added = version_state == "READY_FOR_REVIEW" or version_id in items_versions
-    if not already_added:
-        client.post(
-            "/reviewSubmissionItems",
-            {
-                "data": {
-                    "type": "reviewSubmissionItems",
-                    "relationships": {
-                        "reviewSubmission": {
-                            "data": {"type": "reviewSubmissions", "id": submission_id}
-                        },
-                        "appStoreVersion": {
-                            "data": {"type": "appStoreVersions", "id": version_id}
-                        },
-                    },
-                }
-            },
-        )
 
-    # Submitting is a PATCH with submitted=true; there is no /submit action.
-    client.request(
-        "PATCH",
-        f"/reviewSubmissions/{submission_id}",
-        body={
-            "data": {
-                "type": "reviewSubmissions",
-                "id": submission_id,
-                "attributes": {"submitted": True},
-            }
-        },
-    )
-    print(
-        f"  submitted App Store version {version_id} for review "
-        f"(submission {submission_id})"
+def add_version_to_draft(asc: asc_cli.Asc, version_id: str, version_state: str, *, submission_id: str) -> None:
+    # READY_FOR_REVIEW means the version is already held by a draft submission.
+    if version_state == "READY_FOR_REVIEW" or version_id in draft_item_version_ids(asc, submission_id):
+        return
+    call(
+        asc, "review", "items-add", "--submission", submission_id, "--item-type", "appStoreVersions",
+        "--item-id", version_id, "--if-exists", "skip",
     )
 
 
-RELEASE_TYPE_PUBLIC = "AFTER_APPROVAL"
-RELEASE_TYPE_MANUAL = "MANUAL"
-
-
-def verify_build(
-    client: AscClient, build_id: str, version_string: str, build_number: str
-) -> None:
+def verify_build(asc: asc_cli.Asc, build_id: str, version_string: str, build_number: str) -> None:
     """Re-read the build and refuse anything but this run's processed build."""
-    payload = client.get(
-        f"/builds/{build_id}?"
-        + urllib.parse.urlencode(
-            {
-                "include": "preReleaseVersion",
-                "fields[builds]": "version,processingState,expired,preReleaseVersion",
-                "fields[preReleaseVersions]": "version,platform",
-            }
-        )
-    )
-    data = payload.get("data") or {}
-    attrs = data.get("attributes") or {}
-    pre = next(
-        (row for row in payload.get("included") or [] if row.get("type") == "preReleaseVersions"),
-        {},
-    )
-    pre_attrs = pre.get("attributes") or {}
+    payload = call(asc, "builds", "list", "--app", ASC_APP_ID, "--build-number", build_number, "--version",
+                   version_string, "--platform", PLATFORM, "--processing-state", "all", "--include", "preReleaseVersion")
+    included = {(row.get("type"), row.get("id")): row for row in (payload or {}).get("included") or []}
+    build = next((row for row in rows(payload) if row.get("id") == build_id), None)
     problems = []
-    if data.get("id") != build_id:
-        problems.append(f"id {data.get('id')!r}")
-    if attrs.get("version") != build_number:
-        problems.append(f"build number {attrs.get('version')!r}")
-    if attrs.get("processingState") != "VALID":
-        problems.append(f"processing state {attrs.get('processingState')!r}")
-    if attrs.get("expired"):
+    if build is None:
+        problems.append("not listed for this app, version and build number")
+        a: dict[str, Any] = {}
+        pre: dict[str, Any] = {}
+    else:
+        a = attrs(build)
+        pre = attrs(included.get(("preReleaseVersions", related_id(build, "preReleaseVersion"))))
+    if build is not None and a.get("version") != build_number:
+        problems.append(f"build number {a.get('version')!r}")
+    if build is not None and a.get("processingState") != "VALID":
+        problems.append(f"processing state {a.get('processingState')!r}")
+    if a.get("expired"):
         problems.append("expired")
-    if pre_attrs.get("version") != version_string or pre_attrs.get("platform") != "IOS":
-        problems.append(f"version {pre_attrs.get('platform')} {pre_attrs.get('version')!r}")
+    if build is not None and (pre.get("version") != version_string or pre.get("platform") != PLATFORM):
+        problems.append(f"version {pre.get('platform')} {pre.get('version')!r}")
     if problems:
         fail(
-            f"build {build_id} is not {version_string} ({build_number}), VALID and unexpired: "
-            + ", ".join(problems)
+            f"build {build_id} is not {version_string} ({build_number}), VALID and unexpired: " + ", ".join(problems)
         )
 
 
-def attached_build_id(client: AscClient, version_id: str) -> str | None:
-    payload = client.get(f"/appStoreVersions/{version_id}/build")
-    return (payload.get("data") or {}).get("id")
+def attached_build_id(asc: asc_cli.Asc, version_id: str) -> str | None:
+    payload = call(asc, "versions", "view", "--version-id", version_id, "--include", "build")
+    return related_id(data(payload) or {}, "build")
 
 
-def confirm_selected_build(client: AscClient, version_id: str, build_id: str) -> None:
-    current = attached_build_id(client, version_id)
+def confirm_selected_build(asc: asc_cli.Asc, version_id: str, build_id: str) -> None:
+    current = attached_build_id(asc, version_id)
     if current != build_id:
-        fail(
-            f"App Store version {version_id} has build {current or 'none'} selected, "
-            f"expected {build_id}; not submitting"
-        )
+        fail(f"App Store version {version_id} has build {current or 'none'} selected, expected {build_id}; not submitting")
 
 
-def select_build(
-    client: AscClient,
-    version_id: str,
-    build_id: str,
-    version_string: str,
-    build_number: str,
-) -> None:
+def select_build(asc: asc_cli.Asc, version_id: str, build_id: str, version_string: str, build_number: str) -> None:
     """Explicitly select this run's build for the version, then read it back."""
-    verify_build(client, build_id, version_string, build_number)
-    client.request(
-        "PATCH",
-        f"/appStoreVersions/{version_id}/relationships/build",
-        body={"data": {"type": "builds", "id": build_id}},
-    )
-    confirm_selected_build(client, version_id, build_id)
+    verify_build(asc, build_id, version_string, build_number)
+    call(asc, "versions", "attach-build", "--version-id", version_id, "--build-id", build_id)
+    confirm_selected_build(asc, version_id, build_id)
     print(f"  selected build {build_number} ({build_id}) for version {version_string}")
 
 
-def set_release_type(client: AscClient, version_id: str, *, public_release: bool) -> None:
+def set_release_type(asc: asc_cli.Asc, version_id: str, *, public_release: bool) -> None:
     release_type = RELEASE_TYPE_PUBLIC if public_release else RELEASE_TYPE_MANUAL
-    client.patch(
-        f"/appStoreVersions/{version_id}",
-        {
-            "data": {
-                "type": "appStoreVersions",
-                "id": version_id,
-                "attributes": {"releaseType": release_type},
-            }
-        },
-    )
+    call(asc, "versions", "update", "--version-id", version_id, "--release-type", release_type)
     print(
         "  release type: "
         + ("release automatically after approval" if public_release else "manual release after approval")
     )
 
 
-class _RecordingClient:
-    """Offline AscClient stand-in for the dry-run self-check."""
+class _ScriptedAsc:
+    """Offline asc stand-in for the dry-run self-check: answers by command prefix."""
 
-    def __init__(self, collections: dict[str, list[dict[str, Any]]]) -> None:
-        self._collections = collections
-        self.posts: list[tuple[str, dict[str, Any]]] = []
-        self.requests: list[tuple[str, str, dict[str, Any] | None]] = []
+    def __init__(self, answers: dict[tuple[str, ...], Any]) -> None:
+        self.answers = answers
+        self.calls: list[tuple[str, ...]] = []
 
-    def get(self, path: str) -> dict[str, Any]:
-        return {"data": self._collections.get(path, [])}
-
-    def post(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
-        self.posts.append((path, body))
-        return {"data": {"id": "fake"}}
-
-    def patch(self, path: str, body: dict[str, Any]) -> dict[str, Any]:  # pragma: no cover
-        raise AssertionError(f"unexpected PATCH {path}")
-
-    def request(self, method: str, path: str, body: dict[str, Any] | None = None) -> Any:
-        self.requests.append((method, path, body))
-        return {"data": {"id": "fake"}}
+    def run(self, *args: str, **_: Any) -> Any:
+        self.calls.append(args)
+        for prefix, answer in sorted(self.answers.items(), key=lambda kv: -len(kv[0])):
+            if args[: len(prefix)] == prefix:
+                return answer(args) if callable(answer) else answer
+        if args[:2] in {("review", "items-add"), ("review", "submissions-submit")}:
+            return {"data": {"id": "ITEM"}}
+        raise AssertionError(f"unexpected asc call {args}")
 
 
 def dry_run_self_check() -> None:
-    """Exercise the product-submission path offline so dry-run covers it."""
-    app_id = "APP"
-    groups_path = f"/apps/{app_id}/subscriptionGroups?limit=200"
-    subs_path = "/subscriptionGroups/G1/subscriptions?limit=200"
-    submission_path = (
-        f"/apps/{app_id}/reviewSubmissions?"
-        + urllib.parse.urlencode({"filter[state]": "READY_FOR_REVIEW", "limit": "5"})
-    )
-    ids = {
-        "plus.monthly": "com.apoorvdarshan.calorietracker.plus.monthly",
-        "plus.yearly": "com.apoorvdarshan.calorietracker.plus.yearly",
-        "pro.monthly": "com.apoorvdarshan.calorietracker.pro.monthly",
-        "pro.yearly": "com.apoorvdarshan.calorietracker.pro.yearly",
-    }
-    collections: dict[str, list[dict[str, Any]]] = {
-        groups_path: [{"id": "G1"}],
-        subs_path: [
-            {
-                "id": f"S{i}",
-                "attributes": {
-                    "name": name,
-                    "productId": pid,
-                    # One plan is still DEVELOPER_REJECTED from a prior submit.
-                    "state": "DEVELOPER_REJECTED" if i == 0 else "READY_TO_SUBMIT",
-                },
-            }
-            for i, (name, pid) in enumerate(ids.items())
-        ]
-        + [
-            {
-                "id": "SX",
-                "attributes": {
-                    "name": "Legacy",
-                    "productId": "com.apoorvdarshan.calorietracker.legacy",
-                    "state": "READY_TO_SUBMIT",
-                },
-            }
-        ],
-        submission_path: [{"id": "SUB1"}],
-        f"/apps/{app_id}/inAppPurchasesV2?limit=200": [
-            {
-                "id": "IAP1",
-                "attributes": {
-                    "name": "Credits 50",
-                    "productId": "com.apoorvdarshan.calorietracker.credits.50",
-                    "state": "READY_TO_SUBMIT",
-                },
-            },
-            {
-                "id": "IAP2",
-                "attributes": {
-                    "name": "Tip Snack",
-                    "productId": "com.apoorvdarshan.calorietracker.tip.snack",
-                    # Already approved: must not be resubmitted.
-                    "state": "APPROVED",
-                },
-            },
-        ],
-    }
-    for i in range(len(ids)):
-        # Two versions returned out of order: the higher-numbered current
-        # version must win regardless of response ordering.
-        collections[f"/subscriptions/S{i}/versions"] = [
-            {"id": f"V{i}b", "attributes": {"version": 2, "state": "READY_FOR_REVIEW"}},
-            {"id": f"V{i}", "attributes": {"version": 1, "state": "DEVELOPER_REJECTED"}},
-        ]
-    fake = _RecordingClient(collections)
-    intended = set(ids.values()) | {
-        "com.apoorvdarshan.calorietracker.credits.50",
-        "com.apoorvdarshan.calorietracker.tip.snack",
-    }
-    result = submit_in_app_purchases(fake, app_id, intended_ids=intended)
-    assert result.submitted == 5, f"expected 5 products, got {result.submitted}"
-    assert result.added_items, "expected added_items=True"
-    assert result.submission_id == "SUB1", f"wrong submission: {result.submission_id}"
-    item_posts = [body for path, body in fake.posts if path == "/reviewSubmissionItems"]
-    assert len(item_posts) == 4, f"expected 4 reviewSubmissionItems, got {len(item_posts)}"
-    attached_versions = {
-        body["data"]["relationships"]["subscriptionVersion"]["data"]["id"]
-        for body in item_posts
-    }
-    assert attached_versions == {f"V{i}b" for i in range(4)}, (
-        f"expected the current (v2) version of each subscription, got {attached_versions}"
-    )
-    assert all(
-        body["data"]["relationships"]["reviewSubmission"]["data"]["id"] == "SUB1"
-        for body in item_posts
-    ), "wrong review submission target"
-    iap_posts = [body for path, body in fake.posts if path == "/inAppPurchaseSubmissions"]
-    assert len(iap_posts) == 1, f"expected 1 IAP submission, got {len(iap_posts)}"
-    assert (
-        iap_posts[0]["data"]["relationships"]["inAppPurchaseV2"]["data"]["id"] == "IAP1"
-    ), "wrong IAP submitted (approved products must be skipped)"
-
-    # Retry: the same draft already holds one subscription version, so the rerun
-    # must not post it again (App Store Connect rejects duplicates).
-    collections[
-        "/reviewSubmissions/SUB1/items?limit=50&include=subscriptionVersion,appStoreVersion"
-    ] = [
-        {
-            "id": "ITEM0",
-            "relationships": {
-                "subscriptionVersion": {
-                    "data": {"type": "subscriptionVersions", "id": "V0b"}
-                },
-                "appStoreVersion": {"data": None},
-            },
-        }
+    """Exercise product selection and the submit order offline so dry-run covers them."""
+    pid = "com.apoorvdarshan.calorietracker"
+    subs = [
+        {"id": f"S{i}", "attributes": {"name": n, "productId": f"{pid}.{n}", "state": s}}
+        for i, (n, s) in enumerate(
+            [("plus.monthly", "DEVELOPER_REJECTED"), ("plus.yearly", "READY_TO_SUBMIT"), ("legacy", "READY_TO_SUBMIT")]
+        )
     ]
-    retry = _RecordingClient(collections)
-    result2 = submit_in_app_purchases(retry, app_id, intended_ids=intended)
-    assert result2.submitted == 5, f"expected 5 products on retry, got {result2.submitted}"
-    assert result2.added_items, "retry should still add the missing subscriptions"
-    assert result2.has_products, "retry must report the draft holds products"
-    retry_items = [body for path, body in retry.posts if path == "/reviewSubmissionItems"]
-    retry_versions = {
-        body["data"]["relationships"]["subscriptionVersion"]["data"]["id"]
-        for body in retry_items
-    }
-    assert "V0b" not in retry_versions, "already-attached version was posted again"
-    assert retry_versions == {f"V{i}b" for i in range(1, 4)}, (
-        f"retry attached the wrong versions: {retry_versions}"
-    )
-    assert draft_holds_app_version(retry, "SUB1") is False, "false app-version detection"
-    assert draft_holds_app_version(fake, "SUB1") is False
-    collections[
-        "/reviewSubmissions/SUB1/items?limit=50&include=subscriptionVersion,appStoreVersion"
-    ] = [
-        {
-            "id": "ITEMV",
-            "relationships": {
-                "appStoreVersion": {"data": {"type": "appStoreVersions", "id": "AV1"}},
-                "subscriptionVersion": {"data": None},
-            },
-        }
+    iaps = [
+        {"id": "IAP1", "attributes": {"name": "Credits 50", "productId": f"{pid}.credits.50", "state": "READY_TO_SUBMIT"}},
+        {"id": "IAP2", "attributes": {"name": "Tip", "productId": f"{pid}.tip.snack", "state": "APPROVED"}},
     ]
-    assert draft_holds_app_version(_RecordingClient(collections), "SUB1") is True, (
-        "app-version items must be detected and refused"
-    )
-
-    # Retry a catch-up where the products are already attached: has_products is
-    # true even though nothing was added on this run, so the draft still submits.
-    collections[
-        "/reviewSubmissions/SUB1/items?limit=50&include=subscriptionVersion,appStoreVersion"
-    ] = [
+    versions = {"data": [{"id": "Vold", "attributes": {"version": 1}}, {"id": "Vnew", "attributes": {"version": 2}}]}
+    fake = _ScriptedAsc(
         {
-            "id": f"ITEM{i}",
-            "relationships": {
-                "subscriptionVersion": {
-                    "data": {"type": "subscriptionVersions", "id": f"V{i}b"}
-                },
-                "appStoreVersion": {"data": None},
-            },
-        }
-        for i in range(4)
-    ]
-    attached_only = _RecordingClient(collections)
-    result3 = submit_in_app_purchases(attached_only, app_id, intended_ids=intended)
-    assert result3.added_items is False, "nothing new should attach"
-    assert result3.has_products, "attached-only draft must still report products"
-    assert not [
-        path for path, _ in attached_only.posts if path == "/reviewSubmissionItems"
-    ], "attached-only retry posted a duplicate item"
-
-    # submit_for_review must not re-add an app version already in the draft.
-    review = _RecordingClient(
-        {
-            **collections,
-            "/reviewSubmissions/SUB1/items?limit=50&include=subscriptionVersion,appStoreVersion": [
-                {
-                    "id": "ITEMV",
-                    "relationships": {
-                        "appStoreVersion": {
-                            "data": {"type": "appStoreVersions", "id": "AV1"}
-                        },
-                        "subscriptionVersion": {"data": None},
-                    },
-                }
-            ],
+            ("review", "items-list"): {"data": [{"id": "ITEM0", "relationships": {"subscriptionVersion": {"data": {"id": "S1v"}}}}]},
+            ("subscriptions", "list"): {"data": subs},
+            ("subscriptions", "versions", "list", "--subscription-id", "S0"): versions,
+            ("subscriptions", "versions", "list", "--subscription-id", "S1"): {"data": [{"id": "S1v", "attributes": {"version": 1}}]},
+            ("iap", "list"): {"data": iaps},
+            ("iap", "versions", "list"): {"data": [{"id": "IAPv", "attributes": {"version": 1}}]},
         }
     )
-    submit_for_review(review, app_id, "AV1", "PREPARE_FOR_SUBMISSION", submission_id="SUB1")
-    assert not [
-        path for path, _ in review.posts if path == "/reviewSubmissionItems"
-    ], "app version was posted again on retry"
-    assert any(
-        method == "PATCH"
-        and path == "/reviewSubmissions/SUB1"
-        and body is not None
-        and body["data"]["attributes"]["submitted"] is True
-        for method, path, body in review.requests
-    ), "submission was not PATCHed to submitted=true"
+    intended = {f"{pid}.plus.monthly", f"{pid}.plus.yearly", f"{pid}.credits.50", f"{pid}.tip.snack"}
+    result = attach_products(fake, "APP", submission_id="SUB1", intended_ids=intended)  # type: ignore[arg-type]
+    added = [c for c in fake.calls if c[:2] == ("review", "items-add")]
+    assert [c[c.index("--item-id") + 1] for c in added] == ["Vnew", "IAPv"], f"wrong items added: {added}"
+    assert result.attached == 3 and result.has_products, "already-attached product must still count"
+    assert not [c for c in fake.calls if "S2" in c], "a product outside the catalog was considered"
+    assert not [c for c in fake.calls if c[:2] == ("review", "submissions-submit")], "attaching must not submit"
     print("  dry-run self-check: product submission selection OK")
 
 
@@ -1298,7 +772,7 @@ def version_key(version_string: str) -> tuple[int, ...] | None:
 
 
 def ensure_ios_app_store_version(
-    client: AscClient, *, bundle_id: str, expected_app_id: str, version_string: str
+    asc: asc_cli.Asc, *, bundle_id: str, expected_app_id: str, version_string: str
 ) -> None:
     """Create the App Store version for this release when it does not exist yet.
 
@@ -1310,24 +784,19 @@ def ensure_ios_app_store_version(
     wanted = version_key(version_string)
     if wanted is None:
         fail(f"version {version_string!r} must look like 7.2 or 7.2.1")
-    app_id = find_app(client, bundle_id)
-    if app_id != expected_app_id:
-        fail(f"{bundle_id} resolved to App Store Connect app {app_id}, expected {expected_app_id}")
-    versions = list_ios_app_store_versions(client, app_id)
-    existing = [
-        row for row in versions if (row.get("attributes") or {}).get("versionString") == version_string
-    ]
+    app_id = find_app(asc, bundle_id, expected_app_id)
+    versions = list_ios_app_store_versions(asc, app_id)
+    existing = [row for row in versions if attrs(row).get("versionString") == version_string]
     if len(existing) > 1:
         fail(f"ambiguous App Store versions for {version_string!r} on IOS — got {len(existing)} records")
     if existing:
-        state = (existing[0].get("attributes") or {}).get("appStoreState") or ""
+        state = attrs(existing[0]).get("appStoreState") or ""
         print(f"App Store version {version_string} already exists ({state}); nothing to create")
         return
     problems: list[str] = []
     for row in versions:
-        attrs = row.get("attributes") or {}
-        other = attrs.get("versionString") or ""
-        state = attrs.get("appStoreState") or ""
+        other = attrs(row).get("versionString") or ""
+        state = attrs(row).get("appStoreState") or ""
         if state not in FINISHED_VERSION_STATES:
             problems.append(
                 f"version {other!r} is still {state or 'in an unknown state'}; release or remove it "
@@ -1337,33 +806,17 @@ def ensure_ios_app_store_version(
         if other_key is not None and other_key >= wanted:
             problems.append(f"version {version_string} is not newer than the existing version {other}")
     if problems:
-        fail(
-            f"not creating App Store version {version_string} (nothing was changed):\n  "
-            + "\n  ".join(problems)
-        )
-    response = client.post(
-        "/appStoreVersions",
-        {
-            "data": {
-                "type": "appStoreVersions",
-                "attributes": {"platform": "IOS", "versionString": version_string},
-                "relationships": {"app": {"data": {"type": "apps", "id": app_id}}},
-            }
-        },
-    )
-    new_id = ((response or {}).get("data") or {}).get("id") or "unknown id"
-    created = [
-        row
-        for row in list_ios_app_store_versions(client, app_id)
-        if (row.get("attributes") or {}).get("versionString") == version_string
-    ]
+        fail(f"not creating App Store version {version_string} (nothing was changed):\n  " + "\n  ".join(problems))
+    response = call(asc, "versions", "create", "--app", app_id, "--version", version_string, "--platform", PLATFORM)
+    new_id = (data(response) or {}).get("id") or "unknown id"
+    created = [row for row in list_ios_app_store_versions(asc, app_id) if attrs(row).get("versionString") == version_string]
     if len(created) != 1:
         fail(
             f"created App Store version {version_string} ({new_id}), but reading it back found "
             f"{len(created)} matching records; check App Store Connect, then re-run (a version "
             "that exists by then is reused, never created twice)"
         )
-    state = (created[0].get("attributes") or {}).get("appStoreState") or ""
+    state = attrs(created[0]).get("appStoreState") or ""
     print(f"created App Store version {version_string} ({state or 'state not reported yet'})")
 
 
@@ -1375,6 +828,8 @@ def validate_local_inputs(
     screenshots_dir: Path,
     locale: str,
     upload_whats_new: bool = False,
+    upload_creative: bool = False,
+    creative_dir: Path | None = None,
 ) -> None:
     loc_dir = metadata_dir / "ios" / locale
     if (upload_listing or upload_whats_new) and not loc_dir.is_dir():
@@ -1383,50 +838,37 @@ def validate_local_inputs(
         fail(f"What's New upload is on, but {loc_dir / WHATS_NEW_FIELD[1]} is missing or empty")
     if upload_screenshots:
         staged_screenshot_sets(screenshots_dir)
+    if upload_creative:
+        creative_sources(creative_dir or ROOT / "store" / "creative" / "ios")
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument(
-        "--metadata-dir",
-        type=Path,
-        default=ROOT / "store" / "metadata",
-        help="Prepared listing + what's new tree",
-    )
+    parser.add_argument("--metadata-dir", type=Path, default=ROOT / "store" / "metadata", help="Prepared listing + what's new tree")
     parser.add_argument(
         "--screenshots-dir",
         type=Path,
         default=ROOT / "store" / "metadata" / "screenshots" / "ios",
-        help="Staged screenshots, one folder per set: "
-        + ", ".join(folder for folder, _, _ in SCREENSHOT_SETS),
+        help="Staged screenshots, one folder per set: " + ", ".join(s[0] for s in SCREENSHOT_SETS),
+    )
+    parser.add_argument(
+        "--creative-dir",
+        type=Path,
+        default=ROOT / "store" / "creative" / "ios",
+        help="Product page header and search results images: " + ", ".join(s[0] for s in CREATIVE_SLOTS),
     )
     parser.add_argument("--locale", default="en-US")
     parser.add_argument("--bundle-id", default=DEFAULT_BUNDLE_ID)
+    parser.add_argument("--version", help="Marketing version from release tag (e.g. 1.2.3 when tag is v1.2.3)")
+    parser.add_argument("--build-id", help="App Store Connect id of the build uploaded by this run (required to submit)")
+    parser.add_argument("--build-number", help="CFBundleVersion of the build uploaded by this run (required to submit)")
+    parser.add_argument("--dry-run", action="store_true", help="Validate flags and local files only — no asc calls")
     parser.add_argument(
-        "--version",
-        help="Marketing version from release tag (e.g. 1.2.3 when tag is v1.2.3)",
-    )
-    parser.add_argument(
-        "--build-id",
-        help="App Store Connect id of the build uploaded by this run (required to submit)",
-    )
-    parser.add_argument(
-        "--build-number",
-        help="CFBundleVersion of the build uploaded by this run (required to submit)",
-    )
-    parser.add_argument(
-        "--dry-run",
-        action="store_true",
-        help="Validate flags and local files only — no ASC HTTP calls",
-    )
-    parser.add_argument(
-        "--create-version",
-        action="store_true",
-        help="Create the App Store version for --version when it is missing (CREATE_IOS_VERSION)",
+        "--create-version", action="store_true", help="Create the App Store version for --version when it is missing (CREATE_IOS_VERSION)"
     )
     args = parser.parse_args()
 
-    # find_app() picks the app by this id, so only the app this pipeline releases is accepted.
+    # find_app() checks the pinned app's bundle id, so only this app is accepted.
     if args.bundle_id != DEFAULT_BUNDLE_ID:
         fail(f"this publisher only supports the Fud AI iOS bundle ({DEFAULT_BUNDLE_ID})")
 
@@ -1442,32 +884,27 @@ def main() -> None:
             print(f"ASC dry-run — would create App Store version {args.version} if it is missing")
             return
         ensure_ios_app_store_version(
-            client_from_environment(),
-            bundle_id=args.bundle_id,
-            expected_app_id=ASC_APP_ID,
-            version_string=args.version,
+            asc_from_environment(), bundle_id=args.bundle_id, expected_app_id=ASC_APP_ID, version_string=args.version
         )
         return
 
     do_listing = truthy("UPLOAD_LISTING")
     do_whats_new = truthy("UPLOAD_WHATS_NEW")
     do_screenshots = truthy("UPLOAD_SCREENSHOTS")
+    do_creative = truthy("UPLOAD_CREATIVE_ASSETS")
     do_submit = truthy("SUBMIT_IOS_REVIEW")
     do_public = truthy("PUBLIC_RELEASE")
 
-    if not (do_listing or do_whats_new or do_screenshots or do_submit):
+    if not (do_listing or do_whats_new or do_screenshots or do_creative or do_submit):
         print(
-            "ASC release skipped — UPLOAD_LISTING / UPLOAD_WHATS_NEW / "
-            "UPLOAD_SCREENSHOTS / SUBMIT_IOS_REVIEW are off"
+            "ASC release skipped — UPLOAD_LISTING / UPLOAD_WHATS_NEW / UPLOAD_SCREENSHOTS / "
+            "UPLOAD_CREATIVE_ASSETS / SUBMIT_IOS_REVIEW are off"
         )
         return
     if do_public and not do_submit:
         fail("PUBLIC_RELEASE only applies when SUBMIT_IOS_REVIEW is on")
     if do_submit and not (args.build_id and args.build_number):
-        fail(
-            "submitting needs --build-id and --build-number for the build uploaded by "
-            "this run; an older build is never substituted"
-        )
+        fail("submitting needs --build-id and --build-number for the build uploaded by this run; an older build is never substituted")
 
     validate_local_inputs(
         upload_listing=do_listing,
@@ -1476,34 +913,31 @@ def main() -> None:
         screenshots_dir=args.screenshots_dir,
         locale=args.locale,
         upload_whats_new=do_whats_new,
+        upload_creative=do_creative,
+        creative_dir=args.creative_dir,
     )
 
     if args.dry_run:
-        print("ASC dry-run — local inputs OK; no API calls")
+        print("ASC dry-run — local inputs OK; no asc calls")
         print(
-            f"  bundle={args.bundle_id} listing={do_listing} whats_new={do_whats_new} "
-            f"screenshots={do_screenshots} submit={do_submit} public_release={do_public}"
+            f"  bundle={args.bundle_id} listing={do_listing} whats_new={do_whats_new} screenshots={do_screenshots} "
+            f"creative={do_creative} submit={do_submit} public_release={do_public}"
         )
         if do_submit:
             dry_run_self_check()
         return
 
-    client = client_from_environment()
-
+    asc = asc_from_environment()
     if not args.version:
         fail("--version is required for live ASC calls (pass marketing version from tag)")
 
-    app_id = find_app(client, args.bundle_id)
-    version = get_ios_app_store_version(client, app_id, args.version)
+    app_id = find_app(asc, args.bundle_id)
+    version = get_ios_app_store_version(asc, app_id, args.version)
     version_id = version["id"]
-    state = (version.get("attributes") or {}).get("appStoreState") or ""
-    print(
-        f"ASC app={app_id} version={args.version} id={version_id} state={state}"
-    )
+    state = attrs(version).get("appStoreState") or ""
+    print(f"ASC app={app_id} version={args.version} id={version_id} state={state}")
     edits_text = do_listing or do_whats_new
-    text_parts = " + ".join(
-        name for name, on in (("listing", do_listing), ("What's New", do_whats_new)) if on
-    )
+    text_parts = " + ".join(name for name, on in (("listing", do_listing), ("What's New", do_whats_new)) if on)
     # WAITING_FOR_REVIEW: nothing can change, so a re-run (the submit landed but
     # the job failed afterwards) only checks that App Store Connect already
     # matches. READY_FOR_REVIEW (a draft submission, e.g. after a failed submit)
@@ -1517,121 +951,87 @@ def main() -> None:
             f"version {args.version!r} is not editable for listing/What's New (state={state}); "
             f"expected one of: {', '.join(sorted(TEXT_EDITABLE_VERSION_STATES))}"
         )
-    if do_screenshots and not screenshots_locked and state not in EDITABLE_VERSION_STATES:
+    if (do_screenshots or do_creative) and not screenshots_locked and state not in EDITABLE_VERSION_STATES:
         fail(
-            f"version {args.version!r} is not editable for screenshots (state={state}); "
+            f"version {args.version!r} is not editable for screenshots or creative assets (state={state}); "
             f"expected one of: {', '.join(sorted(EDITABLE_VERSION_STATES))}"
         )
     if do_submit and not waiting and state not in SUBMITTABLE_VERSION_STATES:
-        fail(
-            f"version {args.version!r} cannot be submitted for review (state={state})"
-        )
+        fail(f"version {args.version!r} cannot be submitted for review (state={state})")
 
     # Read-only comparisons first, so a mismatch stops the run before any write.
     if do_screenshots and screenshots_locked:
         print(f"checking ASC screenshots (locked while the version is {state})…")
         upload_screenshots(
-            client,
-            version_id=version_id,
-            locale=args.locale,
-            screenshots_dir=args.screenshots_dir,
-            editable=False,
+            asc, app_id=app_id, version_id=version_id, locale=args.locale, screenshots_dir=args.screenshots_dir, editable=False
         )
     if edits_text and waiting:
         print(f"checking ASC {text_parts} (locked while the version is {state})…")
         upload_listing(
-            client,
-            app_id=app_id,
-            version_id=version_id,
-            locale=args.locale,
-            metadata_dir=args.metadata_dir,
-            include_listing=do_listing,
-            include_whats_new=do_whats_new,
-            editable=False,
+            asc, version_id=version_id, locale=args.locale, metadata_dir=args.metadata_dir,
+            include_listing=do_listing, include_whats_new=do_whats_new, editable=False,
         )
 
     if edits_text and not waiting:
         print(f"uploading ASC {text_parts}…")
         upload_listing(
-            client,
-            app_id=app_id,
-            version_id=version_id,
-            locale=args.locale,
-            metadata_dir=args.metadata_dir,
-            include_listing=do_listing,
-            include_whats_new=do_whats_new,
+            asc, version_id=version_id, locale=args.locale, metadata_dir=args.metadata_dir,
+            include_listing=do_listing, include_whats_new=do_whats_new,
         )
-
     if do_screenshots and not screenshots_locked:
         print("uploading ASC screenshots…")
-        upload_screenshots(
-            client,
-            version_id=version_id,
-            locale=args.locale,
-            screenshots_dir=args.screenshots_dir,
+        upload_screenshots(asc, app_id=app_id, version_id=version_id, locale=args.locale, screenshots_dir=args.screenshots_dir)
+    if do_creative:
+        print("syncing ASC product page header and search results images…")
+        sync_creative_assets(
+            asc, app_id=app_id, version_id=version_id, locale=args.locale, creative_dir=args.creative_dir,
+            editable=not screenshots_locked,
         )
 
     if waiting:
         if do_submit:
             # A rerun after a successful submit: only accept it if review holds
             # exactly this run's build.
-            confirm_selected_build(client, version_id, args.build_id)
-            print(
-                "ASC submit skipped — version already WAITING_FOR_REVIEW (idempotent)"
-            )
+            confirm_selected_build(asc, version_id, args.build_id)
+            print("ASC submit skipped — version already WAITING_FOR_REVIEW (idempotent)")
+            # Products that missed the version's submission go out in a draft of
+            # their own. Only a product-only draft is submitted, so an unrelated
+            # app version never ships from here.
+            draft = get_or_create_draft_submission(asc, app_id)
             try:
-                result = submit_in_app_purchases(client, app_id)
+                result = attach_products(asc, app_id, submission_id=draft)
             except ProductSubmitError as exc:
                 fail(str(exc))
-            # Attaching a product to a fresh draft does not submit it. If the
-            # version is already under review, the draft holding the late
-            # products must be submitted on its own or they never reach review.
-            # `has_products` also covers a retry where an earlier run attached
-            # the products but failed to submit their draft. Only submit a
-            # product-only draft: refuse if it holds an app version (e.g.
-            # another release's) so unrelated items never ship.
-            if result.has_products and result.submission_id:
-                if draft_holds_app_version(client, result.submission_id):
-                    fail(
-                        "refusing to submit a draft that contains an app "
-                        "version; remove it in App Store Connect and rerun"
-                    )
-                submit_product_draft(client, result.submission_id)
+            if result.has_products:
+                if draft_holds_app_version(asc, draft):
+                    fail("refusing to submit a draft that contains an app version; remove it in App Store Connect and rerun")
+                submit_draft(asc, draft)
         print("ASC release step finished")
         return
 
     if do_submit:
         print("selecting this run's build…")
-        select_build(client, version_id, args.build_id, args.version, args.build_number)
-        set_release_type(client, version_id, public_release=do_public)
-        print("attaching in-app purchases / subscriptions to the review submission…")
-        submission_id = get_or_create_draft_submission(client, app_id)
+        select_build(asc, version_id, args.build_id, args.version, args.build_number)
+        set_release_type(asc, version_id, public_release=do_public)
+        print("adding in-app purchases / subscriptions to the review submission…")
+        submission_id = get_or_create_draft_submission(asc, app_id)
         try:
-            # IAP submissions reach App Review immediately, so they wait for the
-            # recheck below; subscriptions only join the unsubmitted draft here.
-            result = submit_in_app_purchases(
-                client, app_id, submission_id=submission_id, defer_in_app_purchases=True
-            )
-        except ProductSubmitError as exc:
             # A first-time subscription must ship with the version, so a failed
-            # required product blocks the whole submission rather than letting
-            # the version enter review without it.
+            # required product blocks the whole submission.
+            result = attach_products(asc, app_id, submission_id=submission_id)
+        except ProductSubmitError as exc:
             fail(f"{exc} Not submitting the app version.")
+        add_version_to_draft(asc, version_id, state, submission_id=submission_id)
         # Recheck immediately before anything goes to App Review: the selection
         # must still be this run's processed build.
-        verify_build(client, args.build_id, args.version, args.build_number)
-        confirm_selected_build(client, version_id, args.build_id)
-        try:
-            submit_deferred_in_app_purchases(client, result)
-        except ProductSubmitError as exc:
-            fail(f"{exc} Not submitting the app version.")
+        verify_build(asc, args.build_id, args.version, args.build_number)
+        confirm_selected_build(asc, version_id, args.build_id)
         print("submitting for App Store review…")
-        submit_for_review(
-            client, app_id, version_id, state, submission_id=submission_id
-        )
-        print(f"  {result.submitted} product(s) went out with the version")
+        submit_draft(asc, submission_id)
+        print(f"  {result.attached} product(s) went out with the version")
 
     print("ASC release step finished")
+
 
 if __name__ == "__main__":
     main()

@@ -35,18 +35,48 @@ ios-vX.Y tag ─► iOS unit + UI tests (ios-tests.yml) ─┐
                         ─► wait-for-build job: until THIS build is VALID
                            (poll 30 s, up to 120 min from upload start)
        IOS_UPLOAD_LISTING / IOS_UPLOAD_WHATS_NEW / IOS_UPLOAD_SCREENSHOTS ─► version metadata
+       IOS_UPLOAD_CREATIVE_ASSETS ─► header / search results images: upload and
+                                     review new ones on their own, place approved ones
        IOS_SUBMIT_REVIEW ─► select this run's build, read it back, set release type
-                         ─► attach subscriptions to the draft submission
+                         ─► add Ready-to-Submit subscriptions + IAPs and the
+                            version to one draft submission
                          ─► recheck build + selection
-                         ─► submit Ready-to-Submit IAPs, then the version
+                         ─► submit the draft
   └─ GitHub Release, marked Latest (only if every enabled step succeeded)
 ```
 
 The iOS tests are the same `ios-tests.yml` that runs on pull requests, called
 by the release; a test bundle that runs no tests (skipped tests do not count)
-fails it. Catalog IAPs go to
-App Review immediately when submitted, so they are submitted only after the
-final build and selection recheck, never before it.
+fails it. Nothing reaches App Review until the draft is submitted, which
+happens only after the final build and selection recheck.
+
+### App Store Connect CLI (`asc`)
+
+Every App Store Connect call goes through the
+[App Store Connect CLI](https://github.com/rorkai/App-Store-Connect-CLI) (`asc`,
+MIT) instead of hand-written API code.
+[`scripts/store/asc_cli.py`](../scripts/store/asc_cli.py) is the only place
+that runs it:
+
+- It is pinned to one release (`ASC_VERSION`) and installed by
+  `asc_cli.py install`, which refuses a binary whose SHA-256 differs from the
+  pinned value for that platform (`linux_amd64` and `macOS_arm64`). Every job
+  runs `asc_cli.py check` before using it.
+- Credentials come only from the `APP_STORE_CONNECT_*` secrets, through asc's
+  own environment variables; the keychain and asc config files are bypassed,
+  and `ASC_STRICT_AUTH` rejects credentials mixed from several sources.
+- Telemetry (`ASC_TELEMETRY_DISABLED`, `DO_NOT_TRACK`) and the skills update
+  check are off.
+- Checks that must never write run asc read-only (`ASC_READ_ONLY`): the version
+  preflight, build numbering, the build wait, and the whole `prepare` job on
+  validation runs. asc refuses a write in that mode before sending it (exit 6).
+- On failure the error keeps asc's exit code and drops the key and issuer IDs.
+  The build wait retries only asc's server-side exit codes (HTTP 5xx, 408, 429
+  and timeouts); auth, usage and not-found errors stop at once.
+
+The binary itself is still exported and uploaded by `xcodebuild`. To move to a
+newer asc, change `ASC_VERSION` and both `ASC_SHA256` values from that release's
+`asc_<version>_checksums.txt`, then run the store tests.
 
 Waiting for the build is its own `wait-for-build` job, which outputs the
 processed build's ID to the `app-store-connect` job. If a listing, screenshot or
@@ -202,6 +232,7 @@ run, even when the platform's master switch is off.
 | `IOS_UPLOAD_LISTING` | Description, keywords, promotional text, marketing/support URLs from `APPSTORE.md`, checked before the build. Off: never read |
 | `IOS_UPLOAD_WHATS_NEW` | What's New text from `APPSTORE.md`, checked before the build. Off: never read |
 | `IOS_UPLOAD_SCREENSHOTS` | 6.7" iPhone, 13" iPad and iPhone Duo screenshots (see below) |
+| `IOS_UPLOAD_CREATIVE_ASSETS` | Product page header and search results images from `store/creative/ios` (see below). A new image is uploaded to the Asset Library and sent to App Review in a submission of its own; once Apple approves it, a later run places it on the version. Never changes anything while the version waits for review |
 | `IOS_SUBMIT_REVIEW` | Select this run's build and submit the version **and** Ready-to-Submit IAPs / subscriptions for review. Requires `IOS_UPLOAD_BUILD` |
 | `IOS_PUBLIC_RELEASE` | Release automatically after approval. Off = manual release. Requires `IOS_SUBMIT_REVIEW` |
 | `IOS_BUILD_POLL_SECONDS` | Poll interval, default 30 (10–600) |
@@ -355,17 +386,18 @@ Later for catalog automation:
 | [`scripts/release_notes.py`](../scripts/release_notes.py) | The tag's `RELEASE_NOTES.md` section for the GitHub Release; `--if-present` prints nothing when there is none; duplicate sections fail |
 | [`scripts/store/stage_screenshots.py`](../scripts/store/stage_screenshots.py) | `store/screenshots/{ios,ipad,iphone-duo,play}/*.png` → `store/metadata/screenshots/` (`--platform ios\|play\|all`) |
 | [`scripts/store/ios_release.py`](../scripts/store/ios_release.py) | iOS switches, export compliance check (project and archived app), build number, read-only App Store version preflight, wait for this run's build |
-| [`scripts/store/asc_release.py`](../scripts/store/asc_release.py) | App Store version creation (`--create-version`), ASC listing, What's New, 6.7" iPhone / 13" iPad / iPhone Duo screenshots, build selection, submit for review (re-runnable) |
+| [`scripts/store/asc_cli.py`](../scripts/store/asc_cli.py) | Installs the pinned, checksum-verified `asc` and runs it (credentials, read-only mode, telemetry off, redacted errors) |
+| [`scripts/store/asc_release.py`](../scripts/store/asc_release.py) | App Store version creation (`--create-version`), ASC listing, What's New, 6.7" iPhone / 13" iPad / iPhone Duo screenshots, header and search results images, build selection, submit for review (re-runnable); every call through `asc` |
 | [`scripts/store/redact_credential_ids.py`](../scripts/store/redact_credential_ids.py) | Removes the ASC key and issuer IDs from failure logs before they are uploaded |
 | [`scripts/store/print_gates.py`](../scripts/store/print_gates.py) | Prints the switches as configured; an invalid value shows as `INVALID` |
-| [`scripts/store/test_ios_release.py`](../scripts/store/test_ios_release.py) | Offline tests: disabled/invalid switches, export compliance, timeouts, failures, mismatches, version creation, the version preflight, re-runs, IAP order, optional release notes, iOS What's New checks, log redaction. Run by every iOS release before anything is built |
+| [`scripts/store/test_ios_release.py`](../scripts/store/test_ios_release.py) | Offline tests against a fake App Store Connect behind `asc`: disabled/invalid switches, export compliance, timeouts, failures, mismatches, version creation, the version preflight, re-runs, product and submit order, creative assets, the asc runner (credentials, read-only, redaction, pinned checksum), optional release notes, iOS What's New checks, log redaction. Run by every iOS release before anything is built |
 | [`scripts/store/android_release.py`](../scripts/store/android_release.py) | Android switches, versionCode checks against earlier GitHub Releases and Google Play, signing properties, AAB/APK identity + pinned-certificate checks, Play track read-back |
 | [`scripts/store/test_android_release.py`](../scripts/store/test_android_release.py) | Offline tests: disabled/invalid switches, track selection, wrong app/version/key, the versionCode preflight and re-runs, signing properties, Play What's New checks. Run by every Android release before anything is built |
 | [`scripts/store/play_listing.py`](../scripts/store/play_listing.py) | Play listing text + phone screenshots |
 | [`scripts/store/sync_revenuecat_catalog.py`](../scripts/store/sync_revenuecat_catalog.py) | Validate catalog; fail if sync gate on |
 
 When any live iOS or Play gate is on, release workflows install
-[`requirements-store.txt`](../requirements-store.txt) (PyJWT, Google API client,
+[`requirements-store.txt`](../requirements-store.txt) (Google API client,
 Pillow; hash-locked) into a pinned Python set up by `actions/setup-python`, never
 the runner image's own Python. The store dry-run installs and imports the same
 set on every change to it. Store steps run with `python3 -u`, so long waits log
@@ -373,23 +405,19 @@ each poll as it happens.
 
 Environment flags consumed by `asc_release.py` (set by `ios-release.yml` from the
 resolved iOS switches): `UPLOAD_LISTING`, `UPLOAD_WHATS_NEW`, `UPLOAD_SCREENSHOTS`,
-`SUBMIT_IOS_REVIEW`, `PUBLIC_RELEASE`, and `CREATE_IOS_VERSION` (read only with
+`UPLOAD_CREATIVE_ASSETS`, `SUBMIT_IOS_REVIEW`, `PUBLIC_RELEASE`, and `CREATE_IOS_VERSION` (read only with
 `--create-version`). `play_listing.py` uses `UPLOAD_LISTING` and
 `UPLOAD_SCREENSHOTS`, set by `android-release.yml` from the resolved Android switches.
 
 ### iOS subscription submission caveat
 
 `IOS_SUBMIT_REVIEW` submits the App Store version and every
-`READY_TO_SUBMIT` (or `DEVELOPER_REJECTED`) subscription in one step. As of the
-2026 App Store Connect workflow, subscriptions attach to the review submission
-through the `subscriptionVersion` relationship on Review Submission Items (the
-`subscription` relationship is rejected by the API), so a first-time
-subscription must ship with the version. Subscriptions that are still
-`READY_TO_SUBMIT` attach to the current in-flight version; consumable and tip
-IAPs go through the dedicated `inAppPurchaseSubmissions` endpoint. That endpoint
-sends an IAP to App Review at once, so the release submits IAPs only after its
-final build and selection recheck; when the recheck fails, nothing reaches
-review.
+`READY_TO_SUBMIT` (or `DEVELOPER_REJECTED`) subscription and `READY_TO_SUBMIT`
+in-app purchase in one review submission. Each product attaches through its
+current version (`subscriptionVersions` / `inAppPurchaseVersions` review items,
+via `asc review items-add`), so a first-time subscription ships with the
+version. Nothing reaches App Review until the draft is submitted, after the
+final build and selection recheck; when the recheck fails, nothing is sent.
 
 A subscription whose in-flight version was **removed** from an earlier
 submission sits in `DEVELOPER_REJECTED`. Attaching that version to the new
@@ -420,6 +448,9 @@ store/screenshots/     # listing images, as live on the stores (source of truth)
                        # (the same set also takes inner-screen 2007×2853 frames)
   play/                # 8 Play phone screenshots, 1290×2796 (padded to 9:16 when staged)
   watch/               # Apple Watch screenshot (uploaded by hand)
+store/creative/ios/    # App Store creative assets (IOS_UPLOAD_CREATIVE_ASSETS)
+  header/              # one product page header image, 3840×1646 PNG
+  search-results/      # one search results image, 3:2, 1920×1280 to 3840×2560
 store/graphics/
   play/feature-graphic.png   # Play feature graphic, 1024×500 (uploaded by hand)
 store/metadata/
@@ -444,6 +475,13 @@ OpenAPI spec yet, but App Store Connect accepts it. To change a listing, replace
 `store/screenshots/` first, so turning a switch on never uploads an older set.
 The Watch screenshot and the Play feature graphic have no automated upload.
 Upload them in App Store Connect and Play Console by hand.
+
+A creative image is matched in the Asset Library by file name and size, so
+give a changed image a new file name. Apple reviews each new image on its own
+(the app already has an approved version), and a later run places it once it is
+approved; a rejected image stops the run with Apple's reason. Apple's rules for
+these images: no prices, website addresses, other platforms or Apple badges,
+and no transparency.
 
 Website and README screenshots stay in [`web/assets/screenshots/`](../web/assets/screenshots/).
 Promo, social and launch graphics do not belong in the repository.
