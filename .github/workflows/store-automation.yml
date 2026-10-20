@@ -70,6 +70,8 @@ jobs:
             /ios/calorietracker.xcodeproj/project.pbxproj
             /ios/calorietracker/Info.plist
             /android/app/build.gradle.kts
+            /.github/workflows/ios-release.yml
+            /.github/workflows/store-automation.yml
 
       # The same pinned Python the release jobs run the store scripts on.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

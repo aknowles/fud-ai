@@ -154,6 +154,7 @@ jobs:
         with:
           persist-credentials: false
           sparse-checkout-cone-mode: false
+          # The two workflow files are read by the store-script tests.
           sparse-checkout: |
             /scripts/store/
             /scripts/release_notes.py
@@ -163,6 +164,8 @@ jobs:
             /requirements-store.txt
             /RELEASE_NOTES.md
             /APPSTORE.md
+            /.github/workflows/ios-release.yml
+            /.github/workflows/store-automation.yml
 
       # Store tooling runs on a pinned Python, never the runner image's own.
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
