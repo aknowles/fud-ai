@@ -1,8 +1,10 @@
 package com.apoorvdarshan.calorietracker.ui.components
 
 import android.hardware.camera2.CameraMetadata
+import kotlin.math.abs
 import kotlin.math.acos
 import kotlin.math.exp
+import kotlin.math.max
 import kotlin.math.sqrt
 
 /*
@@ -200,8 +202,21 @@ internal fun ringCenter(x: Float, y: Float, bounds: PreviewRect, radius: Float):
     return axis(x, bounds.left, bounds.right) to axis(y, bounds.top, bounds.bottom)
 }
 
-/** How long a tapped focus point holds before continuous autofocus resumes. */
-internal fun tapHoldMillis(watchesMotion: Boolean): Long = if (watchesMotion) 8_000L else 5_000L
+/** Which sensor ends a tapped focus point when the phone moves. */
+internal enum class MotionSource {
+    /** A rotation vector: any turn, panning included. */
+    ROTATION,
+
+    /** Accelerometer only: tilting and sharp moves, not a level pan. */
+    ACCELEROMETER,
+    NONE,
+}
+
+/**
+ * How long a tapped focus point holds before continuous autofocus resumes. The longer hold
+ * needs a rotation sensor: without one a level pan to another subject goes unnoticed.
+ */
+internal fun tapHoldMillis(source: MotionSource): Long = if (source == MotionSource.ROTATION) 8_000L else 5_000L
 
 /** Angle in degrees between two 3-axis vectors; 0 when either has no length. */
 internal fun angleBetweenDegrees(a: FloatArray, b: FloatArray): Float {
@@ -212,10 +227,32 @@ internal fun angleBetweenDegrees(a: FloatArray, b: FloatArray): Float {
 }
 
 /**
- * Tells from accelerometer samples (m/s², device axes) when the phone has been pointed at
- * something else or moved sharply, so a tapped focus point gives way to continuous
- * autofocus. The first [settleMillis] only learn the resting direction, since tapping the
- * screen shakes the phone. Gravity is smoothed over [smoothingMillis] whatever the rate.
+ * Unit quaternion (x, y, z, w) from rotation-vector sensor values. The scalar part is
+ * values[3] when present (always from API 18), else derived; null for unusable values.
+ */
+internal fun rotationQuaternion(values: FloatArray): FloatArray? {
+    if (values.size < 3) return null
+    val x = values[0]
+    val y = values[1]
+    val z = values[2]
+    val w = if (values.size >= 4) values[3] else sqrt(max(0f, 1f - x * x - y * y - z * z))
+    val length = sqrt(x * x + y * y + z * z + w * w)
+    if (length == 0f || length.isNaN()) return null
+    return floatArrayOf(x / length, y / length, z / length, w / length)
+}
+
+/** Angle in degrees of the turn between two unit quaternions (x, y, z, w). */
+internal fun rotationBetweenDegrees(a: FloatArray, b: FloatArray): Float {
+    val dot = abs(a[0] * b[0] + a[1] * b[1] + a[2] * b[2] + a[3] * b[3]).coerceAtMost(1f)
+    return Math.toDegrees(2.0 * acos(dot.toDouble())).toFloat()
+}
+
+/**
+ * Tells when the phone has been pointed at something else or moved sharply, so a tapped
+ * focus point gives way to continuous autofocus. A rotation vector notices any turn; the
+ * accelerometer (m/s², device axes) notices tilting and jolts. The first [settleMillis] only
+ * learn the resting position, since tapping the screen shakes the phone. Gravity is smoothed
+ * over [smoothingMillis] whatever the sensor rate.
  */
 internal class ReframeDetector(
     private val turnDegrees: Float = 12f,
@@ -225,21 +262,25 @@ internal class ReframeDetector(
 ) {
     private var gravity: FloatArray? = null
     private var resting: FloatArray? = null
+    private var restingAttitude: FloatArray? = null
     private var startedAt = 0L
-    private var lastSampleAt = 0L
+    private var lastAccelerationAt = 0L
 
     fun reset(nowMillis: Long) {
         gravity = null
         resting = null
+        restingAttitude = null
         startedAt = nowMillis
-        lastSampleAt = nowMillis
+        lastAccelerationAt = nowMillis
     }
 
-    /** True once the phone has turned past [turnDegrees] or jolted past [jolt] m/s². */
-    fun onSample(x: Float, y: Float, z: Float, nowMillis: Long): Boolean {
+    private fun settling(nowMillis: Long) = nowMillis - startedAt < settleMillis
+
+    /** Accelerometer sample: true once the phone has tilted past [turnDegrees] or jolted past [jolt] m/s². */
+    fun onAcceleration(x: Float, y: Float, z: Float, nowMillis: Long): Boolean {
         val previous = gravity
         val current = if (previous == null) floatArrayOf(x, y, z) else {
-            val keep = exp(-(nowMillis - lastSampleAt).coerceAtLeast(0L) / smoothingMillis)
+            val keep = exp(-(nowMillis - lastAccelerationAt).coerceAtLeast(0L) / smoothingMillis)
             floatArrayOf(
                 previous[0] * keep + x * (1f - keep),
                 previous[1] * keep + y * (1f - keep),
@@ -247,8 +288,8 @@ internal class ReframeDetector(
             )
         }
         gravity = current
-        lastSampleAt = nowMillis
-        if (nowMillis - startedAt < settleMillis) {
+        lastAccelerationAt = nowMillis
+        if (settling(nowMillis)) {
             resting = current.copyOf()
             return false
         }
@@ -257,6 +298,16 @@ internal class ReframeDetector(
         val dy = y - current[1]
         val dz = z - current[2]
         return angleBetweenDegrees(reference, current) > turnDegrees || sqrt(dx * dx + dy * dy + dz * dz) > jolt
+    }
+
+    /** Rotation sample (see [rotationQuaternion]): true once the phone has turned past [turnDegrees]. */
+    fun onRotation(quaternion: FloatArray, nowMillis: Long): Boolean {
+        if (settling(nowMillis)) {
+            restingAttitude = quaternion.copyOf()
+            return false
+        }
+        val reference = restingAttitude ?: quaternion.copyOf().also { restingAttitude = it }
+        return rotationBetweenDegrees(reference, quaternion) > turnDegrees
     }
 }
 

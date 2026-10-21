@@ -293,14 +293,15 @@ private class CameraBinding(
     override fun latestFrame(): CameraFrame? = latest.get()
 
     override suspend fun takePhoto(): ByteArray? = withContext(Dispatchers.Main.immediate) {
-        // Lets autofocus settle, or scans the middle when it gave up (close-ups).
-        val refocused = focus.prepareForCapture()
         try {
+            // Lets autofocus settle, or scans the middle when it gave up (close-ups).
+            val refocused = focus.prepareForCapture()
             val photo = capture
             if (photo == null) {
-                // The shutter uses analysis frames here: wait for one taken after focusing.
-                if (refocused) awaitFrameAfter(SystemClock.elapsedRealtime())
-                return@withContext fullFrame
+                // The shutter uses analysis frames here: wait for one the camera took after focusing.
+                val focusedAt = if (refocused) focus.latestFrameTimestampNanos() else null
+                if (focusedAt != null) awaitPhotoFrameAfter(focusedAt)
+                return@withContext fullPhoto?.jpeg
             }
             val dir = File(context.cacheDir, "voice-camera").apply { mkdirs() }
             val file = File(dir, "shot-${System.currentTimeMillis()}.jpg")
@@ -327,20 +328,39 @@ private class CameraBinding(
         }
     }
 
-    private suspend fun awaitFrameAfter(elapsedRealtime: Long) {
-        withTimeoutOrNull(FRESH_FRAME_TIMEOUT_MS) {
-            while (fullFrameAt <= elapsedRealtime && !released.get()) delay(FRESH_FRAME_POLL_MS)
+    /**
+     * Waits for an analysis frame exposed after [sensorTimestampNanos] (the camera's own clock,
+     * shared by preview results and analysis frames). If none is encoded in time, e.g. the
+     * analyzer stalls, the latest frame is used: a slightly soft photo beats a failed one,
+     * which would close the camera.
+     */
+    private suspend fun awaitPhotoFrameAfter(sensorTimestampNanos: Long) {
+        photoWantedAfterNanos = sensorTimestampNanos
+        try {
+            withTimeoutOrNull(FRESH_FRAME_TIMEOUT_MS) {
+                while ((fullPhoto?.sensorTimestampNanos ?: Long.MIN_VALUE) <= sensorTimestampNanos && !released.get()) {
+                    delay(FRESH_FRAME_POLL_MS)
+                }
+            }
+        } finally {
+            photoWantedAfterNanos = Long.MAX_VALUE
         }
     }
 
-    @Volatile private var fullFrame: ByteArray? = null
-    @Volatile private var fullFrameAt = 0L
+    /** The largest analysis frame, for the shutter without ImageCapture, and when it was exposed. */
+    private class TimedPhoto(val jpeg: ByteArray, val sensorTimestampNanos: Long)
+
+    @Volatile private var fullPhoto: TimedPhoto? = null
+
+    /** Set while the shutter waits: the first frame exposed after it is encoded at once. */
+    @Volatile private var photoWantedAfterNanos = Long.MAX_VALUE
 
     private fun analyze(image: ImageProxy) {
         try {
             if (released.get()) return
             val now = SystemClock.elapsedRealtime()
-            if (now - lastEncodedAt >= FRAME_ENCODE_INTERVAL_MS) {
+            val wanted = image.imageInfo.timestamp > photoWantedAfterNanos
+            if (wanted || now - lastEncodedAt >= FRAME_ENCODE_INTERVAL_MS) {
                 lastEncodedAt = now
                 encodeFrames(image)
             }
@@ -367,8 +387,7 @@ private class CameraBinding(
         latest.set(CameraFrame(jpeg(upright, MAX_FRAME_SIDE, FRAME_QUALITY), SystemClock.elapsedRealtime()))
         // Without ImageCapture, the shutter uses the largest analysis frame.
         if (capture == null && mode == VoiceCameraMode.FOOD) {
-            fullFrame = jpeg(upright, MAX_PHOTO_SIDE, PHOTO_QUALITY)
-            fullFrameAt = SystemClock.elapsedRealtime()
+            fullPhoto = TimedPhoto(jpeg(upright, MAX_PHOTO_SIDE, PHOTO_QUALITY), image.imageInfo.timestamp)
         }
         if (notifiedReady.compareAndSet(false, true)) {
             ContextCompat.getMainExecutor(context).execute {
@@ -406,8 +425,8 @@ private class CameraBinding(
         private const val PHOTO_QUALITY = 90
         /** The quality the earlier low-latency capture mode used; MAXIMIZE_QUALITY alone writes 100. */
         private const val PHOTO_JPEG_QUALITY = 95
-        /** Frames are encoded every [FRAME_ENCODE_INTERVAL_MS], so one after focusing comes well within this. */
-        private const val FRESH_FRAME_TIMEOUT_MS = 1_000L
+        /** The first frame after focusing is encoded straight away, well within this. */
+        private const val FRESH_FRAME_TIMEOUT_MS = 1_500L
         private const val FRESH_FRAME_POLL_MS = 40L
     }
 }

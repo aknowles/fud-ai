@@ -141,6 +141,10 @@ internal class CameraFocusController(context: Context, private val scope: Corout
 
     private val mainExecutor = ContextCompat.getMainExecutor(context)
     private val sensors = context.getSystemService(SensorManager::class.java)
+    // A rotation vector notices a level pan to another subject; the accelerometer alone cannot.
+    private val rotationSensor = runCatching {
+        sensors?.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) ?: sensors?.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR)
+    }.getOrNull()
     private val accelerometer = runCatching { sensors?.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) }.getOrNull()
     private val reframe = ReframeDetector()
     private val spots = FocusSpotState()
@@ -149,6 +153,9 @@ internal class CameraFocusController(context: Context, private val scope: Corout
     /** The callback of the preview built last, and of the one attached (read on camera threads). */
     private var instrumented: CameraCaptureSession.CaptureCallback? = null
     @Volatile private var attachedCallback: CameraCaptureSession.CaptureCallback? = null
+
+    /** SENSOR_TIMESTAMP of the attached preview's latest frame; 0 before the first. */
+    @Volatile private var latestFrameNanos = 0L
 
     private var camera: Camera? = null
     private var preview: Preview? = null
@@ -169,7 +176,13 @@ internal class CameraFocusController(context: Context, private val scope: Corout
     private val motionListener = object : SensorEventListener {
         override fun onSensorChanged(event: SensorEvent) {
             val values = event.values
-            if (values.size < 3 || !reframe.onSample(values[0], values[1], values[2], SystemClock.elapsedRealtime())) return
+            val now = SystemClock.elapsedRealtime()
+            val moved = if (event.sensor.type == Sensor.TYPE_ACCELEROMETER) {
+                values.size >= 3 && reframe.onAcceleration(values[0], values[1], values[2], now)
+            } else {
+                rotationQuaternion(values)?.let { reframe.onRotation(it, now) } == true
+            }
+            if (!moved) return
             val id = watchedSpot
             stopWatchingMotion()
             if (!capturing && spots.isCurrent(id)) resumeContinuous()
@@ -187,7 +200,9 @@ internal class CameraFocusController(context: Context, private val scope: Corout
                 result: TotalCaptureResult,
             ) {
                 // A preview from an earlier binding can still deliver a frame or two.
-                if (attachedCallback === this) afState.value = result.get(CaptureResult.CONTROL_AF_STATE)
+                if (attachedCallback !== this) return
+                afState.value = result.get(CaptureResult.CONTROL_AF_STATE)
+                result.get(CaptureResult.SENSOR_TIMESTAMP)?.let { latestFrameNanos = it }
             }
         }
         instrumented = callback
@@ -200,6 +215,7 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         this.camera = camera
         this.preview = preview
         this.previewView = previewView
+        latestFrameNanos = 0L
         attachedCallback = instrumented
         capabilities = focusCapabilities(camera.cameraInfo)
         canTapToFocus = capabilities.tapToFocus
@@ -231,6 +247,12 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         spots.clear()
         publish()
     }
+
+    /**
+     * SENSOR_TIMESTAMP of the newest preview frame, or null before the first. Frames from the
+     * same camera (ImageAnalysis included) with a later timestamp were taken after this one.
+     */
+    fun latestFrameTimestampNanos(): Long? = latestFrameNanos.takeIf { it != 0L }
 
     /** Where the camera image sits in the preview, in its pixels. */
     fun contentRect(): PreviewRect {
@@ -305,14 +327,23 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         publish()
         val timeout = if (source == FocusSource.TAP) TAP_SCAN_TIMEOUT_MS else CAPTURE_SCAN_TIMEOUT_MS
         return scope.launch {
-            val result = withTimeoutOrNull(timeout) { scan(camera, started.id, x, y) }
+            // Running out of time means it could not focus, so the hint still shows.
+            val result = withTimeoutOrNull(timeout) { scan(camera, started.id, x, y) } ?: ScanResult.NOT_FOCUSED
             onScanFinished(camera, started, result)
         }.also { scanJob = it }
     }
 
-    /** True when focused (or exposed, without autofocus), false when it could not focus, null when refused. */
-    private suspend fun scan(camera: Camera, id: Long, x: Float, y: Float): Boolean? {
-        val factory = previewView?.meteringPointFactory ?: return null
+    private enum class ScanResult {
+        /** Focused, or exposed for the point on a camera without autofocus. */
+        FOCUSED,
+        NOT_FOCUSED,
+
+        /** The camera took no scan for this point (closed, or the point is outside the image). */
+        REFUSED,
+    }
+
+    private suspend fun scan(camera: Camera, id: Long, x: Float, y: Float): ScanResult {
+        val factory = previewView?.meteringPointFactory ?: return ScanResult.REFUSED
         val caps = capabilities
         val builder = if (caps.focusAtPoint) {
             FocusMeteringAction.Builder(factory.createPoint(x, y, AF_POINT_SIZE), FocusMeteringAction.FLAG_AF).apply {
@@ -326,35 +357,41 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         // A new point starts in the normal range.
         if (macroOverride) clearMacroOverride(camera)
         locked = true
-        val first = camera.cameraControl.startFocusAndMetering(action).awaitResult().getOrNull() ?: return null
-        if (!caps.focusAtPoint || first.isFocusSuccessful) return true
+        // CameraX ends each scan after 5 s; a step that still has not answered did not focus.
+        val first = withTimeoutOrNull(SCAN_STEP_TIMEOUT_MS) { camera.cameraControl.startFocusAndMetering(action).awaitResult() }
+            ?: return ScanResult.NOT_FOCUSED
+        val firstResult = first.getOrNull() ?: return ScanResult.REFUSED
+        if (!caps.focusAtPoint || firstResult.isFocusSuccessful) return ScanResult.FOCUSED
         // Too close for the normal range: some lenses still focus in the close-up range.
-        if (!caps.macro || !spots.retryingInMacro(id)) return false
+        if (!caps.macro || !spots.retryingInMacro(id)) return ScanResult.NOT_FOCUSED
         publish()
-        val interop = runCatching { Camera2CameraControl.from(camera.cameraControl) }.getOrNull() ?: return false
+        val interop = runCatching { Camera2CameraControl.from(camera.cameraControl) }.getOrNull() ?: return ScanResult.NOT_FOCUSED
         macroOverride = true
-        interop.setCaptureRequestOptions(
-            CaptureRequestOptions.Builder()
-                .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_MACRO)
-                .build()
-        ).awaitResult()
-        return camera.cameraControl.startFocusAndMetering(action).awaitResult().getOrNull()?.isFocusSuccessful == true
+        withTimeoutOrNull(MODE_SWITCH_TIMEOUT_MS) {
+            interop.setCaptureRequestOptions(
+                CaptureRequestOptions.Builder()
+                    .setCaptureRequestOption(CaptureRequest.CONTROL_AF_MODE, CameraMetadata.CONTROL_AF_MODE_MACRO)
+                    .build()
+            ).awaitResult()
+        }
+        val second = withTimeoutOrNull(SCAN_STEP_TIMEOUT_MS) { camera.cameraControl.startFocusAndMetering(action).awaitResult() }
+        return if (second?.getOrNull()?.isFocusSuccessful == true) ScanResult.FOCUSED else ScanResult.NOT_FOCUSED
     }
 
-    private fun onScanFinished(camera: Camera, finished: FocusSpot, result: Boolean?) {
+    private fun onScanFinished(camera: Camera, finished: FocusSpot, result: ScanResult) {
         if (this.camera !== camera || !spots.isCurrent(finished.id)) return
         when {
-            result == null -> {
+            result == ScanResult.REFUSED -> {
                 spots.clear(finished.id)
                 publish()
                 releaseLock(camera)
             }
             // The photo is taken at whatever this found; captureFinished resumes afterwards.
             finished.source == FocusSource.CAPTURE -> {
-                spots.finish(finished.id, result)
+                spots.finish(finished.id, focused = result == ScanResult.FOCUSED)
                 publish()
             }
-            result -> {
+            result == ScanResult.FOCUSED -> {
                 spots.finish(finished.id, focused = true)
                 publish()
                 holdTapLock(finished.id)
@@ -375,9 +412,9 @@ internal class CameraFocusController(context: Context, private val scope: Corout
 
     private fun holdTapLock(id: Long) {
         holdJob?.cancel()
-        val watches = startWatchingMotion(id)
+        val source = startWatchingMotion(id)
         holdJob = scope.launch {
-            delay(tapHoldMillis(watches))
+            delay(tapHoldMillis(source))
             if (!capturing && spots.isCurrent(id)) resumeContinuous()
         }
     }
@@ -407,15 +444,23 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         if (pinned != null) interop.clearCaptureRequestOptions()
     }
 
-    private fun startWatchingMotion(id: Long): Boolean {
+    /** Starts noticing when the phone moves away from [id]; returns the sensor that will tell. */
+    private fun startWatchingMotion(id: Long): MotionSource {
         stopWatchingMotion()
-        val sensor = accelerometer ?: return false
         watchedSpot = id
         reframe.reset(SystemClock.elapsedRealtime())
-        watchingMotion = runCatching {
+        fun register(sensor: Sensor?): Boolean = sensor != null && runCatching {
             sensors?.registerListener(motionListener, sensor, SensorManager.SENSOR_DELAY_UI) == true
         }.getOrDefault(false)
-        return watchingMotion
+        val rotation = register(rotationSensor)
+        // Also for jolts: moving straight towards the plate barely turns the phone.
+        val acceleration = register(accelerometer)
+        watchingMotion = rotation || acceleration
+        return when {
+            rotation -> MotionSource.ROTATION
+            acceleration -> MotionSource.ACCELEROMETER
+            else -> MotionSource.NONE
+        }
     }
 
     private fun stopWatchingMotion() {
@@ -454,11 +499,15 @@ internal class CameraFocusController(context: Context, private val scope: Corout
         const val AF_POINT_SIZE = 1f / 6f
         const val AE_POINT_SIZE = 0.25f
 
-        /** A normal scan and a close-up retry; CameraX gives up on each after 5 s. */
-        const val TAP_SCAN_TIMEOUT_MS = 6_000L
+        /** CameraX gives up on a scan after 5 s; this only guards against no answer at all. */
+        const val SCAN_STEP_TIMEOUT_MS = 5_500L
+        const val MODE_SWITCH_TIMEOUT_MS = 1_000L
+
+        /** A normal scan, the switch to the close-up range and a second scan. */
+        const val TAP_SCAN_TIMEOUT_MS = SCAN_STEP_TIMEOUT_MS * 2 + MODE_SWITCH_TIMEOUT_MS
 
         /** The shutter waits at most this long for focus before taking the photo anyway. */
-        const val CAPTURE_SCAN_TIMEOUT_MS = 2_500L
+        const val CAPTURE_SCAN_TIMEOUT_MS = 3_500L
         const val TAP_SCAN_WAIT_MS = 2_500L
         const val SETTLE_TIMEOUT_MS = 1_000L
         const val HINT_MS = 3_000L

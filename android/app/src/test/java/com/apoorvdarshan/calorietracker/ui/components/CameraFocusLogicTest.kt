@@ -262,9 +262,75 @@ class CameraFocusLogicTest {
     // Holding a tapped point
 
     @Test
-    fun tapHoldsLongerWhenMotionCanEndIt() {
-        assertTrue(tapHoldMillis(watchesMotion = true) > tapHoldMillis(watchesMotion = false))
-        assertEquals(5_000L, tapHoldMillis(watchesMotion = false))
+    fun tapHoldsLongerOnlyWhenEveryTurnIsNoticed() {
+        assertEquals(8_000L, tapHoldMillis(MotionSource.ROTATION))
+        // An accelerometer misses a level pan to another subject, so the point holds no longer
+        // than with no sensor at all.
+        assertEquals(5_000L, tapHoldMillis(MotionSource.ACCELEROMETER))
+        assertEquals(5_000L, tapHoldMillis(MotionSource.NONE))
+    }
+
+    @Test
+    fun rotationVectorBecomesAUnitQuaternion() {
+        assertQuaternion(floatArrayOf(0f, 0f, 0f, 1f), rotationQuaternion(floatArrayOf(0f, 0f, 0f, 1f))!!)
+        // Without values[3] the scalar part is derived.
+        val half = sin(Math.toRadians(30.0)).toFloat()
+        assertQuaternion(floatArrayOf(0f, half, 0f, cos(Math.toRadians(30.0)).toFloat()), rotationQuaternion(floatArrayOf(0f, half, 0f))!!)
+        // TYPE_ROTATION_VECTOR adds a heading accuracy after the scalar part.
+        assertQuaternion(floatArrayOf(0f, 0f, 0.6f, 0.8f), rotationQuaternion(floatArrayOf(0f, 0f, 1.2f, 1.6f, 0.1f))!!)
+        assertNull(rotationQuaternion(floatArrayOf(0f, 0f)))
+        assertNull(rotationQuaternion(floatArrayOf(0f, 0f, 0f, 0f)))
+    }
+
+    @Test
+    fun rotationAngleBetweenQuaternions() {
+        val identity = floatArrayOf(0f, 0f, 0f, 1f)
+        assertEquals(0f, rotationBetweenDegrees(identity, identity), 0.01f)
+        assertEquals(90f, rotationBetweenDegrees(identity, yaw(90.0)), 0.05f)
+        assertEquals(30f, rotationBetweenDegrees(yaw(10.0), yaw(40.0)), 0.05f)
+        // q and -q are the same attitude.
+        val q = yaw(25.0)
+        // Float rounding of a unit quaternion leaves a few hundredths of a degree.
+        assertEquals(0f, rotationBetweenDegrees(q, floatArrayOf(-q[0], -q[1], -q[2], -q[3])), 0.1f)
+    }
+
+    @Test
+    fun panningToAnotherSubjectEndsTheLock() {
+        // A level pan keeps gravity where it was: only the rotation vector sees it.
+        val detector = ReframeDetector()
+        detector.reset(0L)
+        for (t in 0L..600L step 60L) assertFalse(detector.onRotation(yaw(0.0), t))
+        assertFalse(detector.onAcceleration(0f, 9.8f, 0f, 660L))
+        var moved = false
+        var t = 720L
+        for (step in 1..20) {
+            moved = moved || detector.onRotation(yaw(1.0 * step), t)
+            t += 60L
+        }
+        assertTrue(moved)
+    }
+
+    @Test
+    fun smallRotationsKeepTheLock() {
+        val detector = ReframeDetector()
+        detector.reset(0L)
+        var moved = false
+        for (t in 0L..3_000L step 60L) {
+            // Hand sway of a few degrees around where the tap was made.
+            moved = moved || detector.onRotation(yaw(if ((t / 60L) % 2L == 0L) 3.0 else -3.0), t)
+        }
+        assertFalse(moved)
+    }
+
+    @Test
+    fun rotationWhileSettlingIsLearnedNotReported() {
+        val detector = ReframeDetector()
+        detector.reset(0L)
+        assertFalse(detector.onRotation(yaw(0.0), 0L))
+        assertFalse(detector.onRotation(yaw(40.0), 300L))
+        var moved = false
+        for (t in 360L..2_000L step 60L) moved = moved || detector.onRotation(yaw(40.0), t)
+        assertFalse(moved)
     }
 
     @Test
@@ -283,7 +349,7 @@ class CameraFocusLogicTest {
         for (t in 0L..3_000L step 60L) {
             // Hand tremor: a few hundredths of g around upright portrait.
             val wobble = if ((t / 60L) % 2L == 0L) 0.15f else -0.15f
-            moved = moved || detector.onSample(wobble, 9.7f, 1.2f, t)
+            moved = moved || detector.onAcceleration(wobble, 9.7f, 1.2f, t)
         }
         assertFalse(moved)
     }
@@ -292,10 +358,10 @@ class CameraFocusLogicTest {
     fun tapJoltWhileSettlingIsIgnored() {
         val detector = ReframeDetector()
         detector.reset(0L)
-        assertFalse(detector.onSample(6f, 14f, -4f, 20L))
-        assertFalse(detector.onSample(0f, 9.7f, 1.2f, 80L))
+        assertFalse(detector.onAcceleration(6f, 14f, -4f, 20L))
+        assertFalse(detector.onAcceleration(0f, 9.7f, 1.2f, 80L))
         var moved = false
-        for (t in 140L..2_000L step 60L) moved = moved || detector.onSample(0f, 9.7f, 1.2f, t)
+        for (t in 140L..2_000L step 60L) moved = moved || detector.onAcceleration(0f, 9.7f, 1.2f, t)
         assertFalse(moved)
     }
 
@@ -303,13 +369,13 @@ class CameraFocusLogicTest {
     fun turningThePhoneEndsTheLock() {
         val detector = ReframeDetector()
         detector.reset(0L)
-        for (t in 0L..600L step 60L) assertFalse(detector.onSample(0f, 9.8f, 0f, t))
+        for (t in 0L..600L step 60L) assertFalse(detector.onAcceleration(0f, 9.8f, 0f, t))
         // Tilt the phone 30° towards the table over the next second.
         var moved = false
         var t = 660L
         for (step in 1..20) {
             val angle = Math.toRadians(30.0 * step / 20).toFloat()
-            moved = moved || detector.onSample(0f, 9.8f * cos(angle), 9.8f * sin(angle), t)
+            moved = moved || detector.onAcceleration(0f, 9.8f * cos(angle), 9.8f * sin(angle), t)
             t += 60L
         }
         assertTrue(moved)
@@ -319,20 +385,31 @@ class CameraFocusLogicTest {
     fun aSharpMoveEndsTheLock() {
         val detector = ReframeDetector()
         detector.reset(0L)
-        for (t in 0L..600L step 60L) assertFalse(detector.onSample(0f, 9.8f, 0f, t))
-        assertTrue(detector.onSample(0f, 9.8f, 6f, 660L))
+        for (t in 0L..600L step 60L) assertFalse(detector.onAcceleration(0f, 9.8f, 0f, t))
+        assertTrue(detector.onAcceleration(0f, 9.8f, 6f, 660L))
+    }
+
+    private fun yaw(degrees: Double): FloatArray {
+        val half = Math.toRadians(degrees) / 2.0
+        // Turning around the device's long (y) axis, which points up when held in portrait.
+        return floatArrayOf(0f, sin(half).toFloat(), 0f, cos(half).toFloat())
+    }
+
+    private fun assertQuaternion(expected: FloatArray, actual: FloatArray) {
+        assertEquals(4, actual.size)
+        for (i in 0 until 4) assertEquals("component $i", expected[i], actual[i], 0.0001f)
     }
 
     @Test
     fun resetStartsANewSettlingPeriod() {
         val detector = ReframeDetector()
         detector.reset(0L)
-        for (t in 0L..600L step 60L) detector.onSample(0f, 9.8f, 0f, t)
+        for (t in 0L..600L step 60L) detector.onAcceleration(0f, 9.8f, 0f, t)
         detector.reset(1_000L)
         // Lying flat now: learned again during settling, not reported as a turn.
-        for (t in 1_000L..1_500L step 60L) assertFalse(detector.onSample(0f, 0f, 9.8f, t))
+        for (t in 1_000L..1_500L step 60L) assertFalse(detector.onAcceleration(0f, 0f, 9.8f, t))
         var moved = false
-        for (t in 1_560L..3_000L step 60L) moved = moved || detector.onSample(0f, 0f, 9.8f, t)
+        for (t in 1_560L..3_000L step 60L) moved = moved || detector.onAcceleration(0f, 0f, 9.8f, t)
         assertFalse(moved)
     }
 }
