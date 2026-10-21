@@ -331,8 +331,8 @@ private class CameraBinding(
     /**
      * Waits for an analysis frame exposed after [sensorTimestampNanos] (the camera's own clock,
      * shared by preview results and analysis frames). If none is encoded in time, e.g. the
-     * analyzer stalls, the latest frame is used: a slightly soft photo beats a failed one,
-     * which would close the camera.
+     * analyzer stalls, the latest frame is used, as before focusing was added: analyzing a
+     * slightly soft photo beats reporting a failed one and making the user ask again.
      */
     private suspend fun awaitPhotoFrameAfter(sensorTimestampNanos: Long) {
         photoWantedAfterNanos = sensorTimestampNanos
