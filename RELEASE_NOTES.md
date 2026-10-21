@@ -7,7 +7,28 @@ same marketing version can share a feature summary while identifying different b
 
 ## Unreleased
 
-No Android 7.2 tag yet. The android-v7.2 notes below are the prepared store copy for versionCode 42, the first Android build with Google Play billing (versionCode 41 went to internal testing). iOS stays on 7.1.2 build 39 (live on the App Store); the 7.2 Android release has no iOS changes.
+No Android 7.2.1 tag yet. The android-v7.2.1 notes below are the prepared store copy for versionCode 43; Android 7.2 (versionCode 42) is the live Google Play release. iOS stays on 7.1.2 build 39 (live on the App Store); this Android release has no iOS changes.
+
+## android-v7.2.1
+
+Fud AI 7.2.1 for Android adds Live Voice: talk to Fud AI to log meals, scan barcodes and check your progress.
+
+NEW
+• Live Voice: tap the orb on Home, or start it from a Quick Settings tile, a launcher shortcut or a home-screen widget. It is included with Plus and Pro, or works with your own Gemini, OpenAI, xAI or Qwen key.
+• Workouts: a rest timer, saved routines, Coach exercise suggestions you confirm before anything is added, Fill with AI for custom exercises, and read-only workouts that other apps write to Health Connect.
+• Progress: a Weekly Recap card, a Steps tab, arrows to browse earlier periods, and a calorie chart you can tap or scrub.
+• Choose kilocalories or kilojoules in Settings.
+• Welcome back: returning users can restore a Google Drive backup and import Health Connect data from the first screen.
+• Alibaba Qwen joins the own-key AI providers, and OpenAI gains GPT-6 Sol and Luna presets.
+• Optional essential amino acid estimates, and an optional USDA FoodData Central barcode fallback with your own free API key.
+• The app is now translated into Turkish.
+
+IMPROVED
+• Hide the Progress, Coach or Workouts tab, set your own water quick-add amounts, and see your estimated maintenance in Daily Targets.
+• Settings shows the space photos, on-device models and caches use, with Clear Cache and Compress Photos.
+• More reliable Google Drive backup and restore, Health Connect history imports, and resumable on-device model downloads.
+
+Existing logs, goals, Health data, widgets, workout history, and BYOK settings are preserved during a normal update.
 
 ## android-v7.2
 

@@ -1,6 +1,6 @@
 # Play Store Listing
 
-Google Play Console listing copy for Fud AI Android v7.2 / versionCode 42. Each field is in a code block for easy copy-paste. Char counts are tracked because Play Console enforces hard caps and silently truncates anything over. This file is prepared for the 7.2 release (first Google Play billing build: optional Plus/Pro, credit packs, tip jar) and has not been submitted.
+Google Play Console listing copy for Fud AI Android v7.2.1 / versionCode 43. Each field is in a code block for easy copy-paste. Char counts are tracked because Play Console enforces hard caps and silently truncates anything over. This file is prepared for the 7.2.1 release (Live Voice, workout rest timer and routines, Health Connect workout import) and has not been submitted. Android 7.2 / versionCode 42 is the live Play release.
 
 **Pending Play Console updates**
 - [ ] **Before the next Android release:** update the Health Connect declaration in Play Console to include **Exercise (READ)** — paste the `READ_EXERCISE` rationale from §7 *Health apps declaration*, then re-check the §7 Data safety notes (imported workouts stay on-device).
@@ -109,17 +109,19 @@ English-only on Play Console — non-English Play Store browsers (ar, az-AZ, cs-
 
 ---
 
-## 4. What's New (v7.2 / versionCode 42 — being released)
+## 4. What's New (v7.2.1 / versionCode 43 — being released)
 
-**500 char hard cap per language.** Paste only the `<en-US>` block for the 7.2 release. The other language blocks below are still the 7.0.1 notes and must not be submitted as 7.2 release notes.
+**500 char hard cap per language.** Paste only the `<en-US>` block for the 7.2.1 release. The other language blocks below are still the 7.0.1 notes and must not be submitted as 7.2.1 release notes.
 
 ```
 <en-US>
-Fud AI 7.2
-• Optional Plus and Pro plans: Fud AI runs the AI for you, no API keys to manage. BYOK stays free forever.
-• Settings → AI Access switches between your own key and Hosted AI and shows today's usage.
-• Pick Hosted AI during onboarding, buy credit packs for busy days, and tip through Google Play.
-• Coach and food-logging errors now appear in your language.
+Fud AI 7.2.1
+• Live Voice: talk to Fud AI to log meals, scan barcodes and check your progress. Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
+• Workouts: a rest timer, saved routines, and other apps' workouts via Health Connect.
+• Progress: Weekly Recap, Steps, and past periods.
+• Show energy in kcal or kJ.
+• New phone? Welcome back restores your Google Drive backup and Health Connect data.
+• Alibaba Qwen joins the AI providers, and the app is now in Turkish.
 </en-US>
 
 <ar>
