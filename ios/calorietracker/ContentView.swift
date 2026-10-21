@@ -3660,6 +3660,8 @@ final class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOut
     private let focusIndicator = CameraFocusIndicatorView()
     private var focusState = CameraFocusState()
     private var subjectAreaObserver: NSObjectProtocol?
+    /// The preview size the barcode zoom was worked out for.
+    private var barcodeZoomPreviewSize: CGSize?
 
     init(onScan: @escaping (String) -> Void, onCancel: @escaping () -> Void) {
         self.onScan = onScan
@@ -3681,6 +3683,7 @@ final class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOut
     override func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         previewLayer?.frame = view.bounds
+        updateBarcodeZoomForPreviewSize()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -3801,12 +3804,14 @@ final class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOut
     }
 
     private func focusHoldTimedOut(generation: Int) {
-        guard let camera = captureDevice, let request = focusState.holdTimedOut(generation: generation) else { return }
+        guard session?.isRunning == true, let camera = captureDevice,
+              let request = focusState.holdTimedOut(generation: generation) else { return }
         CameraDeviceConfigurator.apply(request, to: camera)
     }
 
     private func sceneChanged() {
-        guard let camera = captureDevice, let request = focusState.sceneChanged() else { return }
+        guard session?.isRunning == true, let camera = captureDevice,
+              let request = focusState.sceneChanged() else { return }
         CameraDeviceConfigurator.apply(request, to: camera)
         focusIndicator.hide()
     }
@@ -3834,10 +3839,23 @@ final class BarcodeScannerViewController: UIViewController, AVCaptureMetadataOut
     /// lens can focus at.
     private func configureCameraForBarcodeScanning(_ camera: AVCaptureDevice) {
         let previewSize = view.bounds.isEmpty ? nil : view.bounds.size
+        barcodeZoomPreviewSize = previewSize
         CameraDeviceConfigurator.configureForCapture(
             camera,
             zoomFactor: BackCameraSelection.barcodeZoomFactor(for: camera, previewSize: previewSize),
             rangeRestriction: .near
+        )
+    }
+
+    /// The zoom allows for the sides the aspect-fill preview crops, which depends on the
+    /// preview's size; the session can be configured before the first layout.
+    private func updateBarcodeZoomForPreviewSize() {
+        guard let camera = captureDevice, !view.bounds.isEmpty,
+              view.bounds.size != barcodeZoomPreviewSize else { return }
+        barcodeZoomPreviewSize = view.bounds.size
+        CameraDeviceConfigurator.setZoomFactor(
+            BackCameraSelection.barcodeZoomFactor(for: camera, previewSize: view.bounds.size),
+            on: camera
         )
     }
 

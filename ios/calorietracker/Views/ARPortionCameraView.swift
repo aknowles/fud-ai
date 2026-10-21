@@ -60,6 +60,10 @@ final class ARPortionCameraController: FoodCameraController, ARSessionDelegate {
     private var lastCloseUpCheck: TimeInterval = 0
     /// The last AR frame, covering the switch to the standard camera.
     private var handOffSnapshot: UIView?
+    /// Standard-camera starts tried for the current hand-off.
+    private var handOffStartAttempts = 0
+    /// The standard camera couldn't start for a close-up, so ARKit stays on for this shot.
+    private var handOffUnavailable = false
 
     /// How often the close-up check samples the lens and the scene.
     private static let closeUpCheckInterval: TimeInterval = 0.15
@@ -123,10 +127,27 @@ final class ARPortionCameraController: FoodCameraController, ARSessionDelegate {
         }
     }
 
-    override func cameraDidFail() {
-        super.cameraDidFail()
+    /// ARKit may not have released the camera yet, so the standard camera gets a second
+    /// try; if that fails too, ARKit takes over again rather than leaving an error.
+    override func handleCameraFailure() -> Bool {
+        guard handOffSnapshot != nil, !hasLeft else { return super.handleCameraFailure() }
+        if handOffStartAttempts < 2 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) { [weak self] in
+                self?.startStandardCamera()
+            }
+        } else {
+            returnToARCamera()
+        }
+        return true
+    }
+
+    private func returnToARCamera() {
         handOffSnapshot?.removeFromSuperview()
         handOffSnapshot = nil
+        handOffUnavailable = true
+        isARActive = true
+        sceneView.isHidden = false
+        startCamera()
     }
 
     // MARK: - ARSessionDelegate
@@ -153,7 +174,7 @@ final class ARPortionCameraController: FoodCameraController, ARSessionDelegate {
         arDevice = device
         CameraDeviceConfigurator.configureContinuousFocus(device)
         trackFocus(of: device)
-        if let alternative = BackCameraSelection.preferredBackVideoCaptureDevice() {
+        if !handOffUnavailable, let alternative = BackCameraSelection.preferredBackVideoCaptureDevice() {
             closeUpDetector = CloseUpFocusDetector(
                 arMinimumFocusDistanceMM: device.minimumFocusDistance,
                 alternativeMinimumFocusDistanceMM: alternative.minimumFocusDistance
@@ -231,6 +252,7 @@ final class ARPortionCameraController: FoodCameraController, ARSessionDelegate {
         snapshot.isUserInteractionEnabled = false
         view.insertSubview(snapshot, aboveSubview: sceneView)
         handOffSnapshot = snapshot
+        handOffStartAttempts = 0
         sceneView.session.pause()
         sceneView.isHidden = true
         arDevice = nil
@@ -241,7 +263,8 @@ final class ARPortionCameraController: FoodCameraController, ARSessionDelegate {
     }
 
     private func startStandardCamera() {
-        guard !hasLeft else { return }
+        guard !hasLeft, !isARActive else { return }
+        handOffStartAttempts += 1
         super.startCamera()
     }
 

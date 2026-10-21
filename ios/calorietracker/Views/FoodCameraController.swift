@@ -76,6 +76,9 @@ class FoodCameraController: UIViewController {
     /// Grows with every start and stop, so a late start result is ignored.
     private var startCount = 0
     private var isCaptureSessionRunning = false
+    /// Camera access was off; turning it on in Settings restarts the camera on return.
+    private var isWaitingForCameraAccess = false
+    private var appActivationObserver: NSObjectProtocol?
 
     init(title: String?) {
         titleText = title
@@ -118,13 +121,39 @@ class FoodCameraController: UIViewController {
         super.viewWillAppear(animated)
         hasLeft = false
         isCapturing = false
+        observeAppActivation()
         startCamera()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         hasLeft = true
+        if let appActivationObserver {
+            NotificationCenter.default.removeObserver(appActivationObserver)
+            self.appActivationObserver = nil
+        }
         stopCamera()
+    }
+
+    /// Camera access can be turned on in Settings while this camera is open.
+    private func observeAppActivation() {
+        guard appActivationObserver == nil else { return }
+        appActivationObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didBecomeActiveNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            MainActor.assumeIsolated {
+                self?.restartIfCameraAccessWasGranted()
+            }
+        }
+    }
+
+    private func restartIfCameraAccessWasGranted() {
+        guard isWaitingForCameraAccess, !hasLeft,
+              AVCaptureDevice.authorizationStatus(for: .video) == .authorized else { return }
+        isWaitingForCameraAccess = false
+        startCamera()
     }
 
     // MARK: - Camera lifecycle
@@ -153,10 +182,12 @@ class FoodCameraController: UIViewController {
     /// Called when the AVFoundation camera is running.
     func cameraDidStart() {}
 
-    /// Called when the AVFoundation camera can't run; a message replaces the preview.
-    func cameraDidFail() {}
+    /// Called when the AVFoundation camera can't run. Returning true handles it here;
+    /// otherwise a message replaces the preview.
+    func handleCameraFailure() -> Bool { false }
 
     private func captureStartDidFinish(_ result: FoodPhotoCapture.StartResult) {
+        isWaitingForCameraAccess = false
         switch result {
         case .started(let device):
             isCaptureSessionRunning = true
@@ -165,11 +196,12 @@ class FoodCameraController: UIViewController {
             trackFocus(of: device)
             cameraDidStart()
         case .denied:
+            guard !handleCameraFailure() else { return }
+            isWaitingForCameraAccess = true
             showMessage(String(localized: "Camera access is off. Turn it on for Fud AI in the iOS Settings app."), offersSettings: true)
-            cameraDidFail()
         case .unavailable:
+            guard !handleCameraFailure() else { return }
             showMessage(String(localized: "Camera is unavailable."), offersSettings: false)
-            cameraDidFail()
         }
     }
 
@@ -469,8 +501,8 @@ nonisolated final class FoodPhotoCapture: NSObject, @unchecked Sendable {
     /// after `stop()` (for example behind the permission prompt) doesn't run the camera.
     private var generation = 0
     // Confined to `queue`.
+    /// Set once the session has its camera and photo output; until then every start retries.
     private var device: AVCaptureDevice?
-    private var didAttemptConfiguration = false
     private var photoDimensions: CMVideoDimensions?
     private var shouldRun = false
     private var capturesInFlight: [Int64: PhotoCaptureDelegate] = [:]
@@ -561,8 +593,7 @@ nonisolated final class FoodPhotoCapture: NSObject, @unchecked Sendable {
 
     private func startOnQueue(_ number: Int) -> StartResult {
         guard lock.withLock({ number == generation }) else { return .unavailable }
-        if !didAttemptConfiguration {
-            didAttemptConfiguration = true
+        if device == nil {
             configure()
         }
         guard let device else { return .unavailable }
@@ -579,6 +610,7 @@ nonisolated final class FoodPhotoCapture: NSObject, @unchecked Sendable {
         return session.isRunning ? .started(device) : .unavailable
     }
 
+    /// Leaves the session empty when it fails, so a later start can try again.
     private func configure() {
         session.beginConfiguration()
         if session.canSetSessionPreset(.photo) {
@@ -609,7 +641,9 @@ nonisolated final class FoodPhotoCapture: NSObject, @unchecked Sendable {
             photoDimensions = dimensions
         }
         device = camera
-        observeRuntimeErrors()
+        if runtimeErrorObserver == nil {
+            observeRuntimeErrors()
+        }
     }
 
     private func observeRuntimeErrors() {

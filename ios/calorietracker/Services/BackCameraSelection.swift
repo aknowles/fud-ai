@@ -7,11 +7,11 @@ import Foundation
 /// and focus like the system camera.
 ///
 /// The virtual multi-cameras switch lenses on their own: when the subject is closer
-/// than the wide lens can focus, they move to the ultra-wide lens (macro on iPhone
-/// 13 Pro and later, iPhone 16 and later). They start at zoom 1.0, though, which
-/// *is* the ultra-wide lens (the system camera's 0.5×): fixed-focus on many iPhones
-/// and far too wide for food or barcodes. Cameras therefore start at
-/// `wideAngleZoomFactor(for:)`, the system camera's 1×.
+/// than the wide lens can focus, they move to the ultra-wide lens on iPhones where
+/// that lens has autofocus (the macro the system camera uses). They start at zoom
+/// 1.0, though, which *is* the ultra-wide lens (the system camera's 0.5×):
+/// fixed-focus on many iPhones and far too wide for food or barcodes. Cameras
+/// therefore start at `wideAngleZoomFactor(for:)`, the system camera's 1×.
 nonisolated enum BackCameraSelection {
     /// Highest priority first: virtual cameras that include the ultra-wide lens, then
     /// the dual camera, then the wide lens alone.

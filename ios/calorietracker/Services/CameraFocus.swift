@@ -163,19 +163,19 @@ nonisolated enum CameraDeviceConfigurator {
         rangeRestriction: AVCaptureDevice.AutoFocusRangeRestriction
     ) {
         withLockedConfiguration(device) {
-            let zoom = BackCameraSelection.clampedZoomFactor(
-                zoomFactor,
-                minimum: device.minAvailableVideoZoomFactor,
-                maximum: min(device.maxAvailableVideoZoomFactor, device.activeFormat.videoMaxZoomFactor)
-            )
-            if abs(device.videoZoomFactor - zoom) > 0.001 {
-                device.videoZoomFactor = zoom
-            }
+            applyZoomLocked(zoomFactor, to: device)
             applyFocusSettings(to: device, rangeRestriction: rangeRestriction)
             applyLocked(.continuous, to: device)
             if device.isLowLightBoostSupported {
                 device.automaticallyEnablesLowLightBoostWhenAvailable = true
             }
+        }
+    }
+
+    /// Changes only the zoom, e.g. once a preview knows its size.
+    static func setZoomFactor(_ zoomFactor: CGFloat, on device: AVCaptureDevice) {
+        withLockedConfiguration(device) {
+            applyZoomLocked(zoomFactor, to: device)
         }
     }
 
@@ -215,6 +215,17 @@ nonisolated enum CameraDeviceConfigurator {
             device.exposureMode = mode
         }
         device.isSubjectAreaChangeMonitoringEnabled = request.monitorsSubjectArea
+    }
+
+    private static func applyZoomLocked(_ zoomFactor: CGFloat, to device: AVCaptureDevice) {
+        let zoom = BackCameraSelection.clampedZoomFactor(
+            zoomFactor,
+            minimum: device.minAvailableVideoZoomFactor,
+            maximum: min(device.maxAvailableVideoZoomFactor, device.activeFormat.videoMaxZoomFactor)
+        )
+        if abs(device.videoZoomFactor - zoom) > 0.001 {
+            device.videoZoomFactor = zoom
+        }
     }
 
     private static func applyFocusSettings(to device: AVCaptureDevice, rangeRestriction: AVCaptureDevice.AutoFocusRangeRestriction) {

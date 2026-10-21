@@ -133,6 +133,12 @@ nonisolated final class VoiceAssistantCamera: NSObject, VoiceAssistantCameraIO, 
     func stop() {
         lock.withLock { generation += 1 }
         queue.async { [self] in
+            // A tap's pending timeout or scene change must not touch the camera after it
+            // closes, when another camera may be using it.
+            if focusState.isUserFocused, let device {
+                CameraDeviceConfigurator.apply(.continuous, to: device)
+            }
+            focusState.reset()
             if session.isRunning {
                 session.stopRunning()
                 logger.info("[Camera] Stopped")
@@ -284,12 +290,12 @@ nonisolated final class VoiceAssistantCamera: NSObject, VoiceAssistantCameraIO, 
     }
 
     private func focusHoldTimedOut(generation: Int) {
-        guard let device, let request = focusState.holdTimedOut(generation: generation) else { return }
+        guard session.isRunning, let device, let request = focusState.holdTimedOut(generation: generation) else { return }
         CameraDeviceConfigurator.apply(request, to: device)
     }
 
     private func sceneChanged() {
-        guard let device, let request = focusState.sceneChanged() else { return }
+        guard session.isRunning, let device, let request = focusState.sceneChanged() else { return }
         CameraDeviceConfigurator.apply(request, to: device)
     }
 
