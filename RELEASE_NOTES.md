@@ -27,6 +27,7 @@ IMPROVED
 • Hide the Progress, Coach or Workouts tab, set your own water quick-add amounts, and see your estimated maintenance in Daily Targets.
 • Settings shows the space photos, on-device models and caches use, with Clear Cache and Compress Photos.
 • More reliable Google Drive backup and restore, Health Connect history imports, and resumable on-device model downloads.
+• Every in-app camera focuses before it takes a photo, and you can tap the preview to focus on food or a barcode up close.
 
 Existing logs, goals, Health data, widgets, workout history, and BYOK settings are preserved during a normal update.
 
