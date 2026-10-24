@@ -2,6 +2,7 @@ package com.apoorvdarshan.calorietracker.ui.settings
 
 import com.apoorvdarshan.calorietracker.services.ai.AiError
 import com.apoorvdarshan.calorietracker.models.OpenRouterReasoningEffort
+import com.apoorvdarshan.calorietracker.models.MealShareLinkStyle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -128,7 +129,9 @@ data class SettingsUiState(
     val goalsNeedRecalc: Boolean = false,
     /** False until the stored-settings snapshot in init lands, so a page never shows the
      *  defaults above (water off, metric units…) and a tap can't be overwritten by the snapshot. */
-    val settingsLoaded: Boolean = false
+    val settingsLoaded: Boolean = false,
+    /** Which link a meal share sends; [MealShareLinkStyle.Default] until chosen. */
+    val mealShareLinkStyle: MealShareLinkStyle = MealShareLinkStyle.Default
 ) {
     val heightMetric: Boolean get() = heightUnit == "cm"
     val weightMetric: Boolean get() = weightUnit == "kg"
@@ -388,6 +391,12 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 settingsLoaded = true
             )
             followAssistantSettings()
+            // The first meal share can save the link style while Settings is open.
+            viewModelScope.launch {
+                container.prefs.mealShareLinkStyle.collect { style ->
+                    _ui.value = _ui.value.copy(mealShareLinkStyle = style ?: MealShareLinkStyle.Default)
+                }
+            }
 
             // Permission reconciliation may open Health Connect's provider and backfill data, so
             // it must never sit on the critical path for displaying Settings. Refresh only the
@@ -708,6 +717,11 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
             container.prefs.setWeekStartsOnMonday(monday)
             _ui.value = _ui.value.copy(weekStartsOnMonday = monday)
         }
+    }
+
+    /** The meal share link; the live collector in init updates [SettingsUiState.mealShareLinkStyle]. */
+    fun setMealShareLinkStyle(style: MealShareLinkStyle) {
+        viewModelScope.launch { container.prefs.setMealShareLinkStyle(style) }
     }
 
     /** Display/input unit only; widgets pick it up through the snapshot writer. */
