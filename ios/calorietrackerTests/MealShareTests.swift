@@ -20,7 +20,9 @@ struct MealShareTests {
     /// The payload a link carries, for comparing what two entries would share.
     private func sharedPayload(_ entries: [FoodEntry]) throws -> NSDictionary {
         let link = try #require(MealShare.link(for: entries))
-        let encoded = try #require(URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems?.first { $0.name == "d" }?.value)
+        let items = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems ?? []
+        let value = items.first(where: { $0.name == "d" })?.value
+        let encoded = try #require(value)
         var base64 = encoded.replacingOccurrences(of: "-", with: "+").replacingOccurrences(of: "_", with: "/")
         base64 += String(repeating: "=", count: (4 - base64.count % 4) % 4)
         let data = try #require(Data(base64Encoded: base64))
@@ -73,7 +75,8 @@ struct MealShareTests {
         let payload = #"{"v":1,"meals":[{"name":"Toast","calories":180,"protein":6,"carbs":30,"fat":3,"mealType":"lunch","servingSizeGrams":60,"servingUnitOptions":[{"unit":"slice","gramsPerUnit":30,"quantity":2}],"selectedServingUnit":"slice","selectedServingQuantity":2,"ingredients":[{"name":"Bread","grams":60,"calories":180,"protein":6,"carbs":30,"fat":3,"emoji":"🍞"}],"productMetadata":{"barcode":"123","allergens":["en:gluten"],"novaGroup":4,"imageUrl":"https://x.test/i.jpg"}}]}"#
         let d = Data(payload.utf8).base64EncodedString()
             .replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: "")
-        let toast = try #require(MealShare.meals(from: try #require(URL(string: "fudai://add-meal?d=\(d)")))?.first)
+        let url = try #require(URL(string: "fudai://add-meal?d=\(d)"))
+        let toast = try #require(MealShare.meals(from: url)?.first)
         #expect(toast.mealType == .lunch)
         #expect(toast.servingSizeGrams == 60)
         #expect(toast.servingUnitOptions == [ServingUnitOption(unit: "slice", gramsPerUnit: 30, quantity: 2)])
