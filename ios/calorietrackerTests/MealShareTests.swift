@@ -20,6 +20,11 @@ struct MealShareTests {
     /// The payload a link carries, for comparing what two entries would share.
     private func sharedPayload(_ entries: [FoodEntry]) throws -> NSDictionary {
         let link = try #require(MealShare.link(for: entries))
+        return try payload(of: link)
+    }
+
+    /// A link's decoded payload; dictionaries compare regardless of JSON key order.
+    private func payload(of link: URL) throws -> NSDictionary {
         let items = URLComponents(url: link, resolvingAgainstBaseURL: false)?.queryItems ?? []
         let value = items.first(where: { $0.name == "d" })?.value
         let encoded = try #require(value)
@@ -97,11 +102,10 @@ struct MealShareTests {
         }
         #expect(requests == 0)
         #expect(result?.path == MealShare.webPath)
-        // The meals ride in the link itself. Compare what it decodes to, not its text:
-        // JSONSerialization doesn't keep key order, so two encodings can differ.
-        let meal = try #require(result.flatMap { MealShare.meals(from: $0) }?.first)
-        #expect(meal.name == "🥚 Eggs")
-        #expect(meal.calories == 124)
+        // The meals ride in the link itself. Compare the whole decoded payload, not the
+        // text: JSONSerialization doesn't keep key order, so two encodings can differ.
+        let link = try #require(result)
+        #expect(try payload(of: link) == sharedPayload(entries))
     }
 
     @Test func prefersShortLinkAndPostsOnlyMealPayload() async throws {
