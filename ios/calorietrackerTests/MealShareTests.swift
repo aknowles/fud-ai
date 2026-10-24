@@ -96,8 +96,12 @@ struct MealShareTests {
             return (Data(), HTTPURLResponse(url: request.url!, statusCode: 201, httpVersion: nil, headerFields: nil)!)
         }
         #expect(requests == 0)
-        #expect(result == MealShare.link(for: entries))
         #expect(result?.path == MealShare.webPath)
+        // The meals ride in the link itself. Compare what it decodes to, not its text:
+        // JSONSerialization doesn't keep key order, so two encodings can differ.
+        let meal = try #require(result.flatMap { MealShare.meals(from: $0) }?.first)
+        #expect(meal.name == "🥚 Eggs")
+        #expect(meal.calories == 124)
     }
 
     @Test func prefersShortLinkAndPostsOnlyMealPayload() async throws {
