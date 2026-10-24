@@ -146,7 +146,8 @@ object MealShare {
                     put(JSONObject()
                         .put("unit", option.unit)
                         .put("gramsPerUnit", option.gramsPerUnit)
-                        .apply { option.quantity?.let { put("quantity", it) } })
+                        // An explicit receiver: a bare put() here is the meal-level helper above.
+                        .also { json -> option.quantity?.let { json.put("quantity", it) } })
                 }
             })
         }
@@ -164,7 +165,7 @@ object MealShare {
                         .put("protein", ingredient.protein)
                         .put("carbs", ingredient.carbs)
                         .put("fat", ingredient.fat)
-                        .apply { ingredient.emoji?.let { put("emoji", it) } })
+                        .also { json -> ingredient.emoji?.let { json.put("emoji", it) } })
                 }
             })
         }
