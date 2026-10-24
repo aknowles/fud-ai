@@ -595,10 +595,10 @@ struct EditFoodEntryView: View {
                         }
                     }
 
-                    // Share this meal as a fudai://add-meal link (issue #107)
+                    // Share this meal as it's shown, unsaved serving and note edits included (issue #107)
                     Section {
                         Button {
-                            MealShare.presentShareSheet(for: [entry])
+                            MealShare.presentShareSheet(for: [editedEntry])
                         } label: {
                             Label("Share Meal", systemImage: "square.and.arrow.up")
                                 .font(.system(.body, design: .rounded, weight: .medium))
@@ -766,7 +766,13 @@ struct EditFoodEntryView: View {
     }
 
     private func saveChanges() {
-        let updated = FoodEntry(
+        foodStore.updateEntry(editedEntry.removingPhotos(withIDs: removedPhotoIDs))
+        dismiss()
+    }
+
+    /// The entry as currently edited: what Save writes and what Share sends.
+    private var editedEntry: FoodEntry {
+        FoodEntry(
             id: entry.id,
             name: name,
             calories: scaledCalories,
@@ -818,7 +824,5 @@ struct EditFoodEntryView: View {
             ingredients: scaledIngredients,
             productMetadata: entry.productMetadata
         )
-        foodStore.updateEntry(updated.removingPhotos(withIDs: removedPhotoIDs))
-        dismiss()
     }
 }
