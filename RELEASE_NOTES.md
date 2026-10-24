@@ -7,7 +7,7 @@ same marketing version can share a feature summary while identifying different b
 
 ## Unreleased
 
-No Android 7.2.1 tag yet. The android-v7.2.1 notes below are the prepared store copy for versionCode 43; Android 7.2 (versionCode 42) is the live Google Play release. iOS stays on 7.1.2 build 39 (live on the App Store); this Android release has no iOS changes.
+android-v7.2.1 (versionCode 43) is tagged and on GitHub Releases as a pre-release; it has not been uploaded to Google Play, where Android 7.2 (versionCode 42) is still the live release. iOS stays on 7.1.2 build 39 (live on the App Store); this Android release has no iOS changes.
 
 ## android-v7.2.1
 
