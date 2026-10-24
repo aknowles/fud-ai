@@ -125,7 +125,10 @@ data class SettingsUiState(
     val localModelStates: Map<LocalModelId, LocalModelState> = emptyMap(),
     /** A goal-relevant input changed since the last Recalculate. Drives a soft nudge on the
      *  Recalculate row; the button stays tappable at all times — this never disables it. */
-    val goalsNeedRecalc: Boolean = false
+    val goalsNeedRecalc: Boolean = false,
+    /** False until the stored-settings snapshot in init lands, so a page never shows the
+     *  defaults above (water off, metric units…) and a tap can't be overwritten by the snapshot. */
+    val settingsLoaded: Boolean = false
 ) {
     val heightMetric: Boolean get() = heightUnit == "cm"
     val weightMetric: Boolean get() = weightUnit == "kg"
@@ -381,7 +384,8 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
                 workoutRpeScale = workoutPreferences.rpeScale,
                 workoutRestTimerSeconds = workoutPreferences.restTimerSeconds,
                 localModelStates = container.localModels.states.value,
-                goalsNeedRecalc = needsRecalc(profile)
+                goalsNeedRecalc = needsRecalc(profile),
+                settingsLoaded = true
             )
             followAssistantSettings()
 
