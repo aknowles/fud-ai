@@ -14,7 +14,7 @@ No 8.0 tags yet. The ios-v8.0 and android-v8.0 notes below are the prepared stor
 Fud AI 8.0 for iPhone and iPad adds Live Voice: talk to Fud AI to log meals, scan barcodes and check your progress.
 
 NEW
-• Live Voice: tap the orb on Home, or start it from Siri, the Action Button or Control Center. Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
+• Live Voice: tap the orb on Home, or start it from Siri, the Action Button or Control Center (iOS 18 and later). Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
 • Fud AI now runs on iPad.
 • The food camera measures the table under your food with AR, so the AI can size portions from real dimensions.
 • Workouts: a rest timer, saved routines, Coach exercise suggestions you confirm before anything is added, and Fill with AI or a photo for custom exercises.

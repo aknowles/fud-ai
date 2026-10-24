@@ -41,7 +41,7 @@ Snap, speak, or type a meal. AI logs the calories. Open source.
 ```
 Fud AI makes calorie tracking effortless with AI-powered food recognition. Snap a photo, scan a barcode, speak it, or type it — get instant nutrition: calories, protein, carbs, fats, vitamins, minerals, and more.
 
-NEW in v8.0: Live Voice. Talk to Fud AI to log meals, scan barcodes and check progress. Also: workout rest timer and routines, Weekly Recap, Steps, kcal or kJ, share links, Qwen, Turkish.
+NEW in v8.0: Live Voice. Talk to Fud AI to log meals, scan barcodes and check progress. Also: workout rest timer and routines, Weekly Recap, Steps, kcal or kJ, share links, and Qwen.
 
 Nutrition adds custom goals plus caffeine, creatine, and other performance compounds. Optional fasting adds timers, editable history, goals, alerts, and Coach context. Android includes a daily calorie summary and clearer Health Connect guidance.
 
@@ -87,8 +87,8 @@ Off by default. Set a daily goal, quick-log glasses or a custom amount, view pro
 OPTIONAL FASTING TRACKING
 Off by default. Choose a 1–168 hour goal, start/end/cancel from Home +, keep the timer across restarts, optional local alerts, and edit completed sessions. Fasting stays on-device and is not sent to Health Connect.
 
-18 LANGUAGES
-Auto-selected by phone language: English, Spanish, French, German, Italian, Portuguese (BR), Dutch, Russian, Japanese, Korean, Chinese, Hindi, Arabic, Romanian, Azerbaijani, Polish, Czech, Ukrainian.
+19 LANGUAGES
+Auto-selected by phone language: English, Spanish, French, German, Italian, Portuguese (BR), Dutch, Russian, Japanese, Korean, Chinese, Hindi, Arabic, Romanian, Azerbaijani, Polish, Czech, Ukrainian, Turkish.
 
 PRIVACY FIRST
 Core tracking needs no account; no analytics, behavioral tracking, or ads. The optional 18+ Weekly Challenge uploads only a display name, optional social handle, anonymous ID, and weekly aggregate milestones—never raw food, weight, meals, workouts, or Health Connect records. Keys encrypted; AI/STT requests go to your provider, or to Fud AI’s server on Plus/Pro. MIT licensed.
@@ -105,7 +105,7 @@ Source: https://github.com/apoorvdarshan/fud-ai
 ```
 
 ### Other languages
-English-only on Play Console — non-English Play Store browsers (ar, az-AZ, cs-CZ, de-DE, es-ES, fr-FR, hi-IN, it-IT, ja-JP, ko-KR, nl-NL, pl-PL, pt-BR, ro, ru-RU, uk, zh-CN) see the English source as fallback. The app includes 18 localized interfaces; newer strings may temporarily use the English fallback.
+English-only on Play Console — non-English Play Store browsers (ar, az-AZ, cs-CZ, de-DE, es-ES, fr-FR, hi-IN, it-IT, ja-JP, ko-KR, nl-NL, pl-PL, pt-BR, ro, ru-RU, tr-TR, uk, zh-CN) see the English source as fallback. The app includes 19 localized interfaces; newer strings may temporarily use the English fallback.
 
 ---
 

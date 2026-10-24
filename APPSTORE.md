@@ -2,7 +2,7 @@
 
 App Store Connect submission details for Fud AI v8.0 build 40 (iPhone and iPad). Each field is in a code block for easy copy-paste. Not submitted.
 
-8.0 ships alongside Android 8.0. It adds Live Voice (the Home orb, Siri, the Action Button and Control Center), iPad support, AR portion sizing in the food camera, a workout rest timer and routines, Weekly Recap and Steps, kcal or kJ, the Welcome back restore, Short or Direct share links, Alibaba Qwen and Turkish. iOS 7.1.2 build 39 is the live App Store release.
+8.0 ships alongside Android 8.0. It adds Live Voice (the Home orb, Siri, the Action Button and, on iOS 18, Control Center), iPad support, AR portion sizing in the food camera, a workout rest timer and routines, Weekly Recap and Steps, kcal or kJ, the Welcome back restore, Short or Direct share links, Alibaba Qwen and Turkish. iOS 7.1.2 build 39 is the live App Store release.
 
 ## App Name
 ```
@@ -34,7 +34,7 @@ Secondary: Food & Drink
 ```
 Effortless calorie tracking with AI-powered food recognition. Snap, scan, speak, or type a meal — get instant calories, macros, and nutrients.
 
-NEW in v8.0: Live Voice. Talk to Fud AI to log meals, scan barcodes and check your progress, from Home, Siri, the Action Button or Control Center. Fud AI now runs on iPad, and the food camera measures portions with AR. Also: workout rest timer and routines, Weekly Recap, Steps, kcal or kJ, Short or Direct share links, Alibaba Qwen, and Turkish (19 languages).
+NEW in v8.0: Live Voice. Talk to Fud AI to log meals, scan barcodes and check your progress, from Home, Siri, the Action Button or Control Center (iOS 18 and later). Fud AI now runs on iPad, and the food camera measures portions with AR. Also: workout rest timer and routines, Weekly Recap, Steps, kcal or kJ, Short or Direct share links, Alibaba Qwen, and Turkish (19 languages).
 
 Nutrition includes custom goals plus caffeine, creatine, and other performance compounds. Optional fasting adds timers, editable history, goals, alerts, and Coach context. Apple Watch can log water; import Watch workouts from HealthKit when Health is enabled.
 
@@ -92,7 +92,7 @@ Source: https://github.com/apoorvdarshan/fud-ai
 Fud AI 8.0 adds Live Voice: talk to Fud AI to log meals, scan barcodes and check your progress.
 
 NEW
-• Live Voice: tap the orb on Home, or start it from Siri, the Action Button or Control Center. Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
+• Live Voice: tap the orb on Home, or start it from Siri, the Action Button or Control Center (iOS 18 and later). Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
 • Fud AI now runs on iPad.
 • The food camera measures the table under your food with AR, so the AI can size portions from real dimensions.
 • Workouts: a rest timer, saved routines, Coach exercise suggestions you confirm before anything is added, and Fill with AI or a photo for custom exercises.
