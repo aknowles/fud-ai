@@ -2,6 +2,7 @@ package com.apoorvdarshan.calorietracker.ui.onboarding
 
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -1182,7 +1183,8 @@ private fun HealthConnectStep(container: AppContainer, enabled: Boolean, onToggl
     // Some devices refuse Health Connect's permission or settings screen with a
     // SecurityException (Play vitals, 7.2); say so instead of crashing onboarding.
     fun openHealthConnect(open: () -> Unit) {
-        runCatching(open).onFailure {
+        runCatching(open).onFailure { error ->
+            Log.w("Onboarding", "Health Connect screen refused to open", error)
             Toast.makeText(context, unavailableMessage, Toast.LENGTH_SHORT).show()
         }
     }
