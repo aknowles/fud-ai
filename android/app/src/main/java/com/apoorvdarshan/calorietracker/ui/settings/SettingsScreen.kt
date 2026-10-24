@@ -730,6 +730,15 @@ fun SettingsScreen(
                 onBack = { selectedCategory = null }
             )
 
+            // A fresh activity gets a new ViewModel whose snapshot is still loading; wait
+            // for it rather than briefly showing every switch at its default.
+            if (!ui.settingsLoaded) {
+                Box(Modifier.fillMaxWidth().padding(vertical = 32.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+                return@Column
+            }
+
             // Section 1 — Personal Info (matches iOS Section "Personal Info")
             if (selectedCategory == SettingsCategory.PERSONAL_INFO) {
             SectionCard {

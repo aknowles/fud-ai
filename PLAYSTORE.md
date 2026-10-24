@@ -116,12 +116,13 @@ English-only on Play Console — non-English Play Store browsers (ar, az-AZ, cs-
 ```
 <en-US>
 Fud AI 7.2.1
-• Live Voice: talk to Fud AI to log meals, scan barcodes and check your progress. Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
-• Workouts: a rest timer, saved routines, and other apps' workouts via Health Connect.
+• Live Voice: talk to Fud AI to log meals, scan barcodes and check progress. Included with Plus and Pro, or use your own Gemini, OpenAI, xAI or Qwen key.
+• Workouts: rest timer, saved routines, and Health Connect workout import.
 • Progress: Weekly Recap, Steps, and past periods.
-• Show energy in kcal or kJ.
-• New phone? Welcome back restores your Google Drive backup and Health Connect data.
-• Alibaba Qwen joins the AI providers, and the app is now in Turkish.
+• Energy in kcal or kJ.
+• Welcome back: restore your Drive backup and Health Connect data.
+• Camera: sharper close-ups and tap to focus.
+• Alibaba Qwen joins the AI providers; the app is now in Turkish.
 </en-US>
 
 <ar>
