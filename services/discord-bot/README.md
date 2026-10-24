@@ -51,9 +51,9 @@ node services/discord-bot/register-feature.mjs
 The same Worker wakes hourly and posts new store releases once in **#announcements**, each with its What's new notes.
 
 - **Android** — reads the Play production track, but only after the public Play listing shows the release: the track API reports a version as `completed` while Google is still reviewing, so the store page is the source of truth. Open testing is not announced.
-- **iOS** — reads the public iTunes lookup API, which only returns the version users can actually download (and its release notes), so it is already a liveness signal. The App Store link is included.
+- **iOS** — reads App Store Connect for the version in `READY_FOR_SALE` (the one users can actually download) and its en-US release notes, so it is already a liveness signal. It uses a dedicated Customer Support API key ("Fud AI Discord announcer"), which can read versions and, through an `include`, their notes. The public iTunes lookup answers Cloudflare Workers with HTTP 403, so it is not used.
 
-The first run only records the versions already live, so it does not announce them again. Secrets: `DISCORD_BOT_TOKEN` and `PLAY_SERVICE_ACCOUNT_JSON`.
+The first run only records the versions already live, so it does not announce them again. Secrets: `DISCORD_BOT_TOKEN`, `PLAY_SERVICE_ACCOUNT_JSON`, and `ASC_KEY_ID` / `ASC_ISSUER_ID` / `ASC_PRIVATE_KEY` (the key's `.p8` contents; the key is kept in Bitwarden).
 
 ### Deploy Worker secrets + code
 
