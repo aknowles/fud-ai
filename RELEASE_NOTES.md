@@ -7,7 +7,7 @@ same marketing version can share a feature summary while identifying different b
 
 ## Unreleased
 
-No 8.0 tags yet. The ios-v8.0 and android-v8.0 notes below are the prepared store copy for iOS build 40 and Android versionCode 44. iOS 7.1.2 (build 39) and Android 7.2 (versionCode 42) are the live store releases; android-v7.2.1 (versionCode 43) is a GitHub pre-release that was never uploaded to Google Play, and 8.0 includes everything in it.
+ios-v8.0 (build 40) and android-v8.0 (versionCode 44) are tagged and in store review (submitted 2026-10-24), each set to release automatically when approved. iOS 7.1.2 (build 39) and Android 7.2 (versionCode 42) stay live until then; android-v7.2.1 (versionCode 43) is a GitHub pre-release that was never uploaded to Google Play, and 8.0 includes everything in it.
 
 ## ios-v8.0
 

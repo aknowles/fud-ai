@@ -61,13 +61,22 @@ final class calorietrackerUITests: XCTestCase {
         category.tap()
     }
 
+    /// Fails at the caller's line with the count it found and the matching elements attached,
+    /// so an intermittent mismatch shows whether an element was missing or duplicated.
     @MainActor
-    private func waitForCount(_ count: Int, in query: XCUIElementQuery) {
+    private func waitForCount(
+        _ count: Int, in query: XCUIElementQuery, file: StaticString = #filePath, line: UInt = #line
+    ) {
         let expectation = XCTNSPredicateExpectation(
             predicate: NSPredicate { _, _ in query.count == count },
             object: nil
         )
-        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 5), .completed)
+        guard XCTWaiter.wait(for: [expectation], timeout: 5) != .completed else { return }
+        let matches = XCTAttachment(string: query.debugDescription)
+        matches.name = "Elements matching the counted query"
+        matches.lifetime = .keepAlways
+        add(matches)
+        XCTFail("Expected \(count) matching element(s), found \(query.count)", file: file, line: line)
     }
 
     @MainActor
