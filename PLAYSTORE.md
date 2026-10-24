@@ -3,7 +3,7 @@
 Google Play Console listing copy for Fud AI Android v8.0 / versionCode 44. Each field is in a code block for easy copy-paste. Char counts are tracked because Play Console enforces hard caps and silently truncates anything over. This file is prepared for the 8.0 release (Live Voice, workout rest timer and routines, Health Connect workout import, Short or Direct share links) and has not been submitted. Android 7.2 / versionCode 42 is the live Play release; 7.2.1 / versionCode 43 was tagged but never uploaded to Play.
 
 **Pending Play Console updates**
-- [ ] **Before the next Android release:** update the Health Connect declaration in Play Console to include **Exercise (READ)** — paste the `READ_EXERCISE` rationale from §7 *Health apps declaration*, then re-check the §7 Data safety notes (imported workouts stay on-device).
+- [x] Health Connect declaration includes **Exercise (READ)** with the §7 `READ_EXERCISE` rationale (submitted with 8.0, 2026-10-24). Play lists a new health permission in the declaration only once a release containing it is uploaded, and a store-release upload that adds one fails until the declaration is updated, so upload such a release through Play Console first.
 
 **Where to paste each field in Play Console:**
 - App name / Short description / Full description → Grow → Store presence → **Main store listing** (default English) and Grow → Store presence → **Custom store listings** → Manage translations (per-language overrides)
