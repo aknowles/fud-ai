@@ -598,7 +598,7 @@ struct EditFoodEntryView: View {
                     // Share this meal as it's shown, unsaved serving and note edits included (issue #107)
                     Section {
                         Button {
-                            MealShare.presentShareSheet(for: [editedEntry])
+                            MealShare.presentShareSheet(for: [sharedEntry])
                         } label: {
                             Label("Share Meal", systemImage: "square.and.arrow.up")
                                 .font(.system(.body, design: .rounded, weight: .medium))
@@ -770,7 +770,16 @@ struct EditFoodEntryView: View {
         dismiss()
     }
 
-    /// The entry as currently edited: what Save writes and what Share sends.
+    /// What Share sends: the edited entry, keeping the saved name while the field is
+    /// empty (a shared meal needs a name), as Android does.
+    private var sharedEntry: FoodEntry {
+        var shared = editedEntry
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        shared.name = trimmed.isEmpty ? entry.name : trimmed
+        return shared
+    }
+
+    /// The entry as currently edited: what Save writes and what Share builds on.
     private var editedEntry: FoodEntry {
         FoodEntry(
             id: entry.id,

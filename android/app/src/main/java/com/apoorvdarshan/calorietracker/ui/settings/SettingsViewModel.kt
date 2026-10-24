@@ -719,11 +719,12 @@ class SettingsViewModel(val container: AppContainer) : ViewModel() {
         }
     }
 
-    /** Display/input unit only; widgets pick it up through the snapshot writer. */
+    /** The meal share link; the live collector in init updates [SettingsUiState.mealShareLinkStyle]. */
     fun setMealShareLinkStyle(style: MealShareLinkStyle) {
         viewModelScope.launch { container.prefs.setMealShareLinkStyle(style) }
     }
 
+    /** Display/input unit only; widgets pick it up through the snapshot writer. */
     fun setEnergyUnit(unit: EnergyUnit) {
         viewModelScope.launch {
             container.prefs.setEnergyUnit(unit)

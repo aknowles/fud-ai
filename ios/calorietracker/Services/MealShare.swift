@@ -310,7 +310,11 @@ enum MealShare {
             preferredStyle: .alert
         )
         for style in MealShareLinkStyle.allCases {
-            let action = UIAlertAction(title: style.title, style: .default) { _ in chosen(style) }
+            // Next run-loop turn, so the share sheet never races the alert's dismissal
+            // (Direct Link has no network wait to hide it).
+            let action = UIAlertAction(title: style.title, style: .default) { _ in
+                DispatchQueue.main.async { chosen(style) }
+            }
             action.accessibilityIdentifier = "mealShare.linkChoice.\(style.rawValue)"
             alert.addAction(action)
             if style == .defaultStyle { alert.preferredAction = action }
@@ -323,7 +327,7 @@ enum MealShare {
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
               let root = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { return nil }
         var top = root
-        while let presented = top.presentedViewController { top = presented }
+        while let presented = top.presentedViewController, !presented.isBeingDismissed { top = presented }
         return top
     }
 
