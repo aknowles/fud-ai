@@ -30,6 +30,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
     case taurine
     case betaine
     case hmb
+    case purines
+    case alcohol
 
     var id: String { rawValue }
 
@@ -64,6 +66,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .vitaminK: "vitamin_k"
         case .folate: "folate"
         case .omega3: "omega_3"
+        case .purines: "purines"
+        case .alcohol: "alcohol"
         }
     }
 
@@ -98,6 +102,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case "vitamin_k": self = .vitaminK
         case "folate": self = .folate
         case "omega_3": self = .omega3
+        case "purines": self = .purines
+        case "alcohol": self = .alcohol
         default: return nil
         }
     }
@@ -133,6 +139,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .vitaminK: LocalizedDisplayText.text("Vitamin K", polish: "Witamina K")
         case .folate: LocalizedDisplayText.text("Folate", polish: "Foliany")
         case .omega3: LocalizedDisplayText.text("Omega-3", polish: "Omega-3")
+        case .purines: LocalizedDisplayText.text("Purines", polish: "Puryny")
+        case .alcohol: LocalizedDisplayText.text("Alcohol", polish: "Alkohol")
         }
     }
 
@@ -158,7 +166,7 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .fiber, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD, .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
             LocalizedDisplayText.text("Target", polish: "Cel")
-        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat:
+        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol:
             LocalizedDisplayText.text("Limit", polish: "Limit")
         }
     }
@@ -187,12 +195,14 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .vitaminK: "k.circle.fill"
         case .folate: "leaf.fill"
         case .omega3: "drop.fill"
+        case .purines: "allergens"
+        case .alcohol: "wineglass.fill"
         }
     }
 
     var unit: String {
         switch self {
-        case .cholesterol, .caffeine, .sodium, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminC, .vitaminE: "mg"
+        case .cholesterol, .caffeine, .sodium, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminC, .vitaminE, .purines: "mg"
         case .vitaminA, .vitaminD, .vitaminB12, .vitaminK, .folate: "mcg"
         default: "g"
         }
@@ -221,6 +231,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .vitaminK: 120
         case .folate: 400
         case .omega3: 2
+        case .purines: 400
+        case .alcohol: 14
         case .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 0
         }
     }
@@ -248,6 +260,8 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .vitaminK: 30...300
         case .folate: 100...1_000
         case .omega3: 0...10
+        case .purines: 100...1_000
+        case .alcohol: 0...100
         case .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 0...50
         }
     }
@@ -255,11 +269,11 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
     var step: Int {
         switch self {
         case .sodium, .potassium, .calcium, .vitaminA, .folate: 50
-        case .magnesium: 25
+        case .magnesium, .purines: 25
         case .vitaminC, .vitaminK: 10
         case .cholesterol: 50
         case .caffeine: 25
-        case .iron, .zinc, .vitaminD, .vitaminB12, .vitaminE, .transFat, .omega3, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 1
+        case .iron, .zinc, .vitaminD, .vitaminB12, .vitaminE, .transFat, .omega3, .alcohol, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 1
         default: 5
         }
     }
@@ -268,7 +282,7 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .fiber, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD, .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
             "target"
-        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat:
+        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol:
             "limit"
         }
     }

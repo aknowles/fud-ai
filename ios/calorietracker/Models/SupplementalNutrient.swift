@@ -9,6 +9,8 @@ enum SupplementalNutrient: String, CaseIterable, Identifiable, Codable {
     case taurine
     case betaine
     case hmb
+    case purines
+    case alcohol
 
     var id: String { rawValue }
 
@@ -22,6 +24,8 @@ enum SupplementalNutrient: String, CaseIterable, Identifiable, Codable {
         case .taurine: "taurine"
         case .betaine: "betaine"
         case .hmb: "hmb"
+        case .purines: "purines"
+        case .alcohol: "alcohol"
         }
     }
 
@@ -35,6 +39,8 @@ enum SupplementalNutrient: String, CaseIterable, Identifiable, Codable {
         case .taurine: "Taurine"
         case .betaine: "Betaine"
         case .hmb: "HMB"
+        case .purines: "Purines"
+        case .alcohol: "Alcohol"
         }
     }
 
