@@ -1729,6 +1729,10 @@ private var dailyStepsTaskKey: String {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
+                    GoutCardView(date: selectedDate)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
                     Button {
                         showNutritionDetail = true
                     } label: {
