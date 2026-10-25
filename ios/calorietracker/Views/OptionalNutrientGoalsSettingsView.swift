@@ -44,6 +44,15 @@ struct OptionalNutrientGoalsSettingsView: View {
             .listRowBackground(AppColors.appCard)
 
             Section {
+                DASHPresetButtons()
+            } header: {
+                Text("DASH preset")
+            } footer: {
+                Text("Sets the sodium limit and the potassium, calcium and magnesium targets to the DASH eating plan values.")
+            }
+            .listRowBackground(AppColors.appCard)
+
+            Section {
                 Toggle(isOn: $aminoAcidsEnabled) {
                     HStack(spacing: 12) {
                         Image(systemName: "atom")

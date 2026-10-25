@@ -4351,6 +4351,9 @@ struct ProgressTabView: View {
                                 .padding(.horizontal)
                                 .opacity(isLoadingFoodRangeStats ? 0.45 : 1)
                         }
+
+                        DASHScorecardSection()
+                            .padding(.horizontal)
                     } else {
                         ProgressNutritionLoadingCard()
                             .padding(.horizontal)
