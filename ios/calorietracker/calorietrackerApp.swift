@@ -47,7 +47,7 @@ struct calorietrackerApp: App {
 
     init() {
         // Tip-jar IAPs are tracked through RevenueCat (public SDK key, safe to ship).
-        if !SimulatorTestEnvironment.isRunningTests {
+        if ForkSettings.paidFeaturesEnabled, !SimulatorTestEnvironment.isRunningTests {
             Purchases.logLevel = .warn
             Purchases.configure(withAPIKey: "appl_kOERxwXPyEUPZVCKhuuuNnUuGUZ")
             Task { @MainActor in RevenueCatManager.shared.configure() }

@@ -6496,7 +6496,7 @@ struct ProfileView: View {
                         AboutAppHeaderSection()
                     }
 
-                    if aboutCategory == .support {
+                    if aboutCategory == .support, ForkSettings.paidFeaturesEnabled {
                         TipJarSettingsSection()
                     }
 

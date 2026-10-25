@@ -83,7 +83,7 @@ struct VoiceAssistantSettingsView: View {
     private var providerSection: some View {
         Section {
             Picker(selection: $choice) {
-                ForEach(VoiceAssistantProviderChoice.allCases) { option in
+                ForEach(VoiceAssistantProviderChoice.availableCases) { option in
                     Text(option.localizedName).tag(option)
                 }
             } label: {

@@ -998,18 +998,20 @@ struct OnboardingView: View {
                 withAnimation(.snappy) { aiSubstep = .byok }
             }
 
-            aiChoiceCard(
-                icon: "bolt.horizontal.circle.fill",
-                title: String(localized: "Hosted AI"),
-                subtitle: String(
-                    localized: "Plus (30/day) or Pro (60/day) — subscribe in-app, optional credit packs."
-                ),
-                badge: String(localized: "Convenient"),
-                highlight: false
-            ) {
-                withAnimation(.snappy) { aiSubstep = .hosted }
-                if !rc.hasHostedEntitlement {
-                    showHostedPaywall = true
+            if ForkSettings.paidFeaturesEnabled {
+                aiChoiceCard(
+                    icon: "bolt.horizontal.circle.fill",
+                    title: String(localized: "Hosted AI"),
+                    subtitle: String(
+                        localized: "Plus (30/day) or Pro (60/day) — subscribe in-app, optional credit packs."
+                    ),
+                    badge: String(localized: "Convenient"),
+                    highlight: false
+                ) {
+                    withAnimation(.snappy) { aiSubstep = .hosted }
+                    if !rc.hasHostedEntitlement {
+                        showHostedPaywall = true
+                    }
                 }
             }
         }

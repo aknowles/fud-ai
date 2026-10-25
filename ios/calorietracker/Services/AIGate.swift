@@ -11,7 +11,8 @@ enum AIModeSettings {
 
     static var mode: AIMode {
         get {
-            guard let raw = UserDefaults.standard.string(forKey: modeKey),
+            guard ForkSettings.paidFeaturesEnabled,
+                  let raw = UserDefaults.standard.string(forKey: modeKey),
                   let value = AIMode(rawValue: raw) else {
                 return .byok
             }

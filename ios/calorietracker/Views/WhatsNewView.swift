@@ -454,16 +454,18 @@ private struct WhatsNewSupportPage: View {
 
     var body: some View {
         WhatsNewPageScroll {
-            HStack(spacing: 14) {
-                ForEach(TipJarStore.tiers) { tier in
-                    Image(tier.icon)
-                        .resizable()
-                        .interpolation(.none)
-                        .scaledToFit()
-                        .frame(width: 44, height: 44)
+            if ForkSettings.paidFeaturesEnabled {
+                HStack(spacing: 14) {
+                    ForEach(TipJarStore.tiers) { tier in
+                        Image(tier.icon)
+                            .resizable()
+                            .interpolation(.none)
+                            .scaledToFit()
+                            .frame(width: 44, height: 44)
+                    }
                 }
+                .accessibilityHidden(true)
             }
-            .accessibilityHidden(true)
 
             VStack(spacing: 8) {
                 Text("Support Fud AI")
@@ -493,15 +495,17 @@ private struct WhatsNewSupportPage: View {
                 .accessibilityIdentifier("whatsNew.share")
             }
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text("Leave a Tip")
-                    .font(.system(.footnote, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.secondary)
-                    .textCase(.uppercase)
-                    .accessibilityAddTraits(.isHeader)
-                LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
-                    ForEach(TipJarStore.tiers) { tier in
-                        tipButton(tier)
+            if ForkSettings.paidFeaturesEnabled {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Leave a Tip")
+                        .font(.system(.footnote, design: .rounded, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                        .textCase(.uppercase)
+                        .accessibilityAddTraits(.isHeader)
+                    LazyVGrid(columns: [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)], spacing: 10) {
+                        ForEach(TipJarStore.tiers) { tier in
+                            tipButton(tier)
+                        }
                     }
                 }
             }

@@ -24,7 +24,7 @@ struct HostedAISettingsView: View {
         List {
             Section {
                 Picker("AI Mode", selection: $aiMode) {
-                    ForEach(AIMode.allCases) { mode in
+                    ForEach(AIMode.availableCases) { mode in
                         Text(mode.displayName).tag(mode)
                     }
                 }
