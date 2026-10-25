@@ -511,7 +511,7 @@ struct EditFoodEntryView: View {
                                 OptionalNutritionDisplayRow(
                                     label: nutrient.displayName,
                                     value: scaledSupplementalNutrients[nutrient.rawValue],
-                                    unit: "g"
+                                    unit: nutrient.optionalNutrient.unit
                                 )
                             }
                             if aminoAcidsEnabled {

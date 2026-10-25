@@ -650,7 +650,7 @@ struct FoodResultView: View {
                                     label: nutrient.displayName,
                                     displayValue: displayText(value),
                                     editValue: editText(value),
-                                    unit: "g",
+                                    unit: nutrient.optionalNutrient.unit,
                                     isUnlocked: nutritionUnlocked,
                                     dim: true,
                                     onEdit: { text in
