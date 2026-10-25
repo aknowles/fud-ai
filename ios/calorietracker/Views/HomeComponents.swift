@@ -167,6 +167,8 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
     case taurine
     case betaine
     case hmb
+    case purines
+    case alcohol
 
     static let storageKey = "homeTopNutrients"
     static let defaultSelection: [HomeTopNutrient] = [.protein, .carbs, .fat, .fiber]
@@ -189,6 +191,8 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .taurine: .taurine
         case .betaine: .betaine
         case .hmb: .hmb
+        case .purines: .purines
+        case .alcohol: .alcohol
         case .sodium: .sodium
         case .potassium: .potassium
         case .transFat: .transFat
@@ -220,7 +224,7 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .fiber, .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .potassium,
              .transFat, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD,
              .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine,
-             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
+             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb, .purines, .alcohol:
             return optionalNutrient?.shortDisplayName ?? rawValue
         }
     }
@@ -235,7 +239,7 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .fiber, .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .potassium,
              .transFat, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD,
              .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine,
-             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
+             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb, .purines, .alcohol:
             return optionalNutrient?.unit ?? "g"
         }
     }
@@ -252,7 +256,7 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .fiber, .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .potassium,
              .transFat, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD,
              .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine,
-             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
+             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb, .purines, .alcohol:
             return optionalNutrient?.iconName ?? "circle"
         }
     }
@@ -295,6 +299,8 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .taurine: entries.reduce(0) { $0 + ($1.supplementalNutrients[SupplementalNutrient.taurine.rawValue] ?? 0) }
         case .betaine: entries.reduce(0) { $0 + ($1.supplementalNutrients[SupplementalNutrient.betaine.rawValue] ?? 0) }
         case .hmb: entries.reduce(0) { $0 + ($1.supplementalNutrients[SupplementalNutrient.hmb.rawValue] ?? 0) }
+        case .purines: entries.reduce(0) { $0 + ($1.supplementalNutrients[SupplementalNutrient.purines.rawValue] ?? 0) }
+        case .alcohol: entries.reduce(0) { $0 + ($1.supplementalNutrients[SupplementalNutrient.alcohol.rawValue] ?? 0) }
         case .sodium: entries.reduce(0) { $0 + ($1.sodium ?? 0) }
         case .potassium: entries.reduce(0) { $0 + ($1.potassium ?? 0) }
         case .transFat: entries.reduce(0) { $0 + ($1.transFat ?? 0) }
@@ -321,7 +327,7 @@ enum HomeTopNutrient: String, CaseIterable, Identifiable {
         case .fiber, .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .potassium,
              .transFat, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD,
              .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine,
-             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
+             .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb, .purines, .alcohol:
             guard let optionalNutrient else { return 0 }
             return Double(optionalGoals.goal(for: optionalNutrient))
         }
