@@ -11,11 +11,15 @@ enum HealthContextPrompt {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
-        guard !profile.entries.isEmpty else { return [] }
+        guard !profile.isEmpty else { return [] }
         let today = foods.filter { calendar.isDate($0.timestamp, inSameDayAs: now) }
         var lines: [String] = ["", "## Health goals"]
         for kind in profile.entries {
             lines.append("- " + kind.promptGuidance)
+        }
+        let avoid = profile.avoidList
+        if !avoid.isEmpty {
+            lines.append("- Foods to avoid: \(listed(avoid.labels)). Never suggest a food that contains them, and say so when an option might.")
         }
         lines.append("- Advise within these goals. Never suggest starting, stopping or changing a medicine; for medical questions, suggest asking their doctor.")
 
@@ -24,9 +28,11 @@ enum HealthContextPrompt {
         let estimated = estimatedNutrients.filter { nutrient in rules.contains { $0.nutrient == nutrient } }
             .map { $0.promptName.lowercased() }
         let note = estimated.isEmpty ? "" : " (\(listed(estimated)) \(estimated.count == 1 ? "is an estimate" : "are estimates"))"
-        lines.append(today.isEmpty ? "- Nothing logged yet today. Today's goals\(note):" : "- Today so far\(note):")
-        var listed = Set<OptionalNutrient>()
-        for rule in rules where listed.insert(rule.nutrient).inserted {
+        if !rules.isEmpty {
+            lines.append(today.isEmpty ? "- Nothing logged yet today. Today's goals\(note):" : "- Today so far\(note):")
+        }
+        var shown = Set<OptionalNutrient>()
+        for rule in rules where shown.insert(rule.nutrient).inserted {
             let conflicted = conflicts.contains { $0.nutrient == rule.nutrient }
             lines.append("  - " + line(for: rule, value: total(rule.nutrient, in: today),
                                        goal: goals.goal(for: rule.nutrient), conflicted: conflicted))

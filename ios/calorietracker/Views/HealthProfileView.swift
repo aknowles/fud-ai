@@ -4,6 +4,7 @@ import SwiftUI
 /// the goals each one uses and any conflicts between them.
 struct HealthProfileView: View {
     @State private var store = HealthProfileStore.shared
+    @State private var newAvoidTerm = ""
     @AppStorage(OptionalNutrientGoals.storageKey) private var goalsData = Data()
 
     private var goals: OptionalNutrientGoals { OptionalNutrientGoals.decoded(from: goalsData) }
@@ -52,6 +53,8 @@ struct HealthProfileView: View {
             }
             .listRowBackground(AppColors.appCard)
 
+            avoidSection
+
             let conflicts = store.profile.conflicts
             if !conflicts.isEmpty {
                 Section {
@@ -87,6 +90,55 @@ struct HealthProfileView: View {
         .navigationTitle("Health Profile")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { store.reload() }
+    }
+
+    private var avoidSection: some View {
+        Section {
+            Toggle("Celiac disease (gluten)", isOn: avoidBinding(\.celiac))
+                .tint(AppColors.calorie)
+            Toggle("Lactose intolerance", isOn: avoidBinding(\.lactose))
+                .tint(AppColors.calorie)
+            ForEach(store.profile.avoidList.custom, id: \.self) { term in
+                Label(term, systemImage: "hand.raised.fill")
+            }
+            .onDelete { offsets in
+                var list = store.profile.avoidList
+                list.custom.remove(atOffsets: offsets)
+                store.setAvoidList(list)
+            }
+            HStack {
+                TextField("Add a food, e.g. peanuts", text: $newAvoidTerm)
+                    .textInputAutocapitalization(.never)
+                    .onSubmit(addAvoidTerm)
+                Button("Add", action: addAvoidTerm)
+                    .disabled(newAvoidTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        } header: {
+            Text("Foods to Avoid")
+        } footer: {
+            Text("Coach and Suggestions steer clear of these and flag options that contain them. Matching uses food names, ingredients and product allergen lists, so it can miss hidden ingredients; always check labels.")
+        }
+        .listRowBackground(AppColors.appCard)
+    }
+
+    private func avoidBinding(_ keyPath: WritableKeyPath<AvoidList, Bool>) -> Binding<Bool> {
+        Binding(
+            get: { store.profile.avoidList[keyPath: keyPath] },
+            set: { value in
+                var list = store.profile.avoidList
+                list[keyPath: keyPath] = value
+                store.setAvoidList(list)
+            }
+        )
+    }
+
+    private func addAvoidTerm() {
+        let term = newAvoidTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !term.isEmpty else { return }
+        var list = store.profile.avoidList
+        if !list.custom.contains(term) { list.custom.append(term) }
+        store.setAvoidList(list)
+        newAvoidTerm = ""
     }
 
     private func goalSummary(for kind: HealthEntryKind) -> String {

@@ -140,10 +140,18 @@ struct HealthConflict: Equatable, Identifiable {
 
 struct HealthProfile: Codable, Equatable {
     var entries: [HealthEntryKind]
+    /// Optional so profiles saved before the list existed still decode.
+    var avoid: AvoidList?
 
-    init(entries: [HealthEntryKind] = []) {
+    init(entries: [HealthEntryKind] = [], avoid: AvoidList? = nil) {
         self.entries = entries
+        self.avoid = avoid
     }
+
+    var avoidList: AvoidList { avoid ?? AvoidList() }
+
+    /// True when there is nothing for Coach or Suggestions to weigh.
+    var isEmpty: Bool { entries.isEmpty && avoidList.isEmpty }
 
     func contains(_ kind: HealthEntryKind) -> Bool { entries.contains(kind) }
 
@@ -183,6 +191,12 @@ final class HealthProfileStore {
     }
 
     func contains(_ kind: HealthEntryKind) -> Bool { profile.contains(kind) }
+
+    func setAvoidList(_ list: AvoidList) {
+        guard !blob.isWriteBlocked else { return }
+        profile.avoid = list.isEmpty ? nil : list
+        blob.save(profile)
+    }
 
     func set(_ kind: HealthEntryKind, active: Bool) {
         guard !blob.isWriteBlocked, profile.contains(kind) != active else { return }
