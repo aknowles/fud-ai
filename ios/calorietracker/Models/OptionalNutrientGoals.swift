@@ -32,6 +32,9 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
     case hmb
     case purines
     case alcohol
+    case phosphorus
+    case oxalate
+    case tyramine
 
     var id: String { rawValue }
 
@@ -68,6 +71,9 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .omega3: "omega_3"
         case .purines: "purines"
         case .alcohol: "alcohol"
+        case .phosphorus: "phosphorus"
+        case .oxalate: "oxalate"
+        case .tyramine: "tyramine"
         }
     }
 
@@ -104,6 +110,9 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case "omega_3": self = .omega3
         case "purines": self = .purines
         case "alcohol": self = .alcohol
+        case "phosphorus": self = .phosphorus
+        case "oxalate": self = .oxalate
+        case "tyramine": self = .tyramine
         default: return nil
         }
     }
@@ -141,6 +150,9 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .omega3: LocalizedDisplayText.text("Omega-3", polish: "Omega-3")
         case .purines: LocalizedDisplayText.text("Purines", polish: "Puryny")
         case .alcohol: LocalizedDisplayText.text("Alcohol", polish: "Alkohol")
+        case .phosphorus: LocalizedDisplayText.text("Phosphorus", polish: "Fosfor")
+        case .oxalate: LocalizedDisplayText.text("Oxalate", polish: "Szczawiany")
+        case .tyramine: LocalizedDisplayText.text("Tyramine", polish: "Tyramina")
         }
     }
 
@@ -166,7 +178,7 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .fiber, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD, .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
             LocalizedDisplayText.text("Target", polish: "Cel")
-        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol:
+        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol, .phosphorus, .oxalate, .tyramine:
             LocalizedDisplayText.text("Limit", polish: "Limit")
         }
     }
@@ -197,12 +209,15 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .omega3: "drop.fill"
         case .purines: "allergens"
         case .alcohol: "wineglass.fill"
+        case .phosphorus: "p.square.fill"
+        case .oxalate: "circle.hexagongrid.fill"
+        case .tyramine: "exclamationmark.shield.fill"
         }
     }
 
     var unit: String {
         switch self {
-        case .cholesterol, .caffeine, .sodium, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminC, .vitaminE, .purines: "mg"
+        case .cholesterol, .caffeine, .sodium, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminC, .vitaminE, .purines, .phosphorus, .oxalate, .tyramine: "mg"
         case .vitaminA, .vitaminD, .vitaminB12, .vitaminK, .folate: "mcg"
         default: "g"
         }
@@ -233,6 +248,10 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .omega3: 2
         case .purines: 400
         case .alcohol: 14
+        // Limits for kidney disease, kidney stones and MAOI diets; the user sets their doctor's numbers.
+        case .phosphorus: 1_000
+        case .oxalate: 100
+        case .tyramine: 10
         case .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 0
         }
     }
@@ -262,18 +281,21 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         case .omega3: 0...10
         case .purines: 100...1_000
         case .alcohol: 0...100
+        case .phosphorus: 400...2_500
+        case .oxalate: 20...500
+        case .tyramine: 0...100
         case .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 0...50
         }
     }
 
     var step: Int {
         switch self {
-        case .sodium, .potassium, .calcium, .vitaminA, .folate: 50
+        case .sodium, .potassium, .calcium, .vitaminA, .folate, .phosphorus: 50
         case .magnesium, .purines: 25
-        case .vitaminC, .vitaminK: 10
+        case .vitaminC, .vitaminK, .oxalate: 10
         case .cholesterol: 50
         case .caffeine: 25
-        case .iron, .zinc, .vitaminD, .vitaminB12, .vitaminE, .transFat, .omega3, .alcohol, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 1
+        case .iron, .zinc, .vitaminD, .vitaminB12, .vitaminE, .transFat, .omega3, .alcohol, .tyramine, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb: 1
         default: 5
         }
     }
@@ -282,7 +304,7 @@ enum OptionalNutrient: String, CaseIterable, Identifiable, Codable {
         switch self {
         case .fiber, .potassium, .calcium, .iron, .magnesium, .zinc, .vitaminA, .vitaminC, .vitaminD, .vitaminB12, .vitaminE, .vitaminK, .folate, .omega3, .creatine, .betaAlanine, .lCitrulline, .lCarnitine, .lArginine, .taurine, .betaine, .hmb:
             "target"
-        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol:
+        case .sugar, .addedSugar, .saturatedFat, .cholesterol, .caffeine, .sodium, .transFat, .purines, .alcohol, .phosphorus, .oxalate, .tyramine:
             "limit"
         }
     }

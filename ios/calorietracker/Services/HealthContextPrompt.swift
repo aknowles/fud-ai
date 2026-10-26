@@ -67,6 +67,9 @@ enum HealthContextPrompt {
         case .potassium: "Potassium"
         case .calcium: "Calcium"
         case .magnesium: "Magnesium"
+        case .phosphorus: "Phosphorus"
+        case .oxalate: "Oxalate"
+        case .tyramine: "Tyramine"
         default: nutrient.rawValue
         }
     }
