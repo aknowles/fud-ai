@@ -27,16 +27,17 @@ struct GoutNutrientExportTests {
         #expect(item["alcohol_g"] == nil)
     }
 
-    @Test func csvAppendsTheTwoColumnsAfterTheExistingOnes() throws {
+    @Test func csvKeepsTheTwoColumnsAfterTheUpstreamOnes() throws {
         let export = try #require(DiaryExporter.build(from: day, to: day, format: .csv, entries: [entry()], profile: profile()))
         let lines = String(decoding: export.data, as: UTF8.self).split(separator: "\n").map(String.init)
         let headers = lines[0].split(separator: ",", omittingEmptySubsequences: false).map(String.init)
         let values = lines[1].split(separator: ",", omittingEmptySubsequences: false).map(String.init)
 
-        #expect(headers.suffix(2) == ["purines_mg", "alcohol_g"])
+        // Columns 38 and 39; later fork columns are appended after them.
+        #expect(Array(headers[38...39]) == ["purines_mg", "alcohol_g"])
         #expect(headers.count == values.count)
-        #expect(values[headers.count - 2] == "345.5")
-        #expect(values[headers.count - 1] == "14.0")
+        #expect(values[38] == "345.5")
+        #expect(values[39] == "14.0")
         // Water rows keep the same width as food rows.
         for line in lines.dropFirst() {
             #expect(line.split(separator: ",", omittingEmptySubsequences: false).count == headers.count, "\(line)")

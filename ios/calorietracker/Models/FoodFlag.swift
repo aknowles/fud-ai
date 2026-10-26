@@ -60,6 +60,18 @@ enum FoodFlag: String, CaseIterable, Identifiable {
     }
 }
 
+extension FoodFlag {
+    /// Snake-case name for exports.
+    var exportKey: String { self == .highTyramine ? "high_tyramine" : rawValue }
+
+    /// The entry's flags in a fixed order for exports, or nil when there are none.
+    static func exportList(for entry: FoodEntry) -> [String]? {
+        let flags = entry.foodFlags
+        let keys = allCases.filter(flags.contains).map(\.exportKey)
+        return keys.isEmpty ? nil : keys
+    }
+}
+
 extension FoodEntry {
     var foodFlags: Set<FoodFlag> { FoodFlag.flags(for: self) }
 }

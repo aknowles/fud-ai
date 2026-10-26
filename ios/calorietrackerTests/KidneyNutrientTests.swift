@@ -79,3 +79,59 @@ struct KidneyNutrientAITests {
         #expect(instruction.contains("aged cheeses"))
     }
 }
+
+/// Phosphorus, oxalate, tyramine and food flags leave the app through the diary export,
+/// appended after the purine and alcohol columns.
+@MainActor
+struct KidneyNutrientExportTests {
+    private let day = Date(timeIntervalSince1970: 1_752_840_000)
+
+    private func entry() -> FoodEntry {
+        FoodEntry(name: "Aged cheddar and grapefruit", calories: 250, protein: 14, carbs: 12, fat: 16, timestamp: day,
+                  source: .snapFood, supplementalNutrients: ["phosphorus": 210.04, "oxalate": 3, "tyramine": 8.5],
+                  servingSizeGrams: 180)
+    }
+
+    private func profile() -> UserProfile {
+        UserProfile(
+            name: "Exporter", gender: .male, birthday: Date(timeIntervalSince1970: 0), heightCm: 175, weightKg: 70,
+            activityLevel: .moderate, goal: .maintain, bodyFatPercentage: nil, goalBodyFatPercentage: nil,
+            useBodyFatInBMR: nil, weeklyChangeKg: nil, goalWeightKg: nil, customCalories: 2_000, customProtein: 120,
+            customFat: 60, customCarbs: 200, autoBalanceMacro: nil
+        )
+    }
+
+    @Test func jsonCarriesTheValuesAndFlags() throws {
+        let export = try #require(DiaryExporter.build(from: day, to: day, format: .json, entries: [entry()], profile: profile()))
+        let root = try #require(JSONSerialization.jsonObject(with: export.data) as? [String: Any])
+        let days = root["days"] as? [[String: Any]]
+        let meals = days?.first?["meals"] as? [[String: Any]]
+        let item = try #require((meals?.first?["items"] as? [[String: Any]])?.first)
+
+        #expect(item["phosphorus_mg"] as? Double == 210)
+        #expect(item["oxalate_mg"] as? Double == 3)
+        #expect(item["tyramine_mg"] as? Double == 8.5)
+        #expect(item["food_flags"] as? [String] == ["grapefruit", "high_tyramine"])
+    }
+
+    @Test func csvAppendsTheFourColumnsLast() throws {
+        let export = try #require(DiaryExporter.build(from: day, to: day, format: .csv, entries: [entry()], profile: profile()))
+        let lines = String(decoding: export.data, as: UTF8.self).split(separator: "\n").map(String.init)
+        let headers = lines[0].split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+        let values = lines[1].split(separator: ",", omittingEmptySubsequences: false).map(String.init)
+
+        #expect(Array(headers.suffix(4)) == ["phosphorus_mg", "oxalate_mg", "tyramine_mg", "food_flags"])
+        #expect(Array(values.suffix(4)) == ["210.0", "3.0", "8.5", "grapefruit;high_tyramine"])
+        for line in lines.dropFirst() {
+            #expect(line.split(separator: ",", omittingEmptySubsequences: false).count == headers.count, "\(line)")
+        }
+    }
+
+    @Test func markdownLabelsTheUnitsAndFlags() throws {
+        let export = try #require(DiaryExporter.build(from: day, to: day, format: .markdown, entries: [entry()], profile: profile()))
+        let markdown = String(decoding: export.data, as: UTF8.self)
+
+        #expect(markdown.contains("| Phosphorus (mg) | Oxalate (mg) | Tyramine (mg) | Flags |"))
+        #expect(markdown.contains("| 210.0 | 3.0 | 8.5 | grapefruit, high_tyramine |"))
+    }
+}

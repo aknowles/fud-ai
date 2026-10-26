@@ -181,6 +181,7 @@ enum DiaryExporter {
             let cholesterol_mg: Double?; let caffeine_mg: Double?; let sodium_mg: Double?; let potassium_mg: Double?
             let supplemental_nutrients_g: [String: Double]
             let purines_mg: Double?; let alcohol_g: Double?
+            let phosphorus_mg: Double?; let oxalate_mg: Double?; let tyramine_mg: Double?; let food_flags: [String]?
             let trans_fat_g: Double?; let calcium_mg: Double?; let iron_mg: Double?
             let magnesium_mg: Double?; let zinc_mg: Double?
             let vitamin_a_mcg: Double?; let vitamin_c_mg: Double?; let vitamin_d_mcg: Double?
@@ -209,6 +210,8 @@ enum DiaryExporter {
                          potassium_mg: e.potassium.map(r1),
                          supplemental_nutrients_g: AminoAcidEstimates.roundedSupplementalNutrients(e.supplementalNutrients),
                          purines_mg: e.supplementalNutrients[SupplementalNutrient.purines.rawValue].map(r1), alcohol_g: e.supplementalNutrients[SupplementalNutrient.alcohol.rawValue].map(r1),
+                         phosphorus_mg: e.supplementalNutrients[SupplementalNutrient.phosphorus.rawValue].map(r1), oxalate_mg: e.supplementalNutrients[SupplementalNutrient.oxalate.rawValue].map(r1),
+                         tyramine_mg: e.supplementalNutrients[SupplementalNutrient.tyramine.rawValue].map(r1), food_flags: FoodFlag.exportList(for: e),
                          trans_fat_g: e.transFat.map(r1),
                          calcium_mg: e.calcium.map(r1), iron_mg: e.iron.map(r1),
                          magnesium_mg: e.magnesium.map(r1), zinc_mg: e.zinc.map(r1),
@@ -275,8 +278,8 @@ enum DiaryExporter {
             }
             for g in bundle.groups {
                 s += "### \(g.meal.displayName)\n"
-                s += "| Time | Food | Weight | Calories | Protein (g) | Carbs (g) | Fat (g) | Sugar (g) | Added sugar (g) | Fiber (g) | Saturated fat (g) | Monounsaturated fat (g) | Polyunsaturated fat (g) | Cholesterol (mg) | Caffeine (mg) | Sodium (mg) | Potassium (mg) | Trans fat (g) | Calcium (mg) | Iron (mg) | Magnesium (mg) | Zinc (mg) | Vitamin A (mcg) | Vitamin C (mg) | Vitamin D (mcg) | Vitamin B12 (mcg) | Vitamin E (mg) | Vitamin K (mcg) | Folate (mcg) | Omega-3 (g) | Source | Ingredients | Purines (mg) | Alcohol (g) |\n"
-                s += "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---:|\n"
+                s += "| Time | Food | Weight | Calories | Protein (g) | Carbs (g) | Fat (g) | Sugar (g) | Added sugar (g) | Fiber (g) | Saturated fat (g) | Monounsaturated fat (g) | Polyunsaturated fat (g) | Cholesterol (mg) | Caffeine (mg) | Sodium (mg) | Potassium (mg) | Trans fat (g) | Calcium (mg) | Iron (mg) | Magnesium (mg) | Zinc (mg) | Vitamin A (mcg) | Vitamin C (mg) | Vitamin D (mcg) | Vitamin B12 (mcg) | Vitamin E (mg) | Vitamin K (mcg) | Folate (mcg) | Omega-3 (g) | Source | Ingredients | Purines (mg) | Alcohol (g) | Phosphorus (mg) | Oxalate (mg) | Tyramine (mg) | Flags |\n"
+                s += "|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---:|---:|---:|---:|---|\n"
                 for e in g.entries {
                     let weight = e.servingSizeGrams.map { "\(Int($0)) g" } ?? "-"
                     let food = e.name.replacingOccurrences(of: "|", with: "/")
@@ -295,7 +298,9 @@ enum DiaryExporter {
                         optionalNumber(e.vitaminE, missing: "-"), optionalNumber(e.vitaminK, missing: "-"),
                         optionalNumber(e.folate, missing: "-"), optionalNumber(e.omega3, missing: "-"),
                         sourceLabel(e.source), ingredientsText(e),
-                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.purines.rawValue], missing: "-"), optionalNumber(e.supplementalNutrients[SupplementalNutrient.alcohol.rawValue], missing: "-")
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.purines.rawValue], missing: "-"), optionalNumber(e.supplementalNutrients[SupplementalNutrient.alcohol.rawValue], missing: "-"),
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.phosphorus.rawValue], missing: "-"), optionalNumber(e.supplementalNutrients[SupplementalNutrient.oxalate.rawValue], missing: "-"),
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.tyramine.rawValue], missing: "-"), FoodFlag.exportList(for: e)?.joined(separator: ", ") ?? "-"
                     ]
                     s += "| " + cells.joined(separator: " | ") + " |\n"
                 }
@@ -310,7 +315,7 @@ enum DiaryExporter {
         // Values stay the stored kcal. A kJ user gets the unit in the column name,
         // like the other unit-suffixed columns; kcal exports keep the original header.
         let caloriesColumn = energyUnit == .kj ? "calories_kcal" : "calories"
-        var s = "date,meal,time,food,weight_g,\(caloriesColumn),protein_g,carbs_g,fat_g,sugar_g,added_sugar_g,fiber_g,saturated_fat_g,monounsaturated_fat_g,polyunsaturated_fat_g,cholesterol_mg,caffeine_mg,sodium_mg,potassium_mg,trans_fat_g,calcium_mg,iron_mg,magnesium_mg,zinc_mg,vitamin_a_mcg,vitamin_c_mg,vitamin_d_mcg,vitamin_b12_mcg,vitamin_e_mg,vitamin_k_mcg,folate_mcg,omega3_g,source,note,ingredients,entry_type,water_ml,water_total_ml,purines_mg,alcohol_g\n"
+        var s = "date,meal,time,food,weight_g,\(caloriesColumn),protein_g,carbs_g,fat_g,sugar_g,added_sugar_g,fiber_g,saturated_fat_g,monounsaturated_fat_g,polyunsaturated_fat_g,cholesterol_mg,caffeine_mg,sodium_mg,potassium_mg,trans_fat_g,calcium_mg,iron_mg,magnesium_mg,zinc_mg,vitamin_a_mcg,vitamin_c_mg,vitamin_d_mcg,vitamin_b12_mcg,vitamin_e_mg,vitamin_k_mcg,folate_mcg,omega3_g,source,note,ingredients,entry_type,water_ml,water_total_ml,purines_mg,alcohol_g,phosphorus_mg,oxalate_mg,tyramine_mg,food_flags\n"
         for bundle in days {
             let date = dayFmt.string(from: bundle.date)
             for g in bundle.groups {
@@ -328,19 +333,21 @@ enum DiaryExporter {
                         optionalNumber(e.vitaminD), optionalNumber(e.vitaminB12), optionalNumber(e.vitaminE),
                         optionalNumber(e.vitaminK), optionalNumber(e.folate), optionalNumber(e.omega3),
                         sourceLabel(e.source), e.customNote ?? "", ingredientsText(e), "food", "", "",
-                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.purines.rawValue]), optionalNumber(e.supplementalNutrients[SupplementalNutrient.alcohol.rawValue])
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.purines.rawValue]), optionalNumber(e.supplementalNutrients[SupplementalNutrient.alcohol.rawValue]),
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.phosphorus.rawValue]), optionalNumber(e.supplementalNutrients[SupplementalNutrient.oxalate.rawValue]),
+                        optionalNumber(e.supplementalNutrients[SupplementalNutrient.tyramine.rawValue]), FoodFlag.exportList(for: e)?.joined(separator: ";") ?? ""
                     ]
                     s += cols.map(csvEscape).joined(separator: ",") + "\n"
                 }
             }
             let total = bundle.water.reduce(0) { $0 + $1.milliliters }
             for entry in bundle.water {
-                var cols = Array(repeating: "", count: 40)
+                var cols = Array(repeating: "", count: 44)
                 cols[0] = date; cols[2] = timeFmt.string(from: entry.date); cols[3] = "Water"
                 cols[35] = "water"; cols[36] = String(entry.milliliters)
                 s += cols.map(csvEscape).joined(separator: ",") + "\n"
             }
-            var summary = Array(repeating: "", count: 40)
+            var summary = Array(repeating: "", count: 44)
             summary[0] = date; summary[35] = "water_total"; summary[37] = String(total)
             s += summary.joined(separator: ",") + "\n"
         }
