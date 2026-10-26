@@ -64,12 +64,14 @@ enum SuggestionFlag: Equatable, Hashable {
     case avoid(String)
     /// A food one of the user's medicines rules out.
     case interaction(FoodFlag)
+    /// Would take a keep-steady nutrient above the user's usual range.
+    case unsteady(OptionalNutrient)
 
     /// Avoided foods and medicine interactions are never the pick.
     var isHardStop: Bool {
         switch self {
         case .avoid, .interaction: true
-        case .calories, .over: false
+        case .calories, .over, .unsteady: false
         }
     }
 }
@@ -96,7 +98,8 @@ enum SuggestionRanking {
         today: [FoodEntry],
         calorieGoal: Int,
         goals: OptionalNutrientGoals,
-        profile: HealthProfile
+        profile: HealthProfile,
+        usual: [OptionalNutrient: Double] = [:]
     ) -> [SuggestionOption] {
         let limits = orderedLimits(in: profile)
         let eaten = today.reduce(0) { $0 + $1.calories }
@@ -112,6 +115,11 @@ enum SuggestionRanking {
             }
             evaluated.flags += avoidMatches(for: option, in: profile.avoidList).map(SuggestionFlag.avoid)
             evaluated.flags += interactions(for: option, in: profile).map(SuggestionFlag.interaction)
+            for rule in profile.rules where rule.direction == .steady {
+                guard let base = usual[rule.nutrient] else { continue }
+                let after = amountOf(rule.nutrient, in: today) + amountOf(rule.nutrient, in: [option.entry])
+                if SteadyBand.isAbove(after, usual: base, for: rule.nutrient) { evaluated.flags.append(.unsteady(rule.nutrient)) }
+            }
             return evaluated
         }
     }

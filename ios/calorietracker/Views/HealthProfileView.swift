@@ -167,8 +167,11 @@ struct HealthProfileView: View {
 
     private func goalSummary(for kind: HealthEntryKind) -> String {
         kind.rules.map { rule in
-            let verb = rule.direction == .limit ? String(localized: "max") : String(localized: "min")
-            return "\(rule.nutrient.displayName) \(verb) \(goals.goal(for: rule.nutrient)) \(rule.nutrient.unit)"
+            switch rule.direction {
+            case .limit: return "\(rule.nutrient.displayName) \(String(localized: "max")) \(goals.goal(for: rule.nutrient)) \(rule.nutrient.unit)"
+            case .target: return "\(rule.nutrient.displayName) \(String(localized: "min")) \(goals.goal(for: rule.nutrient)) \(rule.nutrient.unit)"
+            case .steady: return "\(rule.nutrient.displayName) \(String(localized: "steady"))"
+            }
         }
         .joined(separator: " · ")
     }

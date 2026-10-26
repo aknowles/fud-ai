@@ -25,13 +25,14 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
     case metformin
     case glp1
     case maoi
+    case warfarin
 
     var id: String { rawValue }
 
     var isMedicine: Bool {
         switch self {
         case .gout, .dash, .diabetes, .heartHealth, .kidneyDisease, .kidneyStones: false
-        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi: true
+        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi, .warfarin: true
         }
     }
 
@@ -52,6 +53,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .metformin: String(localized: "Metformin")
         case .glp1: String(localized: "GLP-1 medicine (semaglutide, tirzepatide)")
         case .maoi: String(localized: "MAOI antidepressant or linezolid")
+        case .warfarin: String(localized: "Warfarin")
         }
     }
 
@@ -72,6 +74,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .metformin: String(localized: "Limits alcohol and aims for vitamin B12.")
         case .glp1: String(localized: "Coach suggests smaller, lower-fat meals, protein first and enough fluids.")
         case .maoi: String(localized: "Limits tyramine and flags aged cheese, cured meats, soy sauce and other high-tyramine foods.")
+        case .warfarin: String(localized: "Keeps vitamin K steady from day to day, limits alcohol and flags cranberry. Not needed for apixaban or rivaroxaban.")
         }
     }
 
@@ -108,6 +111,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             "Takes a GLP-1 medicine (semaglutide or tirzepatide): suggest smaller meals, lower-fat choices (fat slows the stomach and worsens nausea), protein first to keep muscle, and enough fluids."
         case .maoi:
             "Takes an MAOI or linezolid: high-tyramine foods (aged cheese, cured or fermented meats, soy sauce, miso, sauerkraut, kimchi, tap beer, yeast extract, overripe or spoiled foods) can cause a dangerous rise in blood pressure; never suggest them."
+        case .warfarin:
+            "Takes warfarin: vitamin K changes how warfarin works, so the goal is a steady amount from day to day, not avoiding greens. Warn about big swings (a large spinach or kale salad on a day they usually eat few greens, or suddenly dropping greens). Keep alcohol low and avoid large amounts of cranberry juice."
         }
     }
 
@@ -145,6 +150,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             [.limit(.alcohol, by: self), .target(.vitaminB12, by: self)]
         case .maoi:
             [.limit(.tyramine, by: self)]
+        case .warfarin:
+            [.steady(.vitaminK, by: self), .limit(.alcohol, by: self)]
         case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1:
             []
         }
@@ -156,6 +163,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .colchicine, .grapefruitStatin: [.grapefruit]
         case .potassiumRaising: [.saltSubstitute]
         case .maoi: [.highTyramine]
+        case .warfarin: [.cranberry]
         default: []
         }
     }
@@ -169,6 +177,8 @@ struct HealthRule: Equatable {
         case limit
         /// Reach at least the goal.
         case target
+        /// Stay near the user's own usual daily amount (`SteadyBand`); the goal number is not used.
+        case steady
     }
 
     let nutrient: OptionalNutrient
@@ -182,6 +192,10 @@ struct HealthRule: Equatable {
 
     static func target(_ nutrient: OptionalNutrient, by kind: HealthEntryKind) -> HealthRule {
         HealthRule(nutrient: nutrient, direction: .target, source: kind.displayName)
+    }
+
+    static func steady(_ nutrient: OptionalNutrient, by kind: HealthEntryKind) -> HealthRule {
+        HealthRule(nutrient: nutrient, direction: .steady, source: kind.displayName)
     }
 }
 

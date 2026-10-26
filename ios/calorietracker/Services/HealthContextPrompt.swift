@@ -42,8 +42,13 @@ enum HealthContextPrompt {
         var shown = Set<OptionalNutrient>()
         for rule in rules where shown.insert(rule.nutrient).inserted {
             let conflicted = conflicts.contains { $0.nutrient == rule.nutrient }
-            lines.append("  - " + line(for: rule, value: total(rule.nutrient, in: today),
-                                       goal: goals.goal(for: rule.nutrient), conflicted: conflicted))
+            let value = total(rule.nutrient, in: today)
+            if rule.direction == .steady {
+                let usual = SteadyBand.usual(rule.nutrient, entries: foods, before: now, calendar: calendar)
+                lines.append("  - " + steadyLine(for: rule.nutrient, value: value, usual: usual))
+                continue
+            }
+            lines.append("  - " + line(for: rule, value: value, goal: goals.goal(for: rule.nutrient), conflicted: conflicted))
         }
 
         if profile.contains(.dash) {
@@ -57,6 +62,15 @@ enum HealthContextPrompt {
             lines.append("- Conflict on \(label(for: conflict.nutrient).lowercased()): \(conflict.raisedBy.joined(separator: " and ")) raises it, \(conflict.limitedBy.joined(separator: " and ")) limits it. Do not pick a side; point it out and suggest the user ask their doctor which goal applies.")
         }
         return lines
+    }
+
+    private static func steadyLine(for nutrient: OptionalNutrient, value: Double, usual: Double?) -> String {
+        let name = label(for: nutrient)
+        let unit = nutrient.unit
+        let amount = Int(value.rounded())
+        guard let usual else { return "\(name): \(amount) \(unit) so far (keep steady; not enough history for their usual amount yet)" }
+        let above = SteadyBand.isAbove(value, usual: usual, for: nutrient) ? ", above their usual range" : ""
+        return "\(name): \(amount) \(unit) so far, usual \(Int(usual.rounded())) \(unit) a day (keep steady\(above))"
     }
 
     private static func line(for rule: HealthRule, value: Double, goal: Int, conflicted: Bool) -> String {

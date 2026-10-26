@@ -15,7 +15,8 @@ struct MedicineEntryTests {
     @Test func conditionsAndMedicinesAreSeparateGroups() {
         #expect(HealthEntryKind.allCases.filter { !$0.isMedicine }.count == 6)
         #expect(HealthEntryKind.allCases.filter(\.isMedicine)
-            == [.prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi])
+            == [.prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi,
+                .warfarin])
     }
 
     @Test func anACEInhibitorOrARBConflictsWithDASHOnPotassium() {

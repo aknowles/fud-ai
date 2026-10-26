@@ -273,8 +273,12 @@ struct FoodSuggestionsResultView: View {
                 healthLines: HealthContextPrompt.lines(foods: foodStore.entries, profile: profile, now: now),
                 now: now
             )
+            var usual: [OptionalNutrient: Double] = [:]
+            for rule in profile.rules where rule.direction == .steady {
+                usual[rule.nutrient] = SteadyBand.usual(rule.nutrient, entries: foodStore.entries, before: now, calendar: calendar)
+            }
             suggestions.options = SuggestionRanking.ranked(SuggestionRanking.evaluate(
-                suggestions.options, today: today, calorieGoal: calorieGoal, goals: .current, profile: profile
+                suggestions.options, today: today, calorieGoal: calorieGoal, goals: .current, profile: profile, usual: usual
             ))
             let originalPick = suggestions.pick
             suggestions.pick = SuggestionRanking.safePick(originalPick, in: suggestions.options)
@@ -307,6 +311,11 @@ private struct SuggestionOptionRow: View {
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.red)
             }
+            ForEach(unsteadyNutrients) { nutrient in
+                Label(String(localized: "\(nutrient.displayName) well above your usual day"), systemImage: "waveform.path.ecg")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.orange)
+            }
             ForEach(avoidLabels, id: \.self) { label in
                 Label(String(localized: "Contains \(label)"), systemImage: "hand.raised.fill")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
@@ -333,6 +342,10 @@ private struct SuggestionOptionRow: View {
 
     private var interactionFlags: [FoodFlag] {
         option.flags.compactMap { if case .interaction(let flag) = $0 { flag } else { nil } }
+    }
+
+    private var unsteadyNutrients: [OptionalNutrient] {
+        option.flags.compactMap { if case .unsteady(let nutrient) = $0 { nutrient } else { nil } }
     }
 
     private var avoidLabels: [String] {
