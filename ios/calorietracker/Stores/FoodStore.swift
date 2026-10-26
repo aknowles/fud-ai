@@ -394,6 +394,7 @@ class FoodStore {
         guard FastingStore.persistedActiveSession(defaults: defaults) == nil else { return false }
         var entry = entry
         PurineReference.applyFallbackIfNeeded(&entry)
+        OxalateReference.applyFallbackIfNeeded(&entry)
         let previousFilenames = Set(entry.allImageFilenames)
         let photosToExport = (entry.imageData.map { [$0] } ?? []) + entry.additionalImageData
         offloadImageToDiskIfNeeded(&entry)

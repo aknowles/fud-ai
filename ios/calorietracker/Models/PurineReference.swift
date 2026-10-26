@@ -216,7 +216,7 @@ enum PurineReference {
     ]
 
     /// The reference food whose longest keyword appears as whole words in `text`, or nil.
-    nonisolated static func match(_ text: String) -> Food? {
+    nonisolated static func match(_ text: String, in foods: [Food] = foods) -> Food? {
         let haystack = " " + normalized(text) + " "
         guard haystack.count > 2 else { return nil }
         var best: (food: Food, length: Int)?
@@ -240,18 +240,18 @@ enum PurineReference {
         estimateMilligrams(name: entry.name, grams: entry.servingSizeGrams, ingredients: entry.ingredients)
     }
 
-    nonisolated static func estimateMilligrams(name: String, grams: Double?, ingredients: [MealIngredient]) -> Double? {
+    nonisolated static func estimateMilligrams(name: String, grams: Double?, ingredients: [MealIngredient], in foods: [Food] = foods) -> Double? {
         if !ingredients.isEmpty {
             var total = 0.0
             var matchedAny = false
             for ingredient in ingredients {
-                guard let food = match(ingredient.name) else { continue }
+                guard let food = match(ingredient.name, in: foods) else { continue }
                 matchedAny = true
                 total += food.milligramsPer100g * max(ingredient.grams, 0) / 100
             }
             if matchedAny { return rounded(total) }
         }
-        guard let food = match(name) else { return nil }
+        guard let food = match(name, in: foods) else { return nil }
         let weight = (grams ?? 0) > 0 ? grams! : assumedGrams
         return rounded(food.milligramsPer100g * weight / 100)
     }
