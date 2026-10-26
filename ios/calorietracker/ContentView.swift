@@ -2900,6 +2900,8 @@ extension HomeView {
             savedMealsMode = .favorites
         case .collections:
             savedMealsMode = .collections
+        case .suggestions:
+            savedMealsMode = .suggestions
         case .frequent:
             savedMealsMode = .frequent
         case .recent:

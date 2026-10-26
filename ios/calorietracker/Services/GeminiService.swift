@@ -825,7 +825,7 @@ struct GeminiService {
     /// - Parameter jsonResponse: true (default) for prompts that demand a JSON object; providers with
     ///   structured output are asked for `application/json` so they cannot wander off into prose.
     ///   Pass false for the few plain-English prompts.
-    private static func callAI(prompt: String, image: UIImage?, jsonResponse: Bool = true) async throws -> String {
+    static func callAI(prompt: String, image: UIImage?, jsonResponse: Bool = true) async throws -> String {
         try await callAI(prompt: prompt, images: image.map { [$0] } ?? [], jsonResponse: jsonResponse)
     }
 
