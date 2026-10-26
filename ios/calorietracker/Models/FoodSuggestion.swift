@@ -62,6 +62,16 @@ enum SuggestionFlag: Equatable, Hashable {
     case over(OptionalNutrient)
     /// Contains something on the user's foods-to-avoid list, by its label.
     case avoid(String)
+    /// A food one of the user's medicines rules out.
+    case interaction(FoodFlag)
+
+    /// Avoided foods and medicine interactions are never the pick.
+    var isHardStop: Bool {
+        switch self {
+        case .avoid, .interaction: true
+        case .calories, .over: false
+        }
+    }
 }
 
 /// One choice on the suggestion screen, with the day's totals after eating it.
@@ -101,6 +111,7 @@ enum SuggestionRanking {
                 return (nutrient, amount, goal)
             }
             evaluated.flags += avoidMatches(for: option, in: profile.avoidList).map(SuggestionFlag.avoid)
+            evaluated.flags += interactions(for: option, in: profile).map(SuggestionFlag.interaction)
             return evaluated
         }
     }
@@ -115,11 +126,22 @@ enum SuggestionRanking {
         return list.matches(texts: texts, allergens: allergens)
     }
 
+    /// Food flags on the option that the user's medicines rule out.
+    static func interactions(for option: SuggestionOption, in profile: HealthProfile) -> [FoodFlag] {
+        let ruledOut = Set(profile.avoidedFoodFlags.map(\.flag))
+        guard !ruledOut.isEmpty else { return [] }
+        let entry = option.entry
+        let texts = [entry.name] + entry.ingredients.map(\.name)
+            + [entry.productMetadata?.ingredientsText].compactMap { $0 } + option.contains
+        let found = FoodFlag.flags(texts: texts, tyramineMilligrams: entry.amount(of: .tyramine))
+        return FoodFlag.allCases.filter { ruledOut.contains($0) && found.contains($0) }
+    }
+
     /// The pick to show: the AI's pick unless it contains an avoided food, then the best option
     /// that does not, or nil (wait) when every option does.
     static func safePick(_ pick: SuggestionOption.ID?, in ranked: [SuggestionOption]) -> SuggestionOption.ID? {
         func avoided(_ option: SuggestionOption) -> Bool {
-            option.flags.contains { if case .avoid = $0 { true } else { false } }
+            option.flags.contains(where: \.isHardStop)
         }
         guard let pick, let option = ranked.first(where: { $0.id == pick }), avoided(option) else { return pick }
         return ranked.first { !avoided($0) }?.id

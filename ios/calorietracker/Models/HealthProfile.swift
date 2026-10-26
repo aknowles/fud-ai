@@ -15,8 +15,25 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
     case heartHealth
     case kidneyDisease
     case kidneyStones
+    // Medicines
+    case prednisone
+    case colchicine
+    case allopurinol
+    case grapefruitStatin
+    case otherStatin
+    case potassiumRaising
+    case metformin
+    case glp1
+    case maoi
 
     var id: String { rawValue }
+
+    var isMedicine: Bool {
+        switch self {
+        case .gout, .dash, .diabetes, .heartHealth, .kidneyDisease, .kidneyStones: false
+        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi: true
+        }
+    }
 
     var displayName: String {
         switch self {
@@ -26,6 +43,15 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .heartHealth: String(localized: "High cholesterol or heart disease")
         case .kidneyDisease: String(localized: "Chronic kidney disease")
         case .kidneyStones: String(localized: "Kidney stones")
+        case .prednisone: String(localized: "Prednisone or another corticosteroid")
+        case .colchicine: String(localized: "Colchicine")
+        case .allopurinol: String(localized: "Allopurinol")
+        case .grapefruitStatin: String(localized: "Simvastatin or lovastatin")
+        case .otherStatin: String(localized: "Another statin (atorvastatin, rosuvastatin, pravastatin…)")
+        case .potassiumRaising: String(localized: "ACE inhibitor, ARB or spironolactone")
+        case .metformin: String(localized: "Metformin")
+        case .glp1: String(localized: "GLP-1 medicine (semaglutide, tirzepatide)")
+        case .maoi: String(localized: "MAOI antidepressant or linezolid")
         }
     }
 
@@ -37,6 +63,15 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .heartHealth: String(localized: "Limits saturated fat, trans fat and sodium; aims for fiber.")
         case .kidneyDisease: String(localized: "Limits sodium, potassium and phosphorus; Coach keeps protein at your goal.")
         case .kidneyStones: String(localized: "Limits oxalate and sodium; Coach reminds you about fluids and calcium from food.")
+        case .prednisone: String(localized: "Limits sodium and added sugar; aims for calcium and vitamin D. Take it with food.")
+        case .colchicine: String(localized: "Flags grapefruit, which can raise colchicine levels.")
+        case .allopurinol: String(localized: "Coach reminds you to drink plenty of fluids.")
+        case .grapefruitStatin: String(localized: "Flags grapefruit, which can raise the statin level.")
+        case .otherStatin: String(localized: "No grapefruit flag; Coach knows you take a statin.")
+        case .potassiumRaising: String(localized: "Limits potassium and flags potassium salt substitutes.")
+        case .metformin: String(localized: "Limits alcohol and aims for vitamin B12.")
+        case .glp1: String(localized: "Coach suggests smaller, lower-fat meals, protein first and enough fluids.")
+        case .maoi: String(localized: "Limits tyramine and flags aged cheese, cured meats, soy sauce and other high-tyramine foods.")
         }
     }
 
@@ -55,6 +90,24 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             "Chronic kidney disease: their doctor sets the sodium, potassium, phosphorus and protein limits; stay within them, never push protein above their protein goal, and watch phosphate additives in processed foods and colas."
         case .kidneyStones:
             "Kidney stones: encourage plenty of fluids, keep oxalate and sodium down, keep calcium at normal amounts from food (do not cut dairy), and go easy on animal protein, which also raises uric acid."
+        case .prednisone:
+            "Takes prednisone or another corticosteroid: it raises blood sugar, appetite, salt and water retention and blood pressure, and thins bones. Keep sodium and added sugar down, keep calcium and vitamin D up, and take it with food."
+        case .colchicine:
+            "Takes colchicine: grapefruit and grapefruit juice can raise its level; never suggest them."
+        case .allopurinol:
+            "Takes allopurinol: encourage plenty of fluids through the day."
+        case .grapefruitStatin:
+            "Takes simvastatin or lovastatin: grapefruit and grapefruit juice can raise the statin level; never suggest them."
+        case .otherStatin:
+            "Takes a statin without a grapefruit interaction (such as rosuvastatin or pravastatin); heart-healthy eating still helps."
+        case .potassiumRaising:
+            "Takes an ACE inhibitor, ARB or spironolactone: these raise blood potassium. Do not push high-potassium foods beyond their goal, and never suggest potassium-chloride salt substitutes (lite salt, NoSalt) or potassium supplements."
+        case .metformin:
+            "Takes metformin: keep alcohol low, and long-term use can lower vitamin B12, so B12 foods (meat, fish, eggs, dairy, fortified cereal) help."
+        case .glp1:
+            "Takes a GLP-1 medicine (semaglutide or tirzepatide): suggest smaller meals, lower-fat choices (fat slows the stomach and worsens nausea), protein first to keep muscle, and enough fluids."
+        case .maoi:
+            "Takes an MAOI or linezolid: high-tyramine foods (aged cheese, cured or fermented meats, soy sauce, miso, sauerkraut, kimchi, tap beer, yeast extract, overripe or spoiled foods) can cause a dangerous rise in blood pressure; never suggest them."
         }
     }
 
@@ -84,6 +137,26 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             [.limit(.sodium, by: self), .limit(.potassium, by: self), .limit(.phosphorus, by: self)]
         case .kidneyStones:
             [.limit(.oxalate, by: self), .limit(.sodium, by: self)]
+        case .prednisone:
+            [.limit(.sodium, by: self), .limit(.addedSugar, by: self), .target(.calcium, by: self), .target(.vitaminD, by: self)]
+        case .potassiumRaising:
+            [.limit(.potassium, by: self)]
+        case .metformin:
+            [.limit(.alcohol, by: self), .target(.vitaminB12, by: self)]
+        case .maoi:
+            [.limit(.tyramine, by: self)]
+        case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1:
+            []
+        }
+    }
+
+    /// Foods to keep out because of a medicine, regardless of amount.
+    var avoidedFoodFlags: [FoodFlag] {
+        switch self {
+        case .colchicine, .grapefruitStatin: [.grapefruit]
+        case .potassiumRaising: [.saltSubstitute]
+        case .maoi: [.highTyramine]
+        default: []
         }
     }
 }
@@ -158,6 +231,14 @@ struct HealthProfile: Codable, Equatable {
     var rules: [HealthRule] { entries.flatMap(\.rules) }
 
     var conflicts: [HealthConflict] { HealthConflict.find(in: rules) }
+
+    /// Each food flag the active medicines rule out, with the entries that rule it out.
+    var avoidedFoodFlags: [(flag: FoodFlag, sources: [HealthEntryKind])] {
+        FoodFlag.allCases.compactMap { flag in
+            let sources = entries.filter { $0.avoidedFoodFlags.contains(flag) }
+            return sources.isEmpty ? nil : (flag, sources)
+        }
+    }
 
     /// What the fork showed before the profile existed: the Gout card and the DASH
     /// scorecard were always on. Goal numbers are not touched.

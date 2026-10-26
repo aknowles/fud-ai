@@ -21,6 +21,14 @@ enum HealthContextPrompt {
         if !avoid.isEmpty {
             lines.append("- Foods to avoid: \(listed(avoid.labels)). Never suggest a food that contains them, and say so when an option might.")
         }
+        let interactions = Set(profile.avoidedFoodFlags.map(\.flag))
+        let clashes = today.compactMap { entry -> String? in
+            let hits = FoodFlag.allCases.filter { interactions.contains($0) && entry.foodFlags.contains($0) }
+            return hits.isEmpty ? nil : "\(entry.name) (\(hits.map(\.promptName).joined(separator: ", ")))"
+        }
+        if !clashes.isEmpty {
+            lines.append("- Logged today despite a medicine interaction: \(clashes.joined(separator: "; ")). Mention it if relevant.")
+        }
         lines.append("- Advise within these goals. Never suggest starting, stopping or changing a medicine; for medical questions, suggest asking their doctor.")
 
         let rules = profile.rules

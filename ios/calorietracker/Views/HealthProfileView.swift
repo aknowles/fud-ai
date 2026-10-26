@@ -12,44 +12,24 @@ struct HealthProfileView: View {
     var body: some View {
         List {
             Section {
-                ForEach(HealthEntryKind.allCases) { kind in
-                    VStack(alignment: .leading, spacing: 10) {
-                        Toggle(isOn: Binding(
-                            get: { store.contains(kind) },
-                            set: { active in withAnimation { store.set(kind, active: active) } }
-                        )) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(kind.displayName)
-                                    .font(.system(.body, design: .rounded, weight: .medium))
-                                Text(kind.summary)
-                                    .font(.system(.caption, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                        }
-                        .tint(AppColors.calorie)
-
-                        if store.contains(kind) {
-                            Text(goalSummary(for: kind))
-                                .font(.system(.caption, design: .rounded, weight: .medium))
-                                .foregroundStyle(AppColors.calorie)
-                            if let note = kind.setupNote {
-                                Label(note, systemImage: "stethoscope")
-                                    .font(.system(.caption, design: .rounded))
-                                    .foregroundStyle(.secondary)
-                                    .fixedSize(horizontal: false, vertical: true)
-                            }
-                            if kind == .dash {
-                                DASHPresetButtons()
-                            }
-                        }
-                    }
-                    .padding(.vertical, 4)
+                ForEach(HealthEntryKind.allCases.filter { !$0.isMedicine }) { kind in
+                    entryRow(kind)
                 }
             } header: {
                 Text("Conditions")
             } footer: {
                 Text("Change the numbers under Other Nutrients. Use the values your doctor gives you.")
+            }
+            .listRowBackground(AppColors.appCard)
+
+            Section {
+                ForEach(HealthEntryKind.allCases.filter(\.isMedicine)) { kind in
+                    entryRow(kind)
+                }
+            } header: {
+                Text("Medicines")
+            } footer: {
+                Text("Add the medicines you take so Coach and Suggestions account for food interactions. This never changes how you take them; ask your doctor or pharmacist about your own medicines.")
             }
             .listRowBackground(AppColors.appCard)
 
@@ -90,6 +70,50 @@ struct HealthProfileView: View {
         .navigationTitle("Health Profile")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { store.reload() }
+    }
+
+    private func entryRow(_ kind: HealthEntryKind) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Toggle(isOn: Binding(
+                get: { store.contains(kind) },
+                set: { active in withAnimation { store.set(kind, active: active) } }
+            )) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(kind.displayName)
+                        .font(.system(.body, design: .rounded, weight: .medium))
+                    Text(kind.summary)
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .tint(AppColors.calorie)
+
+            if store.contains(kind) {
+                let goals = goalSummary(for: kind)
+                if !goals.isEmpty {
+                    Text(goals)
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(AppColors.calorie)
+                }
+                if !kind.avoidedFoodFlags.isEmpty {
+                    Label(String(localized: "Avoid: \(kind.avoidedFoodFlags.map(\.displayName).joined(separator: ", "))"),
+                          systemImage: "hand.raised.fill")
+                        .font(.system(.caption, design: .rounded, weight: .medium))
+                        .foregroundStyle(.red)
+                }
+                if let note = kind.setupNote {
+                    Label(note, systemImage: "stethoscope")
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                if kind == .dash {
+                    DASHPresetButtons()
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 
     private var avoidSection: some View {

@@ -302,6 +302,11 @@ private struct SuggestionOptionRow: View {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(AppColors.calorie)
                 }
             }
+            ForEach(interactionFlags) { flag in
+                Label(String(localized: "Avoid with your medicine: \(flag.displayName)"), systemImage: "pills.fill")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.red)
+            }
             ForEach(avoidLabels, id: \.self) { label in
                 Label(String(localized: "Contains \(label)"), systemImage: "hand.raised.fill")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
@@ -324,6 +329,10 @@ private struct SuggestionOptionRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 4)
+    }
+
+    private var interactionFlags: [FoodFlag] {
+        option.flags.compactMap { if case .interaction(let flag) = $0 { flag } else { nil } }
     }
 
     private var avoidLabels: [String] {
