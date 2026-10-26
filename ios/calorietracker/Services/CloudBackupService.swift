@@ -48,7 +48,7 @@ final class CloudBackupService {
     /// backup back on, or record a last-backup time, for the wiped phone.
     private var resetGeneration = 0
 
-    init(defaults: UserDefaults = .standard) {
+    init(defaults: UserDefaults = .diary) {
         self.defaults = defaults
         self.enabled = defaults.bool(forKey: Self.enabledKey)
         self.lastAt = defaults.string(forKey: Self.lastAtKey)

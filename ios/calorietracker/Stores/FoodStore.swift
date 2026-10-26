@@ -72,7 +72,7 @@ class FoodStore {
 
     init(
         observesExternalChanges: Bool = true,
-        defaults: UserDefaults = .standard,
+        defaults: UserDefaults = .diary,
         corruptBackupDirectory: URL? = nil
     ) {
         self.observesExternalChanges = observesExternalChanges
