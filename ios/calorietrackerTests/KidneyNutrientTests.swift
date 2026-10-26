@@ -44,3 +44,38 @@ struct KidneyNutrientTests {
         #expect(decoded.supplementalNutrients["tyramine"] == 0)
     }
 }
+
+/// The AI schema, label parser and prompt carry phosphorus, oxalate and tyramine.
+@MainActor
+struct KidneyNutrientAITests {
+    @Test func foodAnalysisKeepsTheNewNutrients() throws {
+        let analysis = try GeminiService.parseFoodAnalysis(from: """
+        {"name":"Spinach salad with almonds","calories":220,"protein":8,"carbs":12,"fat":16,"serving_size_grams":150,
+         "phosphorus":160,"oxalate":720,"tyramine":0,"purines":40,"unit_options":[]}
+        """)
+
+        #expect(analysis.supplementalNutrients["phosphorus"] == 160)
+        #expect(analysis.supplementalNutrients["oxalate"] == 720)
+        #expect(analysis.supplementalNutrients["tyramine"] == 0)
+    }
+
+    @Test func labelAnalysisScalesThemPerHundredGrams() throws {
+        let label = try GeminiService.parseNutritionLabel(from: """
+        {"name":"Aged cheddar","calories_per_100g":400,"protein_per_100g":25,"carbs_per_100g":1,"fat_per_100g":33,
+         "serving_size_grams":30,"phosphorus_per_100g":500,"oxalate_per_100g":0,"tyramine_per_100g":20,"unit_options":[]}
+        """)
+
+        let serving = label.scaled(to: 30)
+        #expect(serving.supplementalNutrients["phosphorus"] == 150)
+        #expect(serving.supplementalNutrients["tyramine"] == 6)
+    }
+
+    @Test func foodPromptAsksForAllThreeInMilligrams() {
+        let instruction = GeminiService.foodNutrientInstruction(includingAminoAcids: false)
+
+        #expect(instruction.contains("phosphorus, oxalate and tyramine are milligrams"))
+        #expect(instruction.contains("always estimate all three for every food"))
+        #expect(instruction.contains("spinach"))
+        #expect(instruction.contains("aged cheeses"))
+    }
+}

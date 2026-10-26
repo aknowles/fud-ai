@@ -203,6 +203,29 @@ struct FoodDataCentralNetworkTests {
             #expect(abs(result.carbs - 26) < 0.0001)
         }
 
+        @Test func phosphorusAndAlcoholComeFromTheirUSDANutrients() async throws {
+            let session = makeSession { request in
+                json(request, 200, #"""
+                {"foods":[{
+                    "dataType":"Branded","gtinUpc":"041303020937","description":"CHEDDAR","brandOwner":"ACME FOODS",
+                    "servingSize":40,"servingSizeUnit":"g",
+                    "foodNutrients":[
+                        {"nutrientId":1008,"unitName":"KCAL","value":400},
+                        {"nutrientId":1091,"unitName":"MG","value":500},
+                        {"nutrientId":1018,"unitName":"G","value":0}
+                    ]
+                }]}
+                """#)
+            }
+            defer { finish(session) }
+
+            let found = try await FoodDataCentralService.lookup(barcode: "041303020937", apiKey: Self.key, session: session)
+            let result = try #require(found)
+
+            #expect(result.supplementalNutrients["phosphorus"] == 200)
+            #expect(result.supplementalNutrients["alcohol"] == 0)
+        }
+
         @Test func allCapsNamesGetEnglishTitleCaseWhateverTheDeviceLanguage() async throws {
             // Locale-sensitive casing would give "Cheerıos" and "Mılls" in Turkish and Azerbaijani.
             #expect(FoodDataCentralService.displayCase("HONEY NUT CHEERIOS") == "Honey Nut Cheerios")

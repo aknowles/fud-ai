@@ -250,7 +250,10 @@ enum FoodDataCentralService {
             polyunsaturatedFat: rounded(nutrients.grams([1293])),
             cholesterol: milligrams(nutrients.grams([1253], label: "cholesterol", labelUnit: 0.001)),
             caffeine: milligrams(nutrients.grams([1057])),
-            supplementalNutrients: rounded(nutrients.grams([1018])).map { [SupplementalNutrient.alcohol.rawValue: $0] } ?? [:],
+            supplementalNutrients: [
+                SupplementalNutrient.alcohol.rawValue: rounded(nutrients.grams([1018])),
+                SupplementalNutrient.phosphorus.rawValue: milligrams(nutrients.grams([1091])),
+            ].compactMapValues { $0 },
             sodium: milligrams(nutrients.grams([1093], label: "sodium", labelUnit: 0.001)),
             potassium: milligrams(nutrients.grams([1092], label: "potassium", labelUnit: 0.001)),
             transFat: rounded(nutrients.grams([1257], label: "transFat")),
