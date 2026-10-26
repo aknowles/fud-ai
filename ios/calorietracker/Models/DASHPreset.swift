@@ -102,6 +102,17 @@ struct DASHScorecard: Equatable {
 
     @MainActor
     init(foodStore: FoodStore, date: Date, goals: OptionalNutrientGoals, calendar: Calendar = .current) {
+        self.init(date: date, goals: goals, calendar: calendar) { foodStore.entries(for: $0) }
+    }
+
+    /// The same scorecard over a plain entry list, for callers that hold entries rather than the store.
+    init(entries: [FoodEntry], date: Date, goals: OptionalNutrientGoals, calendar: Calendar = .current) {
+        self.init(date: date, goals: goals, calendar: calendar) { day in
+            entries.filter { calendar.isDate($0.timestamp, inSameDayAs: day) }
+        }
+    }
+
+    private init(date: Date, goals: OptionalNutrientGoals, calendar: Calendar, entriesOn: (Date) -> [FoodEntry]) {
         let day = calendar.startOfDay(for: date)
         let days = (0..<Self.windowDays).compactMap { calendar.date(byAdding: .day, value: -$0, to: day) }
         var totals: [OptionalNutrient: Double] = [:]
@@ -110,7 +121,7 @@ struct DASHScorecard: Equatable {
         var todayLogged = false
 
         for (offset, windowDay) in days.enumerated() {
-            let entries = foodStore.entries(for: windowDay)
+            let entries = entriesOn(windowDay)
             if entries.isEmpty { continue }
             loggedDays += 1
             for nutrient in DASHPreset.nutrients {
