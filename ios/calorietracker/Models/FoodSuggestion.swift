@@ -60,6 +60,8 @@ struct SuggestionContext: Equatable {
 enum SuggestionFlag: Equatable, Hashable {
     case calories
     case over(OptionalNutrient)
+    /// Contains something on the user's foods-to-avoid list, by its label.
+    case avoid(String)
 }
 
 /// One choice on the suggestion screen, with the day's totals after eating it.
@@ -69,6 +71,8 @@ struct SuggestionOption: Identifiable {
     let entry: FoodEntry
     let reason: String
     let tweak: String?
+    /// Allergens and notable ingredients the AI listed for a new food; empty for saved foods.
+    var contains: [String] = []
     var flags: [SuggestionFlag] = []
     var caloriesAfter: Int = 0
     var limitsAfter: [(nutrient: OptionalNutrient, amount: Double, goal: Int)] = []
@@ -96,8 +100,29 @@ enum SuggestionRanking {
                 if goal > 0, amount > Double(goal) { evaluated.flags.append(.over(nutrient)) }
                 return (nutrient, amount, goal)
             }
+            evaluated.flags += avoidMatches(for: option, in: profile.avoidList).map(SuggestionFlag.avoid)
             return evaluated
         }
+    }
+
+    /// Labels from the avoid list that the option's name, ingredients, product details or the
+    /// AI's `contains` list match.
+    static func avoidMatches(for option: SuggestionOption, in list: AvoidList) -> [String] {
+        guard !list.isEmpty else { return [] }
+        let entry = option.entry
+        let texts = [entry.name] + entry.ingredients.map(\.name) + [entry.productMetadata?.ingredientsText].compactMap { $0 }
+        let allergens = option.contains + (entry.productMetadata?.allergens ?? []) + (entry.productMetadata?.traces ?? [])
+        return list.matches(texts: texts, allergens: allergens)
+    }
+
+    /// The pick to show: the AI's pick unless it contains an avoided food, then the best option
+    /// that does not, or nil (wait) when every option does.
+    static func safePick(_ pick: SuggestionOption.ID?, in ranked: [SuggestionOption]) -> SuggestionOption.ID? {
+        func avoided(_ option: SuggestionOption) -> Bool {
+            option.flags.contains { if case .avoid = $0 { true } else { false } }
+        }
+        guard let pick, let option = ranked.first(where: { $0.id == pick }), avoided(option) else { return pick }
+        return ranked.first { !avoided($0) }?.id
     }
 
     /// The AI's order, with options that break a goal moved after those that do not.

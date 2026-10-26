@@ -94,6 +94,7 @@ enum FoodSuggestionService {
             "- options: best first. For a saved food set saved_id and food null; otherwise saved_id null and food is the estimate, in this shape:",
             foodShape,
             GeminiService.foodNutrientInstruction(includingAminoAcids: false),
+            "- contains: the main allergens and notable ingredients in the food, lowercase (for example wheat, milk, egg, peanut, tree nut, soy, fish, shellfish, sesame, grapefruit); [] when none.",
             "- servings: how much of the option to eat (1.0 = as listed). Use 0.5 for a half portion.",
             "- tweak: a short change that makes the option fit better (half portion, swap the side, add protein, skip the beer), or null. When the tweak changes the amount, set servings to match; describe swaps in the tweak and estimate food as tweaked.",
             "- reason: one short sentence on why it ranks where it does, naming purines, sodium or calories when they matter.",
@@ -104,7 +105,7 @@ enum FoodSuggestionService {
         return lines.joined(separator: "\n")
     }
 
-    private static let foodShape = #"{"name":"...","emoji":"🍽️","serving_size_grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0,"fiber":0.0,"added_sugar":0.0,"sodium":0.0,"potassium":0.0,"calcium":0.0,"magnesium":0.0,"purines":0.0,"alcohol":0.0}"#
+    private static let foodShape = #"{"name":"...","emoji":"🍽️","serving_size_grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0,"fiber":0.0,"sugar":0.0,"added_sugar":0.0,"saturated_fat":0.0,"trans_fat":0.0,"cholesterol":0.0,"sodium":0.0,"potassium":0.0,"calcium":0.0,"magnesium":0.0,"purines":0.0,"alcohol":0.0,"phosphorus":0.0,"oxalate":0.0,"tyramine":0.0,"contains":["wheat"]}"#
 
     private static func summary(of entry: FoodEntry) -> String {
         var parts = ["\(entry.name): \(entry.calories) kcal", "protein \(Int(entry.protein.rounded())) g"]
@@ -163,7 +164,8 @@ enum FoodSuggestionService {
                 timestamp: now, mealType: .currentMeal
             )
             let tweak = (raw["tweak"] as? String).flatMap { $0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? nil : $0 }
-            let option = SuggestionOption(entry: entry, reason: raw["reason"] as? String ?? "", tweak: tweak)
+            let contains = ((raw["food"] as? [String: Any])?["contains"] as? [String]) ?? []
+            let option = SuggestionOption(entry: entry, reason: raw["reason"] as? String ?? "", tweak: tweak, contains: contains)
             indexMap[index] = option.id
             options.append(option)
         }

@@ -159,3 +159,47 @@ struct FoodSuggestionTests {
         #expect(prompt.contains("\"wait\""))
     }
 }
+
+/// The foods-to-avoid list and the wider nutrient set reach Suggestions.
+@MainActor
+struct FoodSuggestionAvoidTests {
+    private func option(_ name: String, contains: [String] = [], calories: Int = 300) -> SuggestionOption {
+        SuggestionOption(entry: FoodEntry(name: name, calories: calories, protein: 10, carbs: 30, fat: 10, source: .textInput),
+                         reason: "", tweak: nil, contains: contains)
+    }
+
+    @Test func optionsWithAnAvoidedFoodAreFlaggedFromTheirNameOrTheAIsContainsList() {
+        let profile = HealthProfile(entries: [], avoid: AvoidList(celiac: true, custom: ["peanut"]))
+        let evaluated = SuggestionRanking.evaluate(
+            [option("Turkey sandwich"), option("Pad thai", contains: ["rice noodles", "peanut", "egg"]), option("Chicken rice bowl")],
+            today: [], calorieGoal: 2_000, goals: .defaults, profile: profile
+        )
+
+        #expect(evaluated[0].flags == [.avoid("gluten (celiac disease)")])
+        #expect(evaluated[1].flags == [.avoid("peanut")])
+        #expect(evaluated[2].flags.isEmpty)
+        #expect(SuggestionRanking.ranked(evaluated).first?.entry.name == "Chicken rice bowl")
+    }
+
+    @Test func anAvoidedPickFallsToTheBestSafeOptionOrToWaiting() {
+        var bread = option("Bread"); bread.flags = [.avoid("gluten (celiac disease)")]
+        var salty = option("Soup"); salty.flags = [.over(.sodium)]
+        let safe = option("Salad")
+
+        #expect(SuggestionRanking.safePick(bread.id, in: [safe, salty, bread]) == safe.id)
+        #expect(SuggestionRanking.safePick(salty.id, in: [safe, salty, bread]) == salty.id)
+        #expect(SuggestionRanking.safePick(bread.id, in: [bread]) == nil)
+        #expect(SuggestionRanking.safePick(nil, in: [safe]) == nil)
+    }
+
+    @Test func newFoodsKeepTheirContainsListAndTheWiderNutrients() throws {
+        let response = #"{"options":[{"saved_id":null,"food":{"name":"Cheese pizza","calories":600,"protein":25,"carbs":70,"fat":22,"saturated_fat":11,"phosphorus":420,"tyramine":2,"contains":["wheat","milk"]},"reason":"ok"}],"pick":0}"#
+
+        let (suggestions, _) = try FoodSuggestionService.parse(response, saved: [], source: .textInput, now: .now)
+        let pizza = try #require(suggestions.options.first)
+
+        #expect(pizza.contains == ["wheat", "milk"])
+        #expect(pizza.entry.saturatedFat == 11)
+        #expect(pizza.entry.supplementalNutrients["phosphorus"] == 420)
+    }
+}

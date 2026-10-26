@@ -276,9 +276,13 @@ struct FoodSuggestionsResultView: View {
             suggestions.options = SuggestionRanking.ranked(SuggestionRanking.evaluate(
                 suggestions.options, today: today, calorieGoal: calorieGoal, goals: .current, profile: profile
             ))
+            let originalPick = suggestions.pick
+            suggestions.pick = SuggestionRanking.safePick(originalPick, in: suggestions.options)
+            let everyOptionAvoided = originalPick != nil && suggestions.pick == nil
             let saved = foodStore.favorites + FoodCollectionStore.shared.collections.flatMap(\.items)
             suggestions.bridgeSnack = SuggestionRanking.bridgeSnack(from: saved)
-            phase = .loaded(suggestions, waitWins: aiPickedWait || context.prefersWaiting, nextMeal: context.nextMeal)
+            phase = .loaded(suggestions, waitWins: aiPickedWait || context.prefersWaiting || everyOptionAvoided,
+                            nextMeal: context.nextMeal)
         } catch {
             phase = .failed(GeminiService.analysisErrorMessage(error))
         }
@@ -298,6 +302,11 @@ private struct SuggestionOptionRow: View {
                     Image(systemName: "checkmark.seal.fill").foregroundStyle(AppColors.calorie)
                 }
             }
+            ForEach(avoidLabels, id: \.self) { label in
+                Label(String(localized: "Contains \(label)"), systemImage: "hand.raised.fill")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.red)
+            }
             if let tweak = option.tweak {
                 Label(tweak, systemImage: "wand.and.stars")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
@@ -315,6 +324,10 @@ private struct SuggestionOptionRow: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .padding(.vertical, 4)
+    }
+
+    private var avoidLabels: [String] {
+        option.flags.compactMap { if case .avoid(let label) = $0 { label } else { nil } }
     }
 
     private var afterLine: String {

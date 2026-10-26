@@ -29,7 +29,8 @@ struct AvoidList: Codable, Equatable {
     static let glutenTerms = [
         "gluten", "wheat", "barley", "rye", "malt", "spelt", "farro", "semolina", "durum", "bulgur", "couscous",
         "seitan", "bread", "pasta", "noodles", "pizza", "bagel", "croissant", "cracker", "crackers", "flour tortilla",
-        "breadcrumbs", "panko", "pretzel", "cake", "cookie", "muffin", "pancake", "waffle", "beer",
+        "breadcrumbs", "panko", "pretzel", "cake", "cookie", "muffin", "pancake", "waffle", "beer", "sandwich",
+        "sub", "toast", "bun", "wrap", "biscuit", "pie", "dumpling", "ramen", "udon", "tempura", "breaded",
     ]
     static let lactoseTerms = [
         "lactose", "milk", "cream", "ice cream", "whey", "custard", "ricotta", "cottage cheese", "milkshake",
@@ -64,8 +65,8 @@ struct AvoidList: Codable, Equatable {
             return candidates.contains { PurineReference.match($0, in: table) != nil }
         }
         func candidates(exempt labels: [String], lookAlikes: [String]) -> [String] {
-            texts.filter { text in !labels.contains { text.range(of: $0, options: [.caseInsensitive]) != nil } }
-                .map { Self.removing(lookAlikes, from: $0) } + allergenTexts
+            (texts.filter { text in !labels.contains { text.range(of: $0, options: [.caseInsensitive]) != nil } } + allergenTexts)
+                .map { Self.removing(lookAlikes, from: $0) }
         }
         var found: [String] = []
         if celiac, contains(Self.glutenTerms, in: candidates(exempt: Self.glutenFreeLabels, lookAlikes: Self.glutenLookAlikes)) {
