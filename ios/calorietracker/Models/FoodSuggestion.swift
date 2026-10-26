@@ -141,7 +141,8 @@ enum SuggestionRanking {
         let entry = option.entry
         let texts = [entry.name] + entry.ingredients.map(\.name)
             + [entry.productMetadata?.ingredientsText].compactMap { $0 } + option.contains
-        let found = FoodFlag.flags(texts: texts, tyramineMilligrams: entry.amount(of: .tyramine))
+        let found = FoodFlag.flags(texts: texts, tyramineMilligrams: entry.amount(of: .tyramine),
+                                   alcoholGrams: entry.amount(of: .alcohol))
         return FoodFlag.allCases.filter { ruledOut.contains($0) && found.contains($0) }
     }
 

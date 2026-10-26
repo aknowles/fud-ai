@@ -10,6 +10,8 @@ enum FoodFlag: String, CaseIterable, Identifiable {
     case highTyramine
     /// Potassium-chloride salt substitutes, a risk with ACE inhibitors, ARBs and spironolactone.
     case saltSubstitute
+    /// Alcoholic drinks and foods, for metronidazole and tinidazole.
+    case alcohol
 
     var id: String { rawValue }
 
@@ -19,6 +21,7 @@ enum FoodFlag: String, CaseIterable, Identifiable {
         case .cranberry: String(localized: "Cranberry")
         case .highTyramine: String(localized: "High tyramine")
         case .saltSubstitute: String(localized: "Potassium salt substitute")
+        case .alcohol: String(localized: "Alcohol")
         }
     }
 
@@ -29,6 +32,7 @@ enum FoodFlag: String, CaseIterable, Identifiable {
         case .cranberry: "cranberry"
         case .highTyramine: "high tyramine"
         case .saltSubstitute: "potassium salt substitute"
+        case .alcohol: "alcohol"
         }
     }
 
@@ -49,7 +53,25 @@ enum FoodFlag: String, CaseIterable, Identifiable {
         ],
         // Not "no salt": that would match "no salt added" foods.
         .saltSubstitute: ["salt substitute", "lite salt", "losalt", "lo salt", "nosalt", "nu salt", "potassium chloride"],
+        .alcohol: [
+            "beer", "ale", "lager", "stout", "ipa", "wine", "prosecco", "champagne", "cider", "sake", "vodka",
+            "whiskey", "whisky", "bourbon", "rum", "gin", "tequila", "mezcal", "brandy", "cognac", "liqueur",
+            "cocktail", "margarita", "martini", "mimosa", "sangria", "mojito", "hard seltzer", "spritz",
+        ],
     ]
+
+    /// A text labeled with one of these is exempt from that flag altogether.
+    static let exemptions: [FoodFlag: [String]] = [
+        .alcohol: ["non-alcoholic", "non alcoholic", "alcohol-free", "alcohol free", "0.0%"],
+    ]
+
+    /// Removed from the text before matching that flag, so a look-alike does not match.
+    static let lookAlikes: [FoodFlag: [String]] = [
+        .alcohol: ["root beer", "ginger beer", "ginger ale", "wine vinegar", "rum extract", "rum raisin"],
+    ]
+
+    /// An alcohol estimate at or above this, in grams, counts as containing alcohol.
+    static let alcoholGrams: Double = 0.5
 
     /// Every flag that applies to `entry`, from its name, ingredients, product ingredient list
     /// and tyramine estimate.
@@ -57,19 +79,28 @@ enum FoodFlag: String, CaseIterable, Identifiable {
         let texts = [entry.name] + entry.ingredients.map(\.name)
             + [entry.productMetadata?.ingredientsText].compactMap { $0 }
         let tyramine = entry.supplementalNutrients[SupplementalNutrient.tyramine.rawValue]
-        return flags(texts: texts, tyramineMilligrams: tyramine)
+        return flags(texts: texts, tyramineMilligrams: tyramine, alcoholGrams: entry.supplementalNutrients[SupplementalNutrient.alcohol.rawValue])
     }
 
-    static func flags(texts: [String], tyramineMilligrams: Double?) -> Set<FoodFlag> {
+    static func flags(texts: [String], tyramineMilligrams: Double?, alcoholGrams: Double? = nil) -> Set<FoodFlag> {
         var found = Set<FoodFlag>()
         for flag in allCases {
             let table = [PurineReference.Food(flag.rawValue, keywords[flag] ?? [], 0)]
-            if texts.contains(where: { PurineReference.match($0, in: table) != nil }) {
+            let exempt = exemptions[flag] ?? []
+            let cleaned = texts
+                .filter { text in !exempt.contains { text.range(of: $0, options: .caseInsensitive) != nil } }
+                .map { text in
+                    (lookAlikes[flag] ?? []).reduce(text) { $0.replacingOccurrences(of: $1, with: " ", options: .caseInsensitive) }
+                }
+            if cleaned.contains(where: { PurineReference.match($0, in: table) != nil }) {
                 found.insert(flag)
             }
         }
         if let tyramineMilligrams, tyramineMilligrams >= highTyramineMilligrams {
             found.insert(.highTyramine)
+        }
+        if let alcoholGrams, alcoholGrams >= Self.alcoholGrams {
+            found.insert(.alcohol)
         }
         return found
     }
@@ -81,7 +112,7 @@ extension FoodFlag {
         switch self {
         case .highTyramine: "high_tyramine"
         case .saltSubstitute: "salt_substitute"
-        case .grapefruit, .cranberry: rawValue
+        case .grapefruit, .cranberry, .alcohol: rawValue
         }
     }
 

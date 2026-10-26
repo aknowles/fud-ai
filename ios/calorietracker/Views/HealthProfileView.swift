@@ -102,6 +102,9 @@ struct HealthProfileView: View {
                         .font(.system(.caption, design: .rounded, weight: .medium))
                         .foregroundStyle(.red)
                 }
+                if kind.supportsCourse {
+                    courseControls(kind)
+                }
                 if let note = kind.setupNote {
                     Label(note, systemImage: "stethoscope")
                         .font(.system(.caption, design: .rounded))
@@ -114,6 +117,48 @@ struct HealthProfileView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func courseControls(_ kind: HealthEntryKind) -> some View {
+        let course = store.profile.course(for: kind)
+        Toggle("Short course with dates", isOn: Binding(
+            get: { course != nil },
+            set: { on in
+                let start = Date()
+                let end = Calendar.current.date(byAdding: .day, value: 6, to: start) ?? start
+                store.setCourse(on ? HealthCourse(start: start, end: end) : nil, for: kind)
+            }
+        ))
+        .font(.system(.subheadline, design: .rounded))
+        .tint(AppColors.calorie)
+        if let course {
+            DatePicker("Starts", selection: Binding(
+                get: { course.start },
+                set: { store.setCourse(HealthCourse(start: $0, end: max($0, course.end)), for: kind) }
+            ), displayedComponents: .date)
+            DatePicker("Ends", selection: Binding(
+                get: { course.end },
+                set: { store.setCourse(HealthCourse(start: course.start, end: $0), for: kind) }
+            ), in: course.start..., displayedComponents: .date)
+            Text(courseStatus(kind, course))
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private func courseStatus(_ kind: HealthEntryKind, _ course: HealthCourse) -> String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: .now)
+        let last = course.lastDay(tailDays: kind.courseTailDays, calendar: calendar)
+        let lastText = last.formatted(date: .abbreviated, time: .omitted)
+        if today < calendar.startOfDay(for: course.start) {
+            return String(localized: "Starts \(course.start.formatted(date: .abbreviated, time: .omitted)); its rules are off until then.")
+        }
+        if today <= last {
+            return String(localized: "Its rules apply through \(lastText).")
+        }
+        return String(localized: "Course ended; its rules are off.")
     }
 
     private var avoidSection: some View {

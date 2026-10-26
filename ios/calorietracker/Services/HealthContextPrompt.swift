@@ -11,11 +11,19 @@ enum HealthContextPrompt {
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
+        let full = profile
+        let profile = profile.effective(on: now, calendar: calendar)
         guard !profile.isEmpty else { return [] }
         let today = foods.filter { calendar.isDate($0.timestamp, inSameDayAs: now) }
         var lines: [String] = ["", "## Health goals"]
         for kind in profile.entries {
             lines.append("- " + kind.promptGuidance)
+        }
+        for kind in profile.entries {
+            guard let course = full.course(for: kind) else { continue }
+            let tail = kind.courseTailDays > 0
+                ? "; its food rules last through \(day(course.lastDay(tailDays: kind.courseTailDays, calendar: calendar)))" : ""
+            lines.append("- \(kind.displayName) course: \(day(course.start)) to \(day(course.end))\(tail).")
         }
         let avoid = profile.avoidList
         if !avoid.isEmpty {
@@ -87,6 +95,13 @@ enum HealthContextPrompt {
     }
 
     private static func label(for nutrient: OptionalNutrient) -> String { nutrient.promptName }
+
+    private static func day(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
 
     /// Nutrients that come from AI estimates or reference tables rather than labels.
     private static let estimatedNutrients: [OptionalNutrient] = [.purines, .alcohol, .phosphorus, .oxalate, .tyramine]

@@ -26,13 +26,14 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
     case glp1
     case maoi
     case warfarin
+    case metronidazole
 
     var id: String { rawValue }
 
     var isMedicine: Bool {
         switch self {
         case .gout, .dash, .diabetes, .heartHealth, .kidneyDisease, .kidneyStones: false
-        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi, .warfarin: true
+        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi, .warfarin, .metronidazole: true
         }
     }
 
@@ -54,6 +55,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .glp1: String(localized: "GLP-1 medicine (semaglutide, tirzepatide)")
         case .maoi: String(localized: "MAOI antidepressant or linezolid")
         case .warfarin: String(localized: "Warfarin")
+        case .metronidazole: String(localized: "Metronidazole or tinidazole")
         }
     }
 
@@ -75,6 +77,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .glp1: String(localized: "Coach suggests smaller, lower-fat meals, protein first and enough fluids.")
         case .maoi: String(localized: "Limits tyramine and flags aged cheese, cured meats, soy sauce and other high-tyramine foods.")
         case .warfarin: String(localized: "Keeps vitamin K steady from day to day, limits alcohol and flags cranberry. Not needed for apixaban or rivaroxaban.")
+        case .metronidazole: String(localized: "No alcohol during the course and for 3 days after it ends.")
         }
     }
 
@@ -113,6 +116,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             "Takes an MAOI or linezolid: high-tyramine foods (aged cheese, cured or fermented meats, soy sauce, miso, sauerkraut, kimchi, tap beer, yeast extract, overripe or spoiled foods) can cause a dangerous rise in blood pressure; never suggest them."
         case .warfarin:
             "Takes warfarin: vitamin K changes how warfarin works, so the goal is a steady amount from day to day, not avoiding greens. Warn about big swings (a large spinach or kale salad on a day they usually eat few greens, or suddenly dropping greens). Keep alcohol low and avoid large amounts of cranberry juice."
+        case .metronidazole:
+            "Takes metronidazole or tinidazole: no alcohol at all, including foods and sauces cooked with wine or beer and kombucha, during the course and for 3 days after it ends; never suggest them."
         }
     }
 
@@ -152,10 +157,16 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             [.limit(.tyramine, by: self)]
         case .warfarin:
             [.steady(.vitaminK, by: self), .limit(.alcohol, by: self)]
-        case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1:
+        case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1, .metronidazole:
             []
         }
     }
+
+    /// Entries that can be limited to a course with start and end dates.
+    var supportsCourse: Bool { self == .prednisone || self == .metronidazole }
+
+    /// Days after a course ends that its rules still apply.
+    var courseTailDays: Int { self == .metronidazole ? 3 : 0 }
 
     /// Foods to keep out because of a medicine, regardless of amount.
     var avoidedFoodFlags: [FoodFlag] {
@@ -164,6 +175,7 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .potassiumRaising: [.saltSubstitute]
         case .maoi: [.highTyramine]
         case .warfarin: [.cranberry]
+        case .metronidazole: [.alcohol]
         default: []
         }
     }
@@ -229,10 +241,29 @@ struct HealthProfile: Codable, Equatable {
     var entries: [HealthEntryKind]
     /// Optional so profiles saved before the list existed still decode.
     var avoid: AvoidList?
+    /// Course dates by entry raw value, for entries that only apply for a while.
+    var courses: [String: HealthCourse]?
 
-    init(entries: [HealthEntryKind] = [], avoid: AvoidList? = nil) {
+    init(entries: [HealthEntryKind] = [], avoid: AvoidList? = nil, courses: [String: HealthCourse]? = nil) {
         self.entries = entries
         self.avoid = avoid
+        self.courses = courses
+    }
+
+    func course(for kind: HealthEntryKind) -> HealthCourse? { courses?[kind.rawValue] }
+
+    /// True when `kind` applies on `date`: always without a course, otherwise from the start
+    /// day through the end day plus the entry's tail days.
+    func isActive(_ kind: HealthEntryKind, on date: Date, calendar: Calendar = .current) -> Bool {
+        guard let course = course(for: kind) else { return true }
+        return course.applies(on: date, tailDays: kind.courseTailDays, calendar: calendar)
+    }
+
+    /// This profile with only the entries that apply on `date`.
+    func effective(on date: Date, calendar: Calendar = .current) -> HealthProfile {
+        var copy = self
+        copy.entries = entries.filter { isActive($0, on: date, calendar: calendar) }
+        return copy
     }
 
     var avoidList: AvoidList { avoid ?? AvoidList() }
@@ -287,6 +318,14 @@ final class HealthProfileStore {
 
     func contains(_ kind: HealthEntryKind) -> Bool { profile.contains(kind) }
 
+    func setCourse(_ course: HealthCourse?, for kind: HealthEntryKind) {
+        guard !blob.isWriteBlocked else { return }
+        var courses = profile.courses ?? [:]
+        courses[kind.rawValue] = course
+        profile.courses = courses.isEmpty ? nil : courses
+        blob.save(profile)
+    }
+
     func setAvoidList(_ list: AvoidList) {
         guard !blob.isWriteBlocked else { return }
         profile.avoid = list.isEmpty ? nil : list
@@ -299,7 +338,25 @@ final class HealthProfileStore {
             profile.entries = HealthEntryKind.allCases.filter { $0 == kind || profile.contains($0) }
         } else {
             profile.entries.removeAll { $0 == kind }
+            profile.courses?[kind.rawValue] = nil
+            if profile.courses?.isEmpty == true { profile.courses = nil }
         }
         blob.save(profile)
+    }
+}
+
+/// A short course: an entry applies from `start` through `end`, plus the entry's tail days.
+struct HealthCourse: Codable, Equatable {
+    var start: Date
+    var end: Date
+
+    /// The last day the entry's rules apply.
+    func lastDay(tailDays: Int, calendar: Calendar = .current) -> Date {
+        calendar.date(byAdding: .day, value: tailDays, to: calendar.startOfDay(for: end)) ?? end
+    }
+
+    func applies(on date: Date, tailDays: Int, calendar: Calendar = .current) -> Bool {
+        let day = calendar.startOfDay(for: date)
+        return day >= calendar.startOfDay(for: start) && day <= lastDay(tailDays: tailDays, calendar: calendar)
     }
 }

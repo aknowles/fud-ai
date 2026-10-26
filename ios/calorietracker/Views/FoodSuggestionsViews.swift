@@ -266,7 +266,7 @@ struct FoodSuggestionsResultView: View {
             nextMeal: UsualMeal.next(after: now, entries: foodStore.entries, calendar: calendar),
             isFasting: fastingStore.activeSession != nil
         )
-        let profile = HealthProfileStore.shared.profile
+        let profile = HealthProfileStore.shared.profile.effective(on: now, calendar: calendar)
         do {
             var (suggestions, aiPickedWait) = try await FoodSuggestionService.suggest(
                 input, context: context,
