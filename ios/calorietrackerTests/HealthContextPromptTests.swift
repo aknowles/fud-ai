@@ -2,7 +2,7 @@ import Foundation
 import Testing
 @testable import calorietracker
 
-/// The Coach and voice prompts carry the gout limits, sodium and DASH status with
+/// The Coach and voice prompts carry each health-profile entry's guidance and goals with
 /// today's totals, so advice weighs them without the user asking.
 @MainActor
 struct HealthContextPromptTests {
@@ -31,43 +31,45 @@ struct HealthContextPromptTests {
             entry("Liver", at: yesterday, purines: 900, sodium: 3_000),
         ]
 
-        let lines = HealthContextPrompt.lines(foods: foods, goals: .defaults, now: now, calendar: calendar)
+        let lines = HealthContextPrompt.lines(foods: foods, goals: .defaults, profile: HealthProfile(entries: [.gout]),
+                                              now: now, calendar: calendar)
 
-        #expect(lines.contains("## Health goals (gout and blood pressure)"))
+        #expect(lines.contains("## Health goals"))
         #expect(lines.contains("- Today so far (purines and alcohol are estimates):"))
         #expect(lines.contains("  - Purines: 220 of 400 mg limit"))
         #expect(lines.contains("  - Alcohol: 20 of 14 g limit (over)"))
         #expect(lines.contains("  - Added sugar: 5 of 25 g limit"))
-        #expect(lines.contains("  - Sodium: 920 of 2300 mg limit"))
+        #expect(!lines.contains { $0.contains("Sodium") || $0.contains("DASH") })
     }
 
-    @Test func theGoutAndMedicineGuidanceIsAlwaysPresent() {
-        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, now: now, calendar: calendar)
+    @Test func eachEntryAddsItsGuidanceAndTheMedicineRule() {
+        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: .migratedDefault, now: now, calendar: calendar)
 
-        #expect(lines.contains { $0.contains("The user manages gout") && $0.contains("low-purine") })
+        #expect(lines.contains { $0.hasPrefix("- Gout:") && $0.contains("low-purine") })
+        #expect(lines.contains { $0.hasPrefix("- High blood pressure, following the DASH eating plan") })
         #expect(lines.contains { $0.contains("Never suggest starting, stopping or changing a medicine") })
-        #expect(lines.contains("- Nothing logged yet today. Today's limits (purines and alcohol are estimates):"))
+        #expect(lines.contains("- Nothing logged yet today. Today's goals (purines and alcohol are estimates):"))
         #expect(lines.contains("  - Purines: 0 of 400 mg limit"))
+        #expect(!lines.contains { $0.contains("Conflict") })
     }
 
-    @Test func dashIsReportedOffWhenThePresetIsNotApplied() {
-        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, now: now, calendar: calendar)
-
-        #expect(lines.last == "- DASH eating plan: off.")
-        #expect(!lines.contains { $0.contains("Potassium") })
+    @Test func anEmptyProfileAddsNothing() {
+        #expect(HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), now: now, calendar: calendar).isEmpty)
     }
 
-    @Test func dashShowsTheVariantScoreAndTargetsWhenApplied() {
+    @Test func dashShowsItsGoalsAndScore() {
         let goals = DASHPreset.applying(.lower, to: .defaults)
         let foods = [entry("Soup", at: now, sodium: 1_200, potassium: 4_800)]
 
-        let lines = HealthContextPrompt.lines(foods: foods, goals: goals, now: now, calendar: calendar)
+        let lines = HealthContextPrompt.lines(foods: foods, goals: goals, profile: HealthProfile(entries: [.dash]),
+                                              now: now, calendar: calendar)
 
+        #expect(lines.contains("- Today so far:"))
         #expect(lines.contains("  - Sodium: 1200 of 1500 mg limit"))
-        #expect(lines.contains("- DASH eating plan: on (1500 mg sodium). Today 2 of 4 DASH goals met; 7-day average 2 of 4 over 1 logged days."))
         #expect(lines.contains("  - Potassium: 4800 of 4700 mg target (met)"))
         #expect(lines.contains("  - Calcium: 0 of 1250 mg target"))
         #expect(lines.contains("  - Magnesium: 0 of 500 mg target"))
+        #expect(lines.contains("- DASH score (1500 mg sodium plan): today 2 of 4 goals met; 7-day average 2 of 4 over 1 logged days."))
     }
 
     @Test func entryListScorecardMatchesTheStoreScorecard() {

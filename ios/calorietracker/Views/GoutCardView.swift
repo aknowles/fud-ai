@@ -10,6 +10,7 @@ struct GoutCardView: View {
 
     @Environment(FoodStore.self) private var foodStore
     @AppStorage(OptionalNutrientGoals.storageKey) private var goalsData = Data()
+    @State private var health = HealthProfileStore.shared
 
     private struct Line: Identifiable {
         let nutrient: OptionalNutrient
@@ -36,6 +37,11 @@ struct GoutCardView: View {
     }
 
     var body: some View {
+        if health.contains(.gout) { card }
+    }
+
+    @ViewBuilder
+    private var card: some View {
         let rows = lines
         let withinLimit = rows.filter { !$0.isOver }.count
         VStack(alignment: .leading, spacing: 12) {

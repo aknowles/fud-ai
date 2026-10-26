@@ -44,11 +44,13 @@ struct OptionalNutrientGoalsSettingsView: View {
             .listRowBackground(AppColors.appCard)
 
             Section {
-                DASHPresetButtons()
-            } header: {
-                Text("DASH preset")
+                NavigationLink {
+                    HealthProfileView()
+                } label: {
+                    Label("Health Profile", systemImage: "heart.text.square")
+                }
             } footer: {
-                Text("Sets the sodium limit and the potassium, calcium and magnesium targets to the DASH eating plan values.")
+                Text("Gout, high blood pressure (DASH) and other conditions that shape the cards and Coach's advice.")
             }
             .listRowBackground(AppColors.appCard)
 

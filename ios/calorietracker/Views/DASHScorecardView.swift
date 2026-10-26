@@ -9,9 +9,16 @@ struct DASHScorecardSection: View {
     @Environment(FoodStore.self) private var foodStore
     @AppStorage(OptionalNutrientGoals.storageKey) private var goalsData = Data()
 
+    @State private var health = HealthProfileStore.shared
+
     private var goals: OptionalNutrientGoals { OptionalNutrientGoals.decoded(from: goalsData) }
 
     var body: some View {
+        if health.contains(.dash) { card }
+    }
+
+    @ViewBuilder
+    private var card: some View {
         let scorecard = DASHScorecard(foodStore: foodStore, date: date, goals: goals)
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
