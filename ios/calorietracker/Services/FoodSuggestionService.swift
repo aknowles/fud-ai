@@ -105,7 +105,7 @@ enum FoodSuggestionService {
         return lines.joined(separator: "\n")
     }
 
-    private static let foodShape = #"{"name":"...","emoji":"🍽️","serving_size_grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0,"fiber":0.0,"sugar":0.0,"added_sugar":0.0,"saturated_fat":0.0,"trans_fat":0.0,"cholesterol":0.0,"sodium":0.0,"potassium":0.0,"calcium":0.0,"magnesium":0.0,"purines":0.0,"alcohol":0.0,"phosphorus":0.0,"oxalate":0.0,"tyramine":0.0,"contains":["wheat"]}"#
+    static let foodShape = #"{"name":"...","emoji":"🍽️","serving_size_grams":0.0,"calories":0,"protein":0.0,"carbs":0.0,"fat":0.0,"fiber":0.0,"sugar":0.0,"added_sugar":0.0,"saturated_fat":0.0,"trans_fat":0.0,"cholesterol":0.0,"sodium":0.0,"potassium":0.0,"calcium":0.0,"magnesium":0.0,"purines":0.0,"alcohol":0.0,"phosphorus":0.0,"oxalate":0.0,"tyramine":0.0,"contains":["wheat"]}"#
 
     private static func summary(of entry: FoodEntry) -> String {
         var parts = ["\(entry.name): \(entry.calories) kcal", "protein \(Int(entry.protein.rounded())) g"]
@@ -126,6 +126,12 @@ enum FoodSuggestionService {
     // MARK: - Parsing
 
     enum ParseError: Error { case invalidResponse, noOptions }
+
+    /// A food object in `foodShape` through the shared food parser, or nil when it is unusable.
+    static func foodAnalysis(from food: [String: Any]) -> GeminiService.FoodAnalysis? {
+        guard let data = try? JSONSerialization.data(withJSONObject: food) else { return nil }
+        return try? GeminiService.parseFoodAnalysis(from: String(decoding: data, as: UTF8.self))
+    }
 
     /// Turns the AI's JSON into options. Saved foods keep their stored nutrition; new foods
     /// go through the shared food parser and the same entry builder as Review Food, so a
@@ -151,9 +157,7 @@ enum FoodSuggestionService {
                let number = Int(id.dropFirst()), saved.indices.contains(number - 1) {
                 analysis = saved[number - 1].reviewAnalysis
                 entrySource = saved[number - 1].source
-            } else if let food = raw["food"] as? [String: Any],
-                      let foodData = try? JSONSerialization.data(withJSONObject: food),
-                      let parsed = try? GeminiService.parseFoodAnalysis(from: String(decoding: foodData, as: UTF8.self)) {
+            } else if let food = raw["food"] as? [String: Any], let parsed = foodAnalysis(from: food) {
                 analysis = parsed
                 entrySource = source
             } else {

@@ -8,12 +8,15 @@ enum HealthContextPrompt {
         foods: [FoodEntry],
         goals: OptionalNutrientGoals = .current,
         profile: HealthProfile = HealthProfileStore.shared.profile,
+        plan: [PlannedMeal] = MealPlanStore.shared.meals,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
+        let planned = planLines(plan: plan, foods: foods, profile: profile.effective(on: now, calendar: calendar),
+                                now: now, calendar: calendar)
         let full = profile
         let profile = profile.effective(on: now, calendar: calendar)
-        guard !profile.isEmpty else { return [] }
+        guard !profile.isEmpty else { return planned }
         let today = foods.filter { calendar.isDate($0.timestamp, inSameDayAs: now) }
         var lines: [String] = ["", "## Health goals"]
         for kind in profile.entries {
@@ -70,7 +73,7 @@ enum HealthContextPrompt {
         for conflict in conflicts {
             lines.append("- Conflict on \(label(for: conflict.nutrient).lowercased()): \(conflict.raisedBy.joined(separator: " and ")) raises it, \(conflict.limitedBy.joined(separator: " and ")) limits it. Do not pick a side; point it out and suggest the user ask their doctor which goal applies.")
         }
-        return lines
+        return lines + planned
     }
 
     private static func steadyLine(for nutrient: OptionalNutrient, value: Double, usual: Double?) -> String {
@@ -96,6 +99,32 @@ enum HealthContextPrompt {
     }
 
     private static func label(for nutrient: OptionalNutrient) -> String { nutrient.promptName }
+
+    /// Planned meals for the rest of today and tomorrow that are not logged yet.
+    private static func planLines(plan: [PlannedMeal], foods: [FoodEntry], profile: HealthProfile, now: Date,
+                                  calendar: Calendar) -> [String] {
+        let limits = SuggestionRanking.orderedLimits(in: profile)
+        var lines: [String] = []
+        for (offset, label) in [(0, "Today"), (1, "Tomorrow")] {
+            guard let day = calendar.date(byAdding: .day, value: offset, to: calendar.startOfDay(for: now)) else { continue }
+            let dayFoods = foods.filter { calendar.isDate($0.timestamp, inSameDayAs: day) }
+            for meal in plan.filter({ calendar.isDate($0.day, inSameDayAs: day) && !$0.isLogged(in: dayFoods) })
+                .sorted(by: { (MealSlotTime.defaults[$0.mealType] ?? 0) < (MealSlotTime.defaults[$1.mealType] ?? 0) }) {
+                let source = meal.source.map { " (\($0))" } ?? ""
+                var text = "- \(label), \(meal.mealType.rawValue)\(source): "
+                if let chosen = meal.chosen {
+                    let amounts = limits.compactMap { nutrient -> String? in
+                        chosen.entry.amount(of: nutrient).map { "\(nutrient.promptName.lowercased()) \(Int($0.rounded())) \(nutrient.unit)" }
+                    }
+                    text += "planned \(chosen.entry.name) (\(([String(chosen.entry.calories) + " kcal"] + amounts).joined(separator: ", ")))"
+                }
+                let others = meal.options.filter { $0.id != meal.chosen?.id }.map(\.entry.name)
+                if !others.isEmpty { text += "\(meal.chosen == nil ? "options" : "; other options"): \(others.joined(separator: ", "))" }
+                lines.append(text + ".")
+            }
+        }
+        return lines.isEmpty ? [] : ["", "## Meal plan"] + lines + ["- Weigh what is still planned when advising on food now."]
+    }
 
     private static func doseLines(profile: HealthProfile, full: HealthProfile, today: [FoodEntry], now: Date,
                                   calendar: Calendar) -> [String] {
