@@ -102,6 +102,9 @@ struct HealthProfileView: View {
                         .font(.system(.caption, design: .rounded, weight: .medium))
                         .foregroundStyle(.red)
                 }
+                if kind.supportsDoseTimes {
+                    doseControls(kind)
+                }
                 if kind.supportsCourse {
                     courseControls(kind)
                 }
@@ -117,6 +120,71 @@ struct HealthProfileView: View {
             }
         }
         .padding(.vertical, 4)
+    }
+
+    @ViewBuilder
+    private func doseControls(_ kind: HealthEntryKind) -> some View {
+        let schedule = store.profile.doseSchedule(for: kind) ?? DoseSchedule()
+        Text("Dose times")
+            .font(.system(.subheadline, design: .rounded, weight: .medium))
+        ForEach(Array(schedule.times.enumerated()), id: \.offset) { index, minutes in
+            HStack {
+                DatePicker(String(localized: "Dose \(index + 1)"), selection: Binding(
+                    get: { Self.date(minutes: minutes) },
+                    set: { newDate in
+                        var updated = schedule
+                        updated.times[index] = Self.minutes(of: newDate)
+                        store.setDoseSchedule(DoseSchedule(times: updated.times, mineralsBefore: updated.mineralsBefore,
+                                                           mineralsAfter: updated.mineralsAfter), for: kind)
+                    }
+                ), displayedComponents: .hourAndMinute)
+                Button(role: .destructive) {
+                    var updated = schedule
+                    updated.times.remove(at: index)
+                    store.setDoseSchedule(updated.times.isEmpty && updated.mineralsBefore == nil && updated.mineralsAfter == nil
+                                          ? nil : updated, for: kind)
+                } label: {
+                    Image(systemName: "minus.circle.fill")
+                }
+                .buttonStyle(.borderless)
+            }
+        }
+        Button {
+            var updated = schedule
+            let next = (schedule.times.last.map { $0 + 12 * 60 } ?? 8 * 60) % (24 * 60)
+            updated.times.append(next)
+            store.setDoseSchedule(DoseSchedule(times: updated.times, mineralsBefore: updated.mineralsBefore,
+                                               mineralsAfter: updated.mineralsAfter), for: kind)
+        } label: {
+            Label("Add dose time", systemImage: "plus.circle.fill")
+        }
+        .buttonStyle(.borderless)
+        if let minerals = store.profile.doseWindows(for: kind).first(where: { $0.foods == .minerals }), kind == .quinoloneTetracycline {
+            Stepper(String(localized: "No minerals \(minerals.minutesBefore / 60) h before"),
+                    value: Binding(get: { minerals.minutesBefore / 60 }, set: { hours in
+                        var updated = schedule
+                        updated.mineralsBefore = hours * 60
+                        store.setDoseSchedule(updated, for: kind)
+                    }), in: 0...8)
+            Stepper(String(localized: "No minerals \(minerals.minutesAfter / 60) h after"),
+                    value: Binding(get: { minerals.minutesAfter / 60 }, set: { hours in
+                        var updated = schedule
+                        updated.mineralsAfter = hours * 60
+                        store.setDoseSchedule(updated, for: kind)
+                    }), in: 0...8)
+            Text("Match the label: ciprofloxacin is 6 h before and 2 h after; doxycycline is often 2 to 3 h either side.")
+                .font(.system(.caption, design: .rounded))
+                .foregroundStyle(.secondary)
+        }
+    }
+
+    private static func date(minutes: Int) -> Date {
+        Calendar.current.date(byAdding: .minute, value: minutes, to: Calendar.current.startOfDay(for: .now)) ?? .now
+    }
+
+    private static func minutes(of date: Date) -> Int {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
     }
 
     @ViewBuilder

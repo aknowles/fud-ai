@@ -27,13 +27,16 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
     case maoi
     case warfarin
     case metronidazole
+    case quinoloneTetracycline
+    case levothyroxine
 
     var id: String { rawValue }
 
     var isMedicine: Bool {
         switch self {
         case .gout, .dash, .diabetes, .heartHealth, .kidneyDisease, .kidneyStones: false
-        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi, .warfarin, .metronidazole: true
+        case .prednisone, .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .potassiumRaising, .metformin, .glp1, .maoi, .warfarin, .metronidazole,
+             .quinoloneTetracycline, .levothyroxine: true
         }
     }
 
@@ -56,6 +59,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .maoi: String(localized: "MAOI antidepressant or linezolid")
         case .warfarin: String(localized: "Warfarin")
         case .metronidazole: String(localized: "Metronidazole or tinidazole")
+        case .quinoloneTetracycline: String(localized: "Ciprofloxacin, levofloxacin, doxycycline or minocycline")
+        case .levothyroxine: String(localized: "Levothyroxine")
         }
     }
 
@@ -78,6 +83,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         case .maoi: String(localized: "Limits tyramine and flags aged cheese, cured meats, soy sauce and other high-tyramine foods.")
         case .warfarin: String(localized: "Keeps vitamin K steady from day to day, limits alcohol and flags cranberry. Not needed for apixaban or rivaroxaban.")
         case .metronidazole: String(localized: "No alcohol during the course and for 3 days after it ends.")
+        case .quinoloneTetracycline: String(localized: "Keeps dairy, calcium, iron, magnesium and zinc (antacids and supplements too) away from each dose.")
+        case .levothyroxine: String(localized: "Empty stomach: no food for 30 minutes after a dose, no coffee for an hour, and calcium, iron and soy 4 hours apart.")
         }
     }
 
@@ -118,6 +125,10 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             "Takes warfarin: vitamin K changes how warfarin works, so the goal is a steady amount from day to day, not avoiding greens. Warn about big swings (a large spinach or kale salad on a day they usually eat few greens, or suddenly dropping greens). Keep alcohol low and avoid large amounts of cranberry juice."
         case .metronidazole:
             "Takes metronidazole or tinidazole: no alcohol at all, including foods and sauces cooked with wine or beer and kombucha, during the course and for 3 days after it ends; never suggest them."
+        case .quinoloneTetracycline:
+            "Takes ciprofloxacin, levofloxacin, doxycycline or minocycline: dairy, calcium, iron, magnesium and zinc (including antacids, supplements and fortified foods) bind the antibiotic, so keep them out of the window around each dose listed below."
+        case .levothyroxine:
+            "Takes levothyroxine: it needs an empty stomach. Nothing to eat for 30 minutes after a dose, no coffee for an hour, and calcium, iron and soy kept 4 hours away, as listed below."
         }
     }
 
@@ -128,6 +139,8 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             String(localized: "Enter the sodium, potassium and phosphorus limits and the protein goal your doctor gave you. The defaults are not kidney-diet numbers.")
         case .kidneyStones:
             String(localized: "Ask your doctor which stone type you have; this entry suits calcium oxalate and uric acid stones.")
+        case .quinoloneTetracycline, .levothyroxine:
+            String(localized: "Add your dose times. The windows follow common label advice; check yours with your pharmacist.")
         default:
             nil
         }
@@ -157,13 +170,13 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             [.limit(.tyramine, by: self)]
         case .warfarin:
             [.steady(.vitaminK, by: self), .limit(.alcohol, by: self)]
-        case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1, .metronidazole:
+        case .colchicine, .allopurinol, .grapefruitStatin, .otherStatin, .glp1, .metronidazole, .quinoloneTetracycline, .levothyroxine:
             []
         }
     }
 
     /// Entries that can be limited to a course with start and end dates.
-    var supportsCourse: Bool { self == .prednisone || self == .metronidazole }
+    var supportsCourse: Bool { self == .prednisone || self == .metronidazole || self == .quinoloneTetracycline }
 
     /// Days after a course ends that its rules still apply.
     var courseTailDays: Int { self == .metronidazole ? 3 : 0 }
@@ -243,11 +256,19 @@ struct HealthProfile: Codable, Equatable {
     var avoid: AvoidList?
     /// Course dates by entry raw value, for entries that only apply for a while.
     var courses: [String: HealthCourse]?
+    /// Dose times and window overrides by entry raw value.
+    var doseSchedules: [String: DoseSchedule]?
 
-    init(entries: [HealthEntryKind] = [], avoid: AvoidList? = nil, courses: [String: HealthCourse]? = nil) {
+    init(
+        entries: [HealthEntryKind] = [],
+        avoid: AvoidList? = nil,
+        courses: [String: HealthCourse]? = nil,
+        doseSchedules: [String: DoseSchedule]? = nil
+    ) {
         self.entries = entries
         self.avoid = avoid
         self.courses = courses
+        self.doseSchedules = doseSchedules
     }
 
     func course(for kind: HealthEntryKind) -> HealthCourse? { courses?[kind.rawValue] }
@@ -326,6 +347,14 @@ final class HealthProfileStore {
         blob.save(profile)
     }
 
+    func setDoseSchedule(_ schedule: DoseSchedule?, for kind: HealthEntryKind) {
+        guard !blob.isWriteBlocked else { return }
+        var schedules = profile.doseSchedules ?? [:]
+        schedules[kind.rawValue] = schedule
+        profile.doseSchedules = schedules.isEmpty ? nil : schedules
+        blob.save(profile)
+    }
+
     func setAvoidList(_ list: AvoidList) {
         guard !blob.isWriteBlocked else { return }
         profile.avoid = list.isEmpty ? nil : list
@@ -340,6 +369,8 @@ final class HealthProfileStore {
             profile.entries.removeAll { $0 == kind }
             profile.courses?[kind.rawValue] = nil
             if profile.courses?.isEmpty == true { profile.courses = nil }
+            profile.doseSchedules?[kind.rawValue] = nil
+            if profile.doseSchedules?.isEmpty == true { profile.doseSchedules = nil }
         }
         blob.save(profile)
     }

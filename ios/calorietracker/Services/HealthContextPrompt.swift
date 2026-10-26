@@ -25,6 +25,7 @@ enum HealthContextPrompt {
                 ? "; its food rules last through \(day(course.lastDay(tailDays: kind.courseTailDays, calendar: calendar)))" : ""
             lines.append("- \(kind.displayName) course: \(day(course.start)) to \(day(course.end))\(tail).")
         }
+        lines += doseLines(profile: profile, full: full, today: today, now: now, calendar: calendar)
         let avoid = profile.avoidList
         if !avoid.isEmpty {
             lines.append("- Foods to avoid: \(listed(avoid.labels)). Never suggest a food that contains them, and say so when an option might.")
@@ -95,6 +96,42 @@ enum HealthContextPrompt {
     }
 
     private static func label(for nutrient: OptionalNutrient) -> String { nutrient.promptName }
+
+    private static func doseLines(profile: HealthProfile, full: HealthProfile, today: [FoodEntry], now: Date,
+                                  calendar: Calendar) -> [String] {
+        var lines: [String] = []
+        let windows = DoseTiming.upcomingWindows(on: now, after: calendar.startOfDay(for: now), profile: full, calendar: calendar)
+        for kind in profile.entries where kind.supportsDoseTimes {
+            guard let schedule = profile.doseSchedule(for: kind), !schedule.times.isEmpty else { continue }
+            let doses = schedule.times.map { clock(minutes: $0) }.joined(separator: ", ")
+            let rules = profile.doseWindows(for: kind).map { rule -> String in
+                let ranges = windows.filter { $0.kind == kind && $0.rule == rule }
+                    .map { "\(clock($0.start, calendar)) to \(clock($0.end, calendar))" }
+                return "keep \(rule.foods.promptName) out of \(ranges.joined(separator: " and "))"
+            }
+            lines.append("- \(kind.displayName) doses at \(doses). Today: \(rules.joined(separator: "; ")).")
+        }
+        let clashes = today.flatMap { entry in
+            DoseTiming.conflicts(for: entry, profile: full, calendar: calendar).map { conflict in
+                let gap = abs(conflict.minutesFromDose)
+                let side = conflict.minutesFromDose < 0 ? "before" : "after"
+                return "\(entry.name) at \(clock(entry.timestamp, calendar)), \(gap) min \(side) the \(clock(conflict.dose, calendar)) dose"
+            }
+        }
+        if !clashes.isEmpty {
+            lines.append("- Logged inside a dose window today: \(clashes.joined(separator: "; ")). Mention it if relevant.")
+        }
+        return lines
+    }
+
+    private static func clock(_ date: Date, _ calendar: Calendar) -> String {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return String(format: "%02d:%02d", parts.hour ?? 0, parts.minute ?? 0)
+    }
+
+    private static func clock(minutes: Int) -> String {
+        String(format: "%02d:%02d", minutes / 60, minutes % 60)
+    }
 
     private static func day(_ date: Date) -> String {
         let formatter = DateFormatter()

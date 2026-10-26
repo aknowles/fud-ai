@@ -311,6 +311,11 @@ private struct SuggestionOptionRow: View {
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.red)
             }
+            ForEach(doseWindowKinds) { kind in
+                Label(String(localized: "Not now: inside your \(kind.doseName) dose window"), systemImage: "clock.badge.exclamationmark")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(.red)
+            }
             ForEach(unsteadyNutrients) { nutrient in
                 Label(String(localized: "\(nutrient.displayName) well above your usual day"), systemImage: "waveform.path.ecg")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
@@ -342,6 +347,10 @@ private struct SuggestionOptionRow: View {
 
     private var interactionFlags: [FoodFlag] {
         option.flags.compactMap { if case .interaction(let flag) = $0 { flag } else { nil } }
+    }
+
+    private var doseWindowKinds: [HealthEntryKind] {
+        option.flags.compactMap { if case .doseWindow(let kind) = $0 { kind } else { nil } }
     }
 
     private var unsteadyNutrients: [OptionalNutrient] {

@@ -1733,6 +1733,10 @@ private var dailyStepsTaskKey: String {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
 
+                    DoseTimingCardView(date: selectedDate)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
                     Button {
                         showNutritionDetail = true
                     } label: {

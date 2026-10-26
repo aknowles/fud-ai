@@ -66,11 +66,13 @@ enum SuggestionFlag: Equatable, Hashable {
     case interaction(FoodFlag)
     /// Would take a keep-steady nutrient above the user's usual range.
     case unsteady(OptionalNutrient)
+    /// Eating it now lands inside a dose window for this medicine.
+    case doseWindow(HealthEntryKind)
 
     /// Avoided foods and medicine interactions are never the pick.
     var isHardStop: Bool {
         switch self {
-        case .avoid, .interaction: true
+        case .avoid, .interaction, .doseWindow: true
         case .calories, .over, .unsteady: false
         }
     }
@@ -115,6 +117,9 @@ enum SuggestionRanking {
             }
             evaluated.flags += avoidMatches(for: option, in: profile.avoidList).map(SuggestionFlag.avoid)
             evaluated.flags += interactions(for: option, in: profile).map(SuggestionFlag.interaction)
+            for kind in Set(DoseTiming.conflicts(for: option.entry, profile: profile).map(\.kind)).sorted(by: { $0.rawValue < $1.rawValue }) {
+                evaluated.flags.append(.doseWindow(kind))
+            }
             for rule in profile.rules where rule.direction == .steady {
                 guard let base = usual[rule.nutrient] else { continue }
                 let after = amountOf(rule.nutrient, in: today) + amountOf(rule.nutrient, in: [option.entry])
