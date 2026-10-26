@@ -4,6 +4,7 @@ enum SavedMealsMode: String, Identifiable {
     case recent = "Recent"
     case frequent = "Frequent"
     case favorites = "Favorites"
+    case collections = "Collections"
 
     var id: String { rawValue }
 
@@ -12,6 +13,7 @@ enum SavedMealsMode: String, Identifiable {
         case .recent: String(localized: "Recent")
         case .frequent: String(localized: "Frequent")
         case .favorites: String(localized: "Favorites")
+        case .collections: String(localized: "Collections")
         }
     }
 }
@@ -107,6 +109,9 @@ struct RecentsView: View {
                             }
                         }
                     }
+
+                case .collections:
+                    FoodCollectionsSection(searchText: searchText, onLog: logEntry)
 
                 case .favorites:
                     if favoriteItems.isEmpty {

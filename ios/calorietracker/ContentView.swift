@@ -2898,6 +2898,8 @@ extension HomeView {
             showSiriPhrases = true
         case .favorites:
             savedMealsMode = .favorites
+        case .collections:
+            savedMealsMode = .collections
         case .frequent:
             savedMealsMode = .frequent
         case .recent:
