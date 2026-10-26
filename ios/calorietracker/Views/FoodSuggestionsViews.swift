@@ -69,6 +69,18 @@ struct FoodSuggestionsSection: View {
 
         MealPlanSection(onLog: onLog)
 
+        Section {
+            NavigationLink {
+                SymptomLogView()
+            } label: {
+                Label("Log a symptom", systemImage: "list.bullet.clipboard")
+                    .font(.system(.body, design: .rounded, weight: .medium))
+            }
+        } header: {
+            Text("Feeling off?")
+        }
+        .listRowBackground(AppColors.appCard)
+
         let sources = savedSources
         if !sources.isEmpty {
             Section {

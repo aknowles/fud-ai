@@ -72,7 +72,7 @@ struct SensitivityTests {
         let profile = HealthProfile(sensitivities: Sensitivities(levels: ["fructans": .limit, "histamine": .avoid],
                                                                  custom: [CustomSensitivity(term: "coconut", level: .note)]))
 
-        let lines = HealthContextPrompt.lines(foods: [food("Garlic bread")], goals: .defaults, profile: profile, plan: [], now: at(13))
+        let lines = HealthContextPrompt.lines(foods: [food("Garlic bread")], goals: .defaults, profile: profile, plan: [], symptoms: [], now: at(13))
 
         #expect(lines.contains("- Food sensitivities (not allergies): avoid histamine; go easy on fructans; note coconut. Weigh them when suggesting food."))
         #expect(lines.contains("- Logged today with a sensitivity: Garlic bread (fructans)."))

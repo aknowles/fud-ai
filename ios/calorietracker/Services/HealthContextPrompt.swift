@@ -9,11 +9,13 @@ enum HealthContextPrompt {
         goals: OptionalNutrientGoals = .current,
         profile: HealthProfile = HealthProfileStore.shared.profile,
         plan: [PlannedMeal] = MealPlanStore.shared.meals,
+        symptoms: [Symptom] = SymptomStore.shared.symptoms,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
         let planned = planLines(plan: plan, foods: foods, profile: profile.effective(on: now, calendar: calendar),
                                 now: now, calendar: calendar)
+            + symptomLines(symptoms: symptoms, foods: foods, now: now, calendar: calendar)
         let full = profile
         let profile = profile.effective(on: now, calendar: calendar)
         guard !profile.isEmpty else { return planned }
@@ -125,6 +127,29 @@ enum HealthContextPrompt {
             return found.isEmpty ? nil : "\(entry.name) (\(found.map(\.label).joined(separator: ", ")))"
         }
         if !hits.isEmpty { lines.append("- Logged today with a sensitivity: \(hits.joined(separator: "; ")).") }
+        return lines
+    }
+
+    /// Symptoms from the last 3 days and possible triggers from the whole log.
+    private static func symptomLines(symptoms: [Symptom], foods: [FoodEntry], now: Date, calendar: Calendar) -> [String] {
+        let recentStart = now.addingTimeInterval(-3 * 86_400)
+        let recent = symptoms.filter { $0.date >= recentStart && $0.date <= now }.sorted { $0.date > $1.date }
+        let findings = TriggerAnalysis.findings(symptoms: symptoms, entries: foods, calendar: calendar).prefix(5)
+        guard !recent.isEmpty || !findings.isEmpty else { return [] }
+        var lines = ["", "## Symptoms"]
+        if !recent.isEmpty {
+            let severity = ["", "mild", "moderate", "severe"]
+            let items = recent.map { symptom in
+                let when = calendar.isDate(symptom.date, inSameDayAs: now) ? "today"
+                    : (calendar.isDateInYesterday(symptom.date) ? "yesterday" : day(symptom.date))
+                let name = symptom.kind == .other ? (symptom.customName ?? "other") : symptom.kind.promptName
+                return "\(name) (\(severity[min(max(symptom.severity, 1), 3)])) \(when) \(clock(symptom.date, calendar))"
+            }
+            lines.append("- Logged in the last 3 days: \(items.joined(separator: "; ")).")
+        }
+        for finding in findings {
+            lines.append("- Possible trigger (a pattern, not proven): \(finding.feature.label) before \(finding.hits) of \(finding.episodes) \(finding.symptomName.lowercased()) episodes, vs \(Int((finding.baseRate * 100).rounded()))% of other times.")
+        }
         return lines
     }
 

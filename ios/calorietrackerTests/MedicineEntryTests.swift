@@ -64,7 +64,7 @@ struct MedicineEntryTests {
 
     @Test func coachHearsTheMedicineAndAnyClashLoggedToday() {
         let lines = HealthContextPrompt.lines(foods: [food("Grapefruit juice"), food("Toast")], goals: .defaults,
-                                              profile: HealthProfile(entries: [.colchicine]), plan: [], now: now)
+                                              profile: HealthProfile(entries: [.colchicine]), plan: [], symptoms: [], now: now)
 
         #expect(lines.contains { $0.hasPrefix("- Takes colchicine:") && $0.contains("never suggest them") })
         #expect(lines.contains("- Logged today despite a medicine interaction: Grapefruit juice (grapefruit). Mention it if relevant."))

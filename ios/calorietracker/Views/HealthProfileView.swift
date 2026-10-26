@@ -38,6 +38,17 @@ struct HealthProfileView: View {
 
             sensitivitySection
 
+            Section {
+                NavigationLink {
+                    SymptomLogView()
+                } label: {
+                    Label("Symptom log and possible triggers", systemImage: "list.bullet.clipboard")
+                }
+            } footer: {
+                Text("Log bloating, heartburn, headaches, gout flares and more; foods that keep showing up beforehand are suggested as sensitivities.")
+            }
+            .listRowBackground(AppColors.appCard)
+
             let conflicts = store.profile.conflicts
             if !conflicts.isEmpty {
                 Section {

@@ -41,15 +41,15 @@ struct WarfarinSteadyTests {
         let profile = HealthProfile(entries: [.warfarin])
 
         let big = HealthContextPrompt.lines(foods: history + [greens(300, name: "Kale salad")], goals: .defaults,
-                                            profile: profile, plan: [], now: now, calendar: calendar)
+                                            profile: profile, plan: [], symptoms: [], now: now, calendar: calendar)
         #expect(big.contains("  - Vitamin K: 300 mcg so far, usual 90 mcg a day (keep steady, above their usual range)"))
         #expect(big.contains { $0.hasPrefix("- Takes warfarin:") })
 
         let normal = HealthContextPrompt.lines(foods: history + [greens(80)], goals: .defaults,
-                                               profile: profile, plan: [], now: now, calendar: calendar)
+                                               profile: profile, plan: [], symptoms: [], now: now, calendar: calendar)
         #expect(normal.contains("  - Vitamin K: 80 mcg so far, usual 90 mcg a day (keep steady)"))
 
-        let fresh = HealthContextPrompt.lines(foods: [greens(80)], goals: .defaults, profile: profile, plan: [], now: now, calendar: calendar)
+        let fresh = HealthContextPrompt.lines(foods: [greens(80)], goals: .defaults, profile: profile, plan: [], symptoms: [], now: now, calendar: calendar)
         #expect(fresh.contains { $0.hasPrefix("  - Vitamin K: 80 mcg so far (keep steady; not enough history") })
     }
 
