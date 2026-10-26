@@ -67,6 +67,8 @@ struct FoodSuggestionsSection: View {
             }
         }
 
+        MealPlanSection(onLog: onLog)
+
         let sources = savedSources
         if !sources.isEmpty {
             Section {
