@@ -188,7 +188,10 @@ struct WeekPlanView: View {
             .map { String(localized: "Avoid with your medicine: \($0.displayName)") }
         let dose = Set(DoseTiming.conflicts(for: option.entry, profile: profile).map(\.kind))
             .map { String(localized: "Inside your \($0.doseName) dose window") }
-        return avoid + interactions + dose.sorted()
+        let sensitivities = profile.sensitivityList.matches(for: option.entry, extraTags: option.contains)
+            .filter { $0.level != .note }
+            .map { $0.level == .avoid ? String(localized: "Avoid: \($0.label)") : String(localized: "Go easy: \($0.label)") }
+        return avoid + interactions + dose.sorted() + sensitivities
     }
 }
 

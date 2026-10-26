@@ -68,11 +68,14 @@ enum SuggestionFlag: Equatable, Hashable {
     case unsteady(OptionalNutrient)
     /// Eating it now lands inside a dose window for this medicine.
     case doseWindow(HealthEntryKind)
+    /// Hits one of the user's food sensitivities at avoid or limit level.
+    case sensitivity(String, SensitivityLevel)
 
     /// Avoided foods and medicine interactions are never the pick.
     var isHardStop: Bool {
         switch self {
         case .avoid, .interaction, .doseWindow: true
+        case .sensitivity(_, let level): level == .avoid
         case .calories, .over, .unsteady: false
         }
     }
@@ -117,6 +120,9 @@ enum SuggestionRanking {
             }
             evaluated.flags += avoidMatches(for: option, in: profile.avoidList).map(SuggestionFlag.avoid)
             evaluated.flags += interactions(for: option, in: profile).map(SuggestionFlag.interaction)
+            evaluated.flags += profile.sensitivityList.matches(for: option.entry, extraTags: option.contains)
+                .filter { $0.level != .note }
+                .map { SuggestionFlag.sensitivity($0.label, $0.level) }
             for kind in Set(DoseTiming.conflicts(for: option.entry, profile: profile).map(\.kind)).sorted(by: { $0.rawValue < $1.rawValue }) {
                 evaluated.flags.append(.doseWindow(kind))
             }

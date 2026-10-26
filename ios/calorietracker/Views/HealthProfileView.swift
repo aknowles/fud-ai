@@ -5,6 +5,7 @@ import SwiftUI
 struct HealthProfileView: View {
     @State private var store = HealthProfileStore.shared
     @State private var newAvoidTerm = ""
+    @State private var newSensitivityTerm = ""
     @AppStorage(OptionalNutrientGoals.storageKey) private var goalsData = Data()
 
     private var goals: OptionalNutrientGoals { OptionalNutrientGoals.decoded(from: goalsData) }
@@ -34,6 +35,8 @@ struct HealthProfileView: View {
             .listRowBackground(AppColors.appCard)
 
             avoidSection
+
+            sensitivitySection
 
             let conflicts = store.profile.conflicts
             if !conflicts.isEmpty {
@@ -256,6 +259,84 @@ struct HealthProfileView: View {
             Text("Coach and Suggestions steer clear of these and flag options that contain them. Matching uses food names, ingredients and product allergen lists, so it can miss hidden ingredients; always check labels.")
         }
         .listRowBackground(AppColors.appCard)
+    }
+
+    private var sensitivitySection: some View {
+        let sensitivities = store.profile.sensitivityList
+        return Section {
+            ForEach(SensitivityKind.allCases) { kind in
+                Picker(kind.displayName, selection: Binding(
+                    get: { sensitivities.level(for: kind) },
+                    set: { level in
+                        var updated = store.profile.sensitivityList
+                        updated.levels[kind.rawValue] = level
+                        store.setSensitivities(updated)
+                    }
+                )) {
+                    Text("Off").tag(SensitivityLevel?.none)
+                    ForEach(SensitivityLevel.allCases) { Text($0.displayName).tag(SensitivityLevel?.some($0)) }
+                }
+                .pickerStyle(.menu)
+                if kind == .caffeine, sensitivities.level(for: .caffeine) != nil {
+                    Toggle("Cut-off time", isOn: Binding(
+                        get: { sensitivities.caffeineCutoffMinutes != nil },
+                        set: { on in
+                            var updated = store.profile.sensitivityList
+                            updated.caffeineCutoffMinutes = on ? 14 * 60 : nil
+                            store.setSensitivities(updated)
+                        }
+                    ))
+                    .tint(AppColors.calorie)
+                    if let cutoff = sensitivities.caffeineCutoffMinutes {
+                        DatePicker("No caffeine after", selection: Binding(
+                            get: { Self.date(minutes: cutoff) },
+                            set: { date in
+                                var updated = store.profile.sensitivityList
+                                updated.caffeineCutoffMinutes = Self.minutes(of: date)
+                                store.setSensitivities(updated)
+                            }
+                        ), displayedComponents: .hourAndMinute)
+                    }
+                }
+            }
+            ForEach(sensitivities.custom) { item in
+                HStack {
+                    Text(item.term)
+                    Spacer()
+                    Text(item.level.displayName).foregroundStyle(.secondary)
+                }
+            }
+            .onDelete { offsets in
+                var updated = store.profile.sensitivityList
+                updated.custom.remove(atOffsets: offsets)
+                store.setSensitivities(updated)
+            }
+            HStack {
+                TextField("Add your own, e.g. coconut", text: $newSensitivityTerm)
+                    .textInputAutocapitalization(.never)
+                Menu("Add") {
+                    ForEach(SensitivityLevel.allCases) { level in
+                        Button(level.displayName) { addSensitivity(level) }
+                    }
+                }
+                .disabled(newSensitivityTerm.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+        } header: {
+            Text("Food Sensitivities")
+        } footer: {
+            Text("For foods that bother you in larger amounts, unlike allergies. Avoid keeps them out, Limit ranks them lower, Note only tells Coach. The symptom log can suggest triggers.")
+        }
+        .listRowBackground(AppColors.appCard)
+    }
+
+    private func addSensitivity(_ level: SensitivityLevel) {
+        let term = newSensitivityTerm.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard !term.isEmpty else { return }
+        var updated = store.profile.sensitivityList
+        updated.custom.removeAll { $0.term == term }
+        updated.custom.append(CustomSensitivity(term: term, level: level))
+        store.setSensitivities(updated)
+        newSensitivityTerm = ""
     }
 
     private func avoidBinding(_ keyPath: WritableKeyPath<AvoidList, Bool>) -> Binding<Bool> {

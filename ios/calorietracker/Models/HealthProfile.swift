@@ -258,18 +258,24 @@ struct HealthProfile: Codable, Equatable {
     var courses: [String: HealthCourse]?
     /// Dose times and window overrides by entry raw value.
     var doseSchedules: [String: DoseSchedule]?
+    /// Graded food sensitivities.
+    var sensitivities: Sensitivities?
 
     init(
         entries: [HealthEntryKind] = [],
         avoid: AvoidList? = nil,
         courses: [String: HealthCourse]? = nil,
-        doseSchedules: [String: DoseSchedule]? = nil
+        doseSchedules: [String: DoseSchedule]? = nil,
+        sensitivities: Sensitivities? = nil
     ) {
         self.entries = entries
         self.avoid = avoid
         self.courses = courses
         self.doseSchedules = doseSchedules
+        self.sensitivities = sensitivities
     }
+
+    var sensitivityList: Sensitivities { sensitivities ?? Sensitivities() }
 
     func course(for kind: HealthEntryKind) -> HealthCourse? { courses?[kind.rawValue] }
 
@@ -290,7 +296,7 @@ struct HealthProfile: Codable, Equatable {
     var avoidList: AvoidList { avoid ?? AvoidList() }
 
     /// True when there is nothing for Coach or Suggestions to weigh.
-    var isEmpty: Bool { entries.isEmpty && avoidList.isEmpty }
+    var isEmpty: Bool { entries.isEmpty && avoidList.isEmpty && sensitivityList.isEmpty }
 
     func contains(_ kind: HealthEntryKind) -> Bool { entries.contains(kind) }
 
@@ -352,6 +358,12 @@ final class HealthProfileStore {
         var schedules = profile.doseSchedules ?? [:]
         schedules[kind.rawValue] = schedule
         profile.doseSchedules = schedules.isEmpty ? nil : schedules
+        blob.save(profile)
+    }
+
+    func setSensitivities(_ sensitivities: Sensitivities) {
+        guard !blob.isWriteBlocked else { return }
+        profile.sensitivities = sensitivities.isEmpty && sensitivities.caffeineCutoffMinutes == nil ? nil : sensitivities
         blob.save(profile)
     }
 

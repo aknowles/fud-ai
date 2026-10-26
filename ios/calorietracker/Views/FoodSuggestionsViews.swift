@@ -313,6 +313,12 @@ private struct SuggestionOptionRow: View {
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.red)
             }
+            ForEach(sensitivityFlags, id: \.0) { label, level in
+                Label(level == .avoid ? String(localized: "Avoid: \(label)") : String(localized: "Go easy: \(label)"),
+                      systemImage: "exclamationmark.bubble.fill")
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .foregroundStyle(level == .avoid ? .red : .orange)
+            }
             ForEach(doseWindowKinds) { kind in
                 Label(String(localized: "Not now: inside your \(kind.doseName) dose window"), systemImage: "clock.badge.exclamationmark")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
@@ -349,6 +355,10 @@ private struct SuggestionOptionRow: View {
 
     private var interactionFlags: [FoodFlag] {
         option.flags.compactMap { if case .interaction(let flag) = $0 { flag } else { nil } }
+    }
+
+    private var sensitivityFlags: [(String, SensitivityLevel)] {
+        option.flags.compactMap { if case .sensitivity(let label, let level) = $0 { (label, level) } else { nil } }
     }
 
     private var doseWindowKinds: [HealthEntryKind] {

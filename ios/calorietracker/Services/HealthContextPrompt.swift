@@ -29,6 +29,7 @@ enum HealthContextPrompt {
             lines.append("- \(kind.displayName) course: \(day(course.start)) to \(day(course.end))\(tail).")
         }
         lines += doseLines(profile: profile, full: full, today: today, now: now, calendar: calendar)
+        lines += sensitivityLines(profile.sensitivityList, today: today)
         let avoid = profile.avoidList
         if !avoid.isEmpty {
             lines.append("- Foods to avoid: \(listed(avoid.labels)). Never suggest a food that contains them, and say so when an option might.")
@@ -99,6 +100,33 @@ enum HealthContextPrompt {
     }
 
     private static func label(for nutrient: OptionalNutrient) -> String { nutrient.promptName }
+
+    private static func sensitivityLines(_ sensitivities: Sensitivities, today: [FoodEntry]) -> [String] {
+        guard !sensitivities.isEmpty else { return [] }
+        var groups: [String] = []
+        for level in SensitivityLevel.allCases {
+            var labels = SensitivityKind.allCases.filter { sensitivities.level(for: $0) == level }.map(\.label)
+            labels += sensitivities.custom.filter { $0.level == level }.map(\.term)
+            if level == .avoid || level == .limit, let cutoff = sensitivities.caffeineCutoffMinutes,
+               sensitivities.level(for: .caffeine) == level, let index = labels.firstIndex(of: "caffeine") {
+                labels[index] = "caffeine after \(clock(minutes: cutoff))"
+            }
+            guard !labels.isEmpty else { continue }
+            let verb = switch level {
+            case .avoid: "avoid"
+            case .limit: "go easy on"
+            case .note: "note"
+            }
+            groups.append("\(verb) \(listed(labels))")
+        }
+        var lines = ["- Food sensitivities (not allergies): \(groups.joined(separator: "; ")). Weigh them when suggesting food."]
+        let hits = today.compactMap { entry -> String? in
+            let found = sensitivities.matches(for: entry).filter { $0.level != .note }
+            return found.isEmpty ? nil : "\(entry.name) (\(found.map(\.label).joined(separator: ", ")))"
+        }
+        if !hits.isEmpty { lines.append("- Logged today with a sensitivity: \(hits.joined(separator: "; ")).") }
+        return lines
+    }
 
     /// Planned meals for the rest of today and tomorrow that are not logged yet.
     private static func planLines(plan: [PlannedMeal], foods: [FoodEntry], profile: HealthProfile, now: Date,
