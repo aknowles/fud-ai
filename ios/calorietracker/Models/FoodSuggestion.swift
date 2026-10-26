@@ -125,10 +125,6 @@ enum SuggestionRanking {
     }
 
     static func amountOf(_ nutrient: OptionalNutrient, in entries: [FoodEntry]) -> Double {
-        switch nutrient {
-        case .addedSugar: entries.reduce(0) { $0 + ($1.addedSugar ?? 0) }
-        case .sodium, .potassium, .calcium, .magnesium: DASHScorecard.total(nutrient, in: entries)
-        default: entries.reduce(0) { $0 + ($1.supplementalNutrients[nutrient.rawValue] ?? 0) }
-        }
+        entries.total(of: nutrient)
     }
 }

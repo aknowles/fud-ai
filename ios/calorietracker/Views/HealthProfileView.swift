@@ -32,6 +32,12 @@ struct HealthProfileView: View {
                             Text(goalSummary(for: kind))
                                 .font(.system(.caption, design: .rounded, weight: .medium))
                                 .foregroundStyle(AppColors.calorie)
+                            if let note = kind.setupNote {
+                                Label(note, systemImage: "stethoscope")
+                                    .font(.system(.caption, design: .rounded))
+                                    .foregroundStyle(.secondary)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
                             if kind == .dash {
                                 DASHPresetButtons()
                             }

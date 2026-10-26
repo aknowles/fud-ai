@@ -85,3 +85,63 @@ struct HealthProfileTests {
         #expect(try Data(contentsOf: #require(backups.first)) == garbage)
     }
 }
+
+/// Diabetes, heart health, kidney disease and kidney stones as profile entries.
+@MainActor
+struct HealthConditionEntryTests {
+    @Test func eachConditionLimitsAndTargetsTheRightNutrients() {
+        func directions(_ kind: HealthEntryKind) -> [OptionalNutrient: HealthRule.Direction] {
+            Dictionary(uniqueKeysWithValues: kind.rules.map { ($0.nutrient, $0.direction) })
+        }
+        #expect(directions(.diabetes) == [.addedSugar: .limit, .fiber: .target])
+        #expect(directions(.heartHealth) == [.saturatedFat: .limit, .transFat: .limit, .sodium: .limit, .fiber: .target])
+        #expect(directions(.kidneyDisease) == [.sodium: .limit, .potassium: .limit, .phosphorus: .limit])
+        #expect(directions(.kidneyStones) == [.oxalate: .limit, .sodium: .limit])
+    }
+
+    @Test func kidneyDiseaseConflictsWithDASHOnPotassiumOnly() {
+        let profile = HealthProfile(entries: [.dash, .kidneyDisease])
+
+        #expect(profile.conflicts == [HealthConflict(nutrient: .potassium,
+                                                     raisedBy: [HealthEntryKind.dash.displayName],
+                                                     limitedBy: [HealthEntryKind.kidneyDisease.displayName])])
+        #expect(HealthProfile(entries: [.gout, .dash, .diabetes, .heartHealth, .kidneyStones]).conflicts.isEmpty)
+    }
+
+    @Test func onlyTheKidneyEntriesAskForTheDoctorsNumbers() {
+        #expect(HealthEntryKind.kidneyDisease.setupNote != nil)
+        #expect(HealthEntryKind.kidneyStones.setupNote != nil)
+        #expect(HealthEntryKind.gout.setupNote == nil)
+        #expect(HealthEntryKind.diabetes.setupNote == nil)
+    }
+
+    @Test func coachSeesTheNewEntriesTheirGoalsAndTheConflict() {
+        let now = Calendar.current.date(bySettingHour: 12, minute: 0, second: 0, of: .now)!
+        let lunch = FoodEntry(name: "Burger", calories: 700, protein: 35, carbs: 50, fat: 40, timestamp: now, source: .manual,
+                              saturatedFat: 15, supplementalNutrients: ["phosphorus": 400], sodium: 1_200, potassium: 600)
+
+        let lines = HealthContextPrompt.lines(foods: [lunch], goals: .defaults,
+                                              profile: HealthProfile(entries: [.dash, .heartHealth, .kidneyDisease]), now: now)
+
+        #expect(lines.contains { $0.hasPrefix("- High cholesterol or heart disease:") })
+        #expect(lines.contains { $0.hasPrefix("- Chronic kidney disease:") && $0.contains("protein goal") })
+        #expect(lines.contains("- Today so far (phosphorus is an estimate):"))
+        #expect(lines.contains("  - Saturated fat: 15 of 20 g limit"))
+        #expect(lines.contains("  - Phosphorus: 400 of 1000 mg limit"))
+        #expect(lines.contains("  - Potassium: 600 mg, goal 3500 mg (entries disagree)"))
+        #expect(lines.contains { $0.hasPrefix("- Conflict on potassium: High blood pressure (DASH) raises it, Chronic kidney disease limits it.") })
+    }
+
+    @Test func everyNutrientReadsItsOwnField() {
+        let entry = FoodEntry(name: "Test", calories: 1, protein: 1, carbs: 1, fat: 1, source: .manual,
+                              fiber: 4, saturatedFat: 3, supplementalNutrients: ["oxalate": 50], transFat: 0.5, vitaminK: 80)
+
+        #expect(entry.amount(of: .fiber) == 4)
+        #expect(entry.amount(of: .saturatedFat) == 3)
+        #expect(entry.amount(of: .transFat) == 0.5)
+        #expect(entry.amount(of: .vitaminK) == 80)
+        #expect(entry.amount(of: .oxalate) == 50)
+        #expect(entry.amount(of: .sodium) == nil)
+        #expect([entry, entry].total(of: .fiber) == 8)
+    }
+}

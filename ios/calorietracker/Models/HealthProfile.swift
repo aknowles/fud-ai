@@ -11,6 +11,10 @@ import Observation
 enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
     case gout
     case dash
+    case diabetes
+    case heartHealth
+    case kidneyDisease
+    case kidneyStones
 
     var id: String { rawValue }
 
@@ -18,6 +22,10 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .gout: String(localized: "Gout")
         case .dash: String(localized: "High blood pressure (DASH)")
+        case .diabetes: String(localized: "Type 2 diabetes or prediabetes")
+        case .heartHealth: String(localized: "High cholesterol or heart disease")
+        case .kidneyDisease: String(localized: "Chronic kidney disease")
+        case .kidneyStones: String(localized: "Kidney stones")
         }
     }
 
@@ -25,6 +33,10 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
         switch self {
         case .gout: String(localized: "Limits purines, alcohol and added sugar, the dietary gout triggers.")
         case .dash: String(localized: "DASH eating plan: a sodium limit and potassium, calcium and magnesium targets.")
+        case .diabetes: String(localized: "Limits added sugar and aims for fiber; Coach keeps carbs steady from meal to meal.")
+        case .heartHealth: String(localized: "Limits saturated fat, trans fat and sodium; aims for fiber.")
+        case .kidneyDisease: String(localized: "Limits sodium, potassium and phosphorus; Coach keeps protein at your goal.")
+        case .kidneyStones: String(localized: "Limits oxalate and sodium; Coach reminds you about fluids and calcium from food.")
         }
     }
 
@@ -35,6 +47,26 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             "Gout: favor low-purine choices and name the purine load when comparing foods or suggesting meals. Alcohol (beer and spirits most) and added sugar (sweetened drinks) are the other dietary triggers."
         case .dash:
             "High blood pressure, following the DASH eating plan: keep sodium under the limit and favor foods rich in potassium, calcium and magnesium."
+        case .diabetes:
+            "Type 2 diabetes or prediabetes: keep carbohydrates moderate and steady from meal to meal, pair carbs with protein, fat or fiber, prefer whole grains and non-starchy vegetables, and keep added sugar and sweet drinks low."
+        case .heartHealth:
+            "High cholesterol or heart disease: keep saturated and trans fat low, prefer unsaturated fats (olive oil, nuts, fish), favor fiber from oats, beans, fruit and vegetables, and keep sodium down."
+        case .kidneyDisease:
+            "Chronic kidney disease: their doctor sets the sodium, potassium, phosphorus and protein limits; stay within them, never push protein above their protein goal, and watch phosphate additives in processed foods and colas."
+        case .kidneyStones:
+            "Kidney stones: encourage plenty of fluids, keep oxalate and sodium down, keep calcium at normal amounts from food (do not cut dairy), and go easy on animal protein, which also raises uric acid."
+        }
+    }
+
+    /// Shown when the entry is on: numbers only the user's doctor can give.
+    var setupNote: String? {
+        switch self {
+        case .kidneyDisease:
+            String(localized: "Enter the sodium, potassium and phosphorus limits and the protein goal your doctor gave you. The defaults are not kidney-diet numbers.")
+        case .kidneyStones:
+            String(localized: "Ask your doctor which stone type you have; this entry suits calcium oxalate and uric acid stones.")
+        default:
+            nil
         }
     }
 
@@ -44,6 +76,14 @@ enum HealthEntryKind: String, Codable, CaseIterable, Identifiable {
             [.limit(.purines, by: self), .limit(.alcohol, by: self), .limit(.addedSugar, by: self)]
         case .dash:
             [.limit(.sodium, by: self), .target(.potassium, by: self), .target(.calcium, by: self), .target(.magnesium, by: self)]
+        case .diabetes:
+            [.limit(.addedSugar, by: self), .target(.fiber, by: self)]
+        case .heartHealth:
+            [.limit(.saturatedFat, by: self), .limit(.transFat, by: self), .limit(.sodium, by: self), .target(.fiber, by: self)]
+        case .kidneyDisease:
+            [.limit(.sodium, by: self), .limit(.potassium, by: self), .limit(.phosphorus, by: self)]
+        case .kidneyStones:
+            [.limit(.oxalate, by: self), .limit(.sodium, by: self)]
         }
     }
 }

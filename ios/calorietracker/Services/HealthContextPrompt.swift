@@ -21,8 +21,9 @@ enum HealthContextPrompt {
 
         let rules = profile.rules
         let conflicts = profile.conflicts
-        let estimated = rules.contains { $0.nutrient == .purines || $0.nutrient == .alcohol }
-        let note = estimated ? " (purines and alcohol are estimates)" : ""
+        let estimated = estimatedNutrients.filter { nutrient in rules.contains { $0.nutrient == nutrient } }
+            .map { $0.promptName.lowercased() }
+        let note = estimated.isEmpty ? "" : " (\(listed(estimated)) \(estimated.count == 1 ? "is an estimate" : "are estimates"))"
         lines.append(today.isEmpty ? "- Nothing logged yet today. Today's goals\(note):" : "- Today so far\(note):")
         var listed = Set<OptionalNutrient>()
         for rule in rules where listed.insert(rule.nutrient).inserted {
@@ -57,28 +58,18 @@ enum HealthContextPrompt {
         return text
     }
 
-    /// Fixed English names, so the prompt does not change with the app language.
-    private static func label(for nutrient: OptionalNutrient) -> String {
-        switch nutrient {
-        case .purines: "Purines"
-        case .alcohol: "Alcohol"
-        case .addedSugar: "Added sugar"
-        case .sodium: "Sodium"
-        case .potassium: "Potassium"
-        case .calcium: "Calcium"
-        case .magnesium: "Magnesium"
-        case .phosphorus: "Phosphorus"
-        case .oxalate: "Oxalate"
-        case .tyramine: "Tyramine"
-        default: nutrient.rawValue
-        }
+    private static func label(for nutrient: OptionalNutrient) -> String { nutrient.promptName }
+
+    /// Nutrients that come from AI estimates or reference tables rather than labels.
+    private static let estimatedNutrients: [OptionalNutrient] = [.purines, .alcohol, .phosphorus, .oxalate, .tyramine]
+
+    /// "a", "a and b", "a, b and c".
+    private static func listed(_ items: [String]) -> String {
+        guard items.count > 1 else { return items.first ?? "" }
+        return items.dropLast().joined(separator: ", ") + " and " + items.last!
     }
 
     private static func total(_ nutrient: OptionalNutrient, in entries: [FoodEntry]) -> Double {
-        switch nutrient {
-        case .addedSugar: entries.reduce(0) { $0 + ($1.addedSugar ?? 0) }
-        case .sodium, .potassium, .calcium, .magnesium: DASHScorecard.total(nutrient, in: entries)
-        default: entries.reduce(0) { $0 + ($1.supplementalNutrients[nutrient.rawValue] ?? 0) }
-        }
+        entries.total(of: nutrient)
     }
 }
