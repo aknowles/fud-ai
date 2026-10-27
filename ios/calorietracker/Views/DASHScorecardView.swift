@@ -31,7 +31,9 @@ struct DASHScorecardSection: View {
             }
 
             ForEach(scorecard.lines) { line in
-                DASHScorecardRow(line: line)
+                NutrientContributorsLink(metric: .nutrient(line.nutrient), date: date) {
+                    DASHScorecardRow(line: line)
+                }
             }
 
             Text(weekFootnote(for: scorecard))

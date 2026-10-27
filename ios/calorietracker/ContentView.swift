@@ -1737,6 +1737,10 @@ private var dailyStepsTaskKey: String {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
 
+                    HealthSetupCardView()
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
                     Button {
                         showNutritionDetail = true
                     } label: {
@@ -3256,10 +3260,10 @@ struct NutritionDetailView: View {
                 }
 
                 Section("Macros") {
-                    NutritionDetailRow(icon: "flame.fill", label: "Calories", value: "\(energyUnit.displayValue(kcal: foodStore.calories(for: date)))", unit: energyUnit.symbol, goal: "\(energyUnit.displayValue(kcal: userProfile.effectiveCalories))")
-                    NutritionDetailRow(icon: "p.circle.fill", label: "Protein", value: MacroValueFormatter.string(foodStore.protein(for: date)), unit: "g", goal: "\(userProfile.effectiveProtein)")
-                    NutritionDetailRow(icon: "c.circle.fill", label: "Carbs", value: MacroValueFormatter.string(foodStore.carbs(for: date)), unit: "g", goal: "\(userProfile.effectiveCarbs)")
-                    NutritionDetailRow(icon: "f.circle.fill", label: "Fat", value: MacroValueFormatter.string(foodStore.fat(for: date)), unit: "g", goal: "\(userProfile.effectiveFat)")
+                    NutrientContributorsLink(metric: .calories, date: date) { NutritionDetailRow(icon: "flame.fill", label: "Calories", value: "\(energyUnit.displayValue(kcal: foodStore.calories(for: date)))", unit: energyUnit.symbol, goal: "\(energyUnit.displayValue(kcal: userProfile.effectiveCalories))") }
+                    NutrientContributorsLink(metric: .protein, date: date) { NutritionDetailRow(icon: "p.circle.fill", label: "Protein", value: MacroValueFormatter.string(foodStore.protein(for: date)), unit: "g", goal: "\(userProfile.effectiveProtein)") }
+                    NutrientContributorsLink(metric: .carbs, date: date) { NutritionDetailRow(icon: "c.circle.fill", label: "Carbs", value: MacroValueFormatter.string(foodStore.carbs(for: date)), unit: "g", goal: "\(userProfile.effectiveCarbs)") }
+                    NutrientContributorsLink(metric: .fat, date: date) { NutritionDetailRow(icon: "f.circle.fill", label: "Fat", value: MacroValueFormatter.string(foodStore.fat(for: date)), unit: "g", goal: "\(userProfile.effectiveFat)") }
                 }
                 .listRowBackground(AppColors.appCard)
 
@@ -3338,6 +3342,7 @@ struct NutritionDetailView: View {
     }
 
     private func optionalNutritionRow(_ nutrient: OptionalNutrient, value: Double) -> some View {
+        NutrientContributorsLink(metric: .nutrient(nutrient), date: date) {
         NutritionDetailRow(
             icon: nutrient.iconName,
             label: nutrient.displayName,
@@ -3345,6 +3350,7 @@ struct NutritionDetailView: View {
             unit: nutrient.unit,
             goal: "\(optionalNutrientGoals.goal(for: nutrient))"
         )
+        }
     }
 }
 
@@ -4585,6 +4591,7 @@ private struct AISettingsSubsectionHeader: View {
 enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     case personalInfo
     case goalsNutrition
+    case healthProfile
     case trackingNotifications
     case aiAccess
     case aiProviders
@@ -4603,6 +4610,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     static let preferenceCases: [Self] = [
         .personalInfo,
         .goalsNutrition,
+        .healthProfile,
         .trackingNotifications,
         .aiAccess,
         .aiProviders,
@@ -4628,6 +4636,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .personalInfo: "Personal Info"
         case .goalsNutrition: "Goals & Nutrition"
+        case .healthProfile: "Health Profile"
         case .trackingNotifications: "Tracking & Notifications"
         case .aiAccess: "AI Access"
         case .aiProviders: "AI Providers & Fallbacks"
@@ -4649,6 +4658,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         switch self {
         case .personalInfo: "person.crop.circle"
         case .goalsNutrition: "target"
+        case .healthProfile: "heart.text.square"
         case .trackingNotifications: "bell"
         case .aiAccess: "key.horizontal"
         case .aiProviders: "sparkles"
@@ -4896,6 +4906,10 @@ struct ProfileView: View {
                         .navigationDestination(for: ProfileSettingsCategory.self) { category in
                             if category == .aiAccess {
                                 HostedAISettingsView()
+                                    .readableWidth()
+                                    .background(AppColors.appBackground)
+                            } else if category == .healthProfile {
+                                HealthProfileView()
                                     .readableWidth()
                                     .background(AppColors.appBackground)
                             } else if category == .voiceAssistant {

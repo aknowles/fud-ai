@@ -312,8 +312,7 @@ struct HealthProfile: Codable, Equatable {
         }
     }
 
-    /// What the fork showed before the profile existed: the Gout card and the DASH
-    /// scorecard were always on. Goal numbers are not touched.
+    /// Gout and DASH together, the fork's original always-on pair; used by tests.
     static let migratedDefault = HealthProfile(entries: [.gout, .dash])
 }
 
@@ -333,13 +332,13 @@ final class HealthProfileStore {
     func reload() {
         switch blob.loadValue(HealthProfile.self) {
         case .missing:
-            profile = .migratedDefault
-            blob.save(profile)
+            // Nothing is on until the user chooses it.
+            profile = HealthProfile()
         case .decoded(let decoded, _):
             profile = decoded
         case .corrupt:
-            // Keep showing what the fork always showed; the bad blob was backed up.
-            profile = .migratedDefault
+            // The bad blob was backed up; start empty rather than guess.
+            profile = HealthProfile()
         }
     }
 

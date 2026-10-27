@@ -23,16 +23,16 @@ struct HealthProfileTests {
         }
     }
 
-    @Test func firstLaunchKeepsGoutAndDASHOnAndLeavesGoalsAlone() throws {
+    @Test func firstLaunchStartsWithNothingOnAndLeavesGoalsAlone() throws {
         let harness = Harness()
         let goals = DASHPreset.applying(.lower, to: .defaults).settingGoal(300, for: .purines)
         harness.defaults.set(goals.encodedData, forKey: OptionalNutrientGoals.storageKey)
 
         let store = harness.makeStore()
 
-        #expect(store.profile == .migratedDefault)
-        #expect(store.contains(.gout) && store.contains(.dash))
-        #expect(harness.defaults.data(forKey: HealthProfileStore.storageKey) != nil)
+        #expect(store.profile == HealthProfile())
+        #expect(!store.contains(.gout) && !store.contains(.dash))
+        #expect(harness.defaults.data(forKey: HealthProfileStore.storageKey) == nil)
         let after = OptionalNutrientGoals.decoded(from: try #require(harness.defaults.data(forKey: OptionalNutrientGoals.storageKey)))
         #expect(after == goals.mergedWithDefaults())
         #expect(after.goal(for: .purines) == 300)
@@ -43,11 +43,12 @@ struct HealthProfileTests {
         let harness = Harness()
         let store = harness.makeStore()
 
-        store.set(.gout, active: false)
-        #expect(harness.makeStore().profile.entries == [.dash])
-
+        store.set(.dash, active: true)
         store.set(.gout, active: true)
         #expect(harness.makeStore().profile.entries == [.gout, .dash])
+
+        store.set(.gout, active: false)
+        #expect(harness.makeStore().profile.entries == [.dash])
     }
 
     @Test func goutAndDASHDoNotConflict() {
@@ -73,14 +74,14 @@ struct HealthProfileTests {
         #expect(dash == [.sodium: .limit, .potassium: .target, .calcium: .target, .magnesium: .target])
     }
 
-    @Test func unreadableProfileIsBackedUpAndFallsBackToTheDefault() throws {
+    @Test func unreadableProfileIsBackedUpAndStartsEmpty() throws {
         let harness = Harness()
         let garbage = Data("not json".utf8)
         harness.defaults.set(garbage, forKey: HealthProfileStore.storageKey)
 
         let store = harness.makeStore()
 
-        #expect(store.profile == .migratedDefault)
+        #expect(store.profile == HealthProfile())
         let backups = try FileManager.default.contentsOfDirectory(at: harness.backups, includingPropertiesForKeys: nil)
         #expect(try Data(contentsOf: #require(backups.first)) == garbage)
     }

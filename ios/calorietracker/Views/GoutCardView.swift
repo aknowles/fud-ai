@@ -60,6 +60,7 @@ struct GoutCardView: View {
             }
 
             ForEach(rows) { row in
+                NutrientContributorsLink(metric: .nutrient(row.nutrient), date: date) {
                 MacroProgressRow(
                     label: row.nutrient.displayName,
                     current: row.value,
@@ -69,9 +70,10 @@ struct GoutCardView: View {
                     gradientColors: row.isOver ? [Color.red.opacity(0.75), Color.red] : AppColors.calorieGradient,
                     localizeLabel: false
                 )
+                }
             }
 
-            Text("Purines and alcohol are estimates from AI analysis, labels or the built-in purine table.")
+            Text("Purines and alcohol are estimates from AI analysis, labels or the built-in purine table. Tap a row to see which foods.")
                 .font(.system(.caption2, design: .rounded))
                 .foregroundStyle(.tertiary)
         }

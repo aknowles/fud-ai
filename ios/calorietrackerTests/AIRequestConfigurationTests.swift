@@ -6,9 +6,11 @@ import UIKit
 @Suite(.serialized)
 struct AIRequestConfigurationTests {
     @Test func settingsHubKeepsEveryFocusedCategory() {
-        #expect(ProfileSettingsCategory.allCases.count == 16)
-        #expect(Set(ProfileSettingsCategory.allCases.map(\.rawValue)).count == 16)
-        #expect(ProfileSettingsCategory.preferenceCases.count == 11)
+        // The fork adds Health Profile.
+        #expect(ProfileSettingsCategory.allCases.count == 17)
+        #expect(Set(ProfileSettingsCategory.allCases.map(\.rawValue)).count == 17)
+        #expect(ProfileSettingsCategory.preferenceCases.count == 12)
+        #expect(ProfileSettingsCategory.preferenceCases.contains(.healthProfile))
         #expect(ProfileSettingsCategory.preferenceCases.contains(.voiceAssistant))
         // Tracking and notifications are one category (#432).
         #expect(ProfileSettingsCategory.preferenceCases.contains(.trackingNotifications))
