@@ -10,12 +10,14 @@ enum HealthContextPrompt {
         profile: HealthProfile = HealthProfileStore.shared.profile,
         plan: [PlannedMeal] = MealPlanStore.shared.meals,
         symptoms: [Symptom] = SymptomStore.shared.symptoms,
+        onHand: [FoodCollection] = FoodCollectionStore.shared.activeCollections(at: PlaceLocationService.shared.coordinate),
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
         let planned = planLines(plan: plan, foods: foods, profile: profile.effective(on: now, calendar: calendar),
                                 now: now, calendar: calendar)
             + symptomLines(symptoms: symptoms, foods: foods, now: now, calendar: calendar)
+            + onHandLines(onHand)
         let full = profile
         let profile = profile.effective(on: now, calendar: calendar)
         guard !profile.isEmpty else { return planned }
@@ -177,6 +179,16 @@ enum HealthContextPrompt {
             }
         }
         return lines.isEmpty ? [] : ["", "## Meal plan"] + lines + ["- Weigh what is still planned when advising on food now."]
+    }
+
+    /// Collections that apply where and when the user is now, e.g. office snacks.
+    static func onHandLines(_ collections: [FoodCollection]) -> [String] {
+        let lines = collections.filter { !$0.items.isEmpty }.map { collection in
+            let items = collection.items.prefix(12).map { "\($0.name) (\($0.calories) kcal)" }
+            return "- \(collection.name): \(items.joined(separator: ", "))."
+        }
+        return lines.isEmpty ? [] : ["", "## On hand now"] + lines
+            + ["- These are what the user can get right now; prefer them when suggesting a snack or meal."]
     }
 
     private static func doseLines(profile: HealthProfile, full: HealthProfile, today: [FoodEntry], now: Date,

@@ -101,7 +101,8 @@ private struct FoodCollectionRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(collection.name)
                     .font(.system(.body, design: .rounded, weight: .medium))
-                Text(collection.items.count == 1 ? String(localized: "1 food") : String(localized: "\(collection.items.count) foods"))
+                Text([collection.items.count == 1 ? String(localized: "1 food") : String(localized: "\(collection.items.count) foods"),
+                      collection.availabilitySummary].compactMap { $0 }.joined(separator: " · "))
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
             }
@@ -146,6 +147,19 @@ struct FoodCollectionDetailView: View {
                         .onDelete { store.removeItems(at: $0, from: collectionID) }
                         .onMove { store.moveItems(from: $0, to: $1, in: collectionID) }
                     }
+                }
+                Section {
+                    NavigationLink {
+                        CollectionPlaceView(collectionID: collectionID)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Label("Place & Schedule", systemImage: "location.circle")
+                            Text(collection.availabilitySummary ?? String(localized: "Show this on Home at a place, like the office"))
+                                .font(.system(.caption, design: .rounded))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .listRowBackground(AppColors.appCard)
                 }
             }
         }

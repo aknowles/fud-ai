@@ -9,11 +9,17 @@ struct FoodCollection: Identifiable, Codable {
     var id: UUID
     var name: String
     var items: [FoodEntry]
+    /// Where the collection is on hand, e.g. the office; see `CollectionPlace`.
+    var place: CollectionPlace?
+    /// When it is on hand without location, e.g. weekdays 8–6.
+    var schedule: CollectionSchedule?
 
-    init(id: UUID = UUID(), name: String, items: [FoodEntry] = []) {
+    init(id: UUID = UUID(), name: String, items: [FoodEntry] = [], place: CollectionPlace? = nil, schedule: CollectionSchedule? = nil) {
         self.id = id
         self.name = name
         self.items = items
+        self.place = place
+        self.schedule = schedule
     }
 }
 
@@ -94,6 +100,16 @@ final class FoodCollectionStore {
 
     func moveItems(from source: IndexSet, to destination: Int, in id: UUID) {
         update(id) { $0.items.move(fromOffsets: source, toOffset: destination) }
+    }
+
+    // MARK: - Place and schedule
+
+    func setPlace(_ place: CollectionPlace?, for id: UUID) {
+        update(id) { $0.place = place }
+    }
+
+    func setSchedule(_ schedule: CollectionSchedule?, for id: UUID) {
+        update(id) { $0.schedule = schedule }
     }
 
     /// The copy a collection keeps: same food and nutrition, no photos.

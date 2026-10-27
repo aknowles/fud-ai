@@ -1751,6 +1751,10 @@ private var dailyStepsTaskKey: String {
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
 
+                    AtPlaceCardView(date: selectedDate)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
                     Button {
                         showNutritionDetail = true
                     } label: {

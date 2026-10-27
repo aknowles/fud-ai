@@ -99,18 +99,24 @@ struct FoodSuggestionsSection: View {
     }
 
     private var savedSources: [(title: String, entries: [FoodEntry], systemImage: String)] {
-        var sources = collections.collections
+        let active = Set(onHand.map(\.id))
+        var sources = (onHand + collections.collections.filter { !active.contains($0.id) })
             .filter { !$0.items.isEmpty }
-            .map { (title: $0.name, entries: $0.items, systemImage: "folder.fill") }
+            .map { (title: $0.name, entries: $0.items, systemImage: active.contains($0.id) ? "location.fill" : "folder.fill") }
         if !foodStore.favorites.isEmpty {
             sources.append((title: String(localized: "Favorites"), entries: foodStore.favorites, systemImage: "heart.fill"))
         }
         return sources
     }
 
-    /// Favorites, collection items and frequent foods, without repeats.
+    /// Collections on hand at this place and time, e.g. office snacks at the office.
+    private var onHand: [FoodCollection] {
+        collections.activeCollections(at: PlaceLocationService.shared.coordinate)
+    }
+
+    /// On-hand collection items, favorites, other collection items and frequent foods, without repeats.
     private var hungryCandidates: [FoodEntry] {
-        let all = foodStore.favorites + collections.collections.flatMap(\.items)
+        let all = onHand.flatMap(\.items) + foodStore.favorites + collections.collections.flatMap(\.items)
             + foodStore.frequentGroups(days: 30).map(\.template)
         var seen = Set<String>()
         return Array(all.filter { seen.insert($0.favoriteKey).inserted }.prefix(FoodSuggestionService.maxSaved))

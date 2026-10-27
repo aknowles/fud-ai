@@ -32,7 +32,7 @@ struct HealthContextPromptTests {
         ]
 
         let lines = HealthContextPrompt.lines(foods: foods, goals: .defaults, profile: HealthProfile(entries: [.gout]),
-                                              plan: [], symptoms: [], now: now, calendar: calendar)
+                                              plan: [], symptoms: [], onHand: [], now: now, calendar: calendar)
 
         #expect(lines.contains("## Health goals"))
         #expect(lines.contains("- Today so far (purines and alcohol are estimates):"))
@@ -43,7 +43,7 @@ struct HealthContextPromptTests {
     }
 
     @Test func eachEntryAddsItsGuidanceAndTheMedicineRule() {
-        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: .migratedDefault, plan: [], symptoms: [], now: now, calendar: calendar)
+        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: .migratedDefault, plan: [], symptoms: [], onHand: [], now: now, calendar: calendar)
 
         #expect(lines.contains { $0.hasPrefix("- Gout:") && $0.contains("low-purine") })
         #expect(lines.contains { $0.hasPrefix("- High blood pressure, following the DASH eating plan") })
@@ -54,7 +54,7 @@ struct HealthContextPromptTests {
     }
 
     @Test func anEmptyProfileAddsNothing() {
-        #expect(HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: [], symptoms: [], now: now, calendar: calendar).isEmpty)
+        #expect(HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: [], symptoms: [], onHand: [], now: now, calendar: calendar).isEmpty)
     }
 
     @Test func dashShowsItsGoalsAndScore() {
@@ -62,7 +62,7 @@ struct HealthContextPromptTests {
         let foods = [entry("Soup", at: now, sodium: 1_200, potassium: 4_800)]
 
         let lines = HealthContextPrompt.lines(foods: foods, goals: goals, profile: HealthProfile(entries: [.dash]),
-                                              plan: [], symptoms: [], now: now, calendar: calendar)
+                                              plan: [], symptoms: [], onHand: [], now: now, calendar: calendar)
 
         #expect(lines.contains("- Today so far:"))
         #expect(lines.contains("  - Sodium: 1200 of 1500 mg limit"))

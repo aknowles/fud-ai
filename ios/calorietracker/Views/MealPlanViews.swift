@@ -300,7 +300,7 @@ struct ImportMenuView: View {
             do {
                 let meals = try await MealPlanService.importMenu(
                     input, weekStart: weekStart, defaultMeal: meal, source: source,
-                    healthLines: HealthContextPrompt.lines(foods: foodStore.entries, plan: []),
+                    healthLines: HealthContextPrompt.lines(foods: foodStore.entries, plan: [], onHand: []),
                     entries: foodStore.entries
                 )
                 MealPlanStore.shared.add(meals)

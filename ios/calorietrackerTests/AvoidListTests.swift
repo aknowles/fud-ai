@@ -62,7 +62,7 @@ struct AvoidListTests {
     @Test func coachIsToldWhatToAvoidEvenWithNoConditions() {
         let profile = HealthProfile(entries: [], avoid: AvoidList(celiac: true, lactose: true, custom: ["peanut"]))
 
-        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: profile, plan: [], symptoms: [])
+        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: profile, plan: [], symptoms: [], onHand: [])
 
         #expect(lines.contains("- Foods to avoid: gluten (celiac disease), lactose and peanut. Never suggest a food that contains them, and say so when an option might."))
         #expect(!lines.contains { $0.contains("Today") })

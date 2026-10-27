@@ -105,7 +105,7 @@ struct DoseTimingTests {
         let profile = cipro(at: [8 * 60, 20 * 60])
 
         let lines = HealthContextPrompt.lines(foods: [food("Milk", at: at(8, 30))], goals: .defaults, profile: profile,
-                                              plan: [], symptoms: [], now: at(12), calendar: calendar)
+                                              plan: [], symptoms: [], onHand: [], now: at(12), calendar: calendar)
 
         #expect(lines.contains { $0.hasPrefix("- Ciprofloxacin, levofloxacin, doxycycline or minocycline doses at 08:00, 20:00. Today: keep dairy") && $0.contains("02:00 to 10:00 and 14:00 to 22:00") })
         #expect(lines.contains("- Logged inside a dose window today: Milk at 08:30, 30 min after the 08:00 dose. Mention it if relevant."))

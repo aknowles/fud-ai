@@ -127,13 +127,13 @@ struct MealPlanTests {
             PlannedMeal(day: tomorrow, mealType: .dinner, source: "Recipe", options: [PlannedOption(entry: food("Lentil soup", calories: 400))]),
         ]
 
-        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(entries: [.dash]), plan: plan, symptoms: [],
+        let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(entries: [.dash]), plan: plan, symptoms: [], onHand: [],
                                               now: calendar.date(byAdding: .hour, value: 9, to: today)!, calendar: calendar)
 
         #expect(lines.contains("- Today, lunch (Work cafe): planned Pepperoni pizza (620 kcal, sodium 1500 mg); other options: Grilled chicken bowl."))
         #expect(lines.contains("- Tomorrow, dinner (Recipe): planned Lentil soup (400 kcal)."))
 
-        let noProfile = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: plan, symptoms: [],
+        let noProfile = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: plan, symptoms: [], onHand: [],
                                                   now: calendar.date(byAdding: .hour, value: 9, to: today)!, calendar: calendar)
         #expect(noProfile.contains("## Meal plan"))
         #expect(!noProfile.contains("## Health goals"))
