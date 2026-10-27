@@ -333,6 +333,7 @@ struct ChatService {
         lines.append("")
         lines.append("When the user asks how to lose or gain, give a concrete calorie target and at least one actionable food or activity change. When they ask expected weight, reference the forecast numbers above.")
         lines += HealthContextPrompt.lines(foods: foods)
+        lines += CoachStyle.promptLines()
         lines += userContextLines()
         return lines.joined(separator: "\n")
     }

@@ -37,6 +37,9 @@ struct VoiceAssistantSettingsView: View {
 
     var body: some View {
         List {
+            Section {
+                NavigationLink { CoachPersonalityView() } label: { Label("Coach Personality", systemImage: "theatermasks") }
+            }
             providerSection
             if let provider = configuredProvider {
                 modelAndVoiceSection(provider)

@@ -5362,6 +5362,12 @@ struct ProfileView: View {
                         Label("Food Memory", systemImage: "brain")
                     }
 
+                    NavigationLink {
+                        CoachPersonalityView()
+                    } label: {
+                        Label("Coach Personality", systemImage: "theatermasks")
+                    }
+
                     HStack {
                         Label {
                             HStack(spacing: 6) {

@@ -81,6 +81,7 @@ enum VoiceAssistantInstructions {
             workoutAccessEnabled: session.workoutDiaryEnabled
         )
         lines += HealthContextPrompt.lines(foods: stores.food.entries, now: now)
+        lines += CoachStyle.promptLines()
         lines += ChatService.userContextLines()
         return limitedToRelayLength(lines.joined(separator: "\n"))
     }
