@@ -282,8 +282,10 @@ extension FoodCollection {
         return ([first] + others).map { $0.entry(at: date) }
     }
 
-    /// Items plus coffee-bar drinks when there is one.
+    /// Items, coffee-bar drinks when there is one, then saved typical menus, without repeats.
     var onHandEntries: [FoodEntry] {
-        items + (hasCoffeeBar ? Self.coffeeStarters() : [])
+        let all = items + (hasCoffeeBar ? Self.coffeeStarters() : []) + placeKinds.flatMap { typicalMenu(for: $0) }
+        var seen = Set<String>()
+        return all.filter { seen.insert($0.favoriteKey).inserted }
     }
 }

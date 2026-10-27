@@ -13,23 +13,26 @@ struct FoodCollection: Identifiable, Codable {
     var place: CollectionPlace?
     /// When it is on hand without location, e.g. weekdays 8–6.
     var schedule: CollectionSchedule?
-    /// There is a barista: any standard coffee-bar drink is on hand (`CoffeeDrink`).
+    /// Kinds of food place here (`PlaceKind` raw values or the user's own words), e.g.
+    /// coffee bar and vending machine; see `placeKinds`.
+    var kinds: [String]?
+    /// An earlier single coffee-bar switch, read as the coffee-bar kind until kinds are set.
     var coffeeBar: Bool?
+    /// AI-written typical menus, by kind.
+    var typicalMenus: [String: [FoodEntry]]?
     /// Anything else on hand, in the user's words, e.g. "fruit basket, salad bar Tuesdays".
     var alsoHere: String?
 
     init(id: UUID = UUID(), name: String, items: [FoodEntry] = [], place: CollectionPlace? = nil, schedule: CollectionSchedule? = nil,
-         coffeeBar: Bool? = nil, alsoHere: String? = nil) {
+         kinds: [String]? = nil, alsoHere: String? = nil) {
         self.id = id
         self.name = name
         self.items = items
         self.place = place
         self.schedule = schedule
-        self.coffeeBar = coffeeBar
+        self.kinds = kinds
         self.alsoHere = alsoHere
     }
-
-    var hasCoffeeBar: Bool { coffeeBar == true }
 
     /// The "also here" note, trimmed, or nil when empty.
     var alsoHereNote: String? {
@@ -38,7 +41,7 @@ struct FoodCollection: Identifiable, Codable {
     }
 
     /// Has something on hand besides its items.
-    var hasExtras: Bool { hasCoffeeBar || alsoHereNote != nil }
+    var hasExtras: Bool { !placeKinds.isEmpty || alsoHereNote != nil }
 }
 
 /// Stores food collections in their own defaults key, outside the food diary.
@@ -139,8 +142,30 @@ final class FoodCollectionStore {
         update(id) { $0.schedule = schedule }
     }
 
-    func setCoffeeBar(_ isOn: Bool, for id: UUID) {
-        update(id) { $0.coffeeBar = isOn ? true : nil }
+    /// Adds or removes a kind of place; removing one drops its typical menu.
+    func toggleKind(_ raw: String, for id: UUID) {
+        let raw = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        update(id) { collection in
+            var kinds = collection.placeKinds.map(\.raw)
+            if let index = kinds.firstIndex(where: { $0.caseInsensitiveCompare(raw) == .orderedSame }) {
+                collection.typicalMenus?[kinds[index]] = nil
+                kinds.remove(at: index)
+            } else {
+                kinds.append(raw)
+            }
+            collection.kinds = kinds.isEmpty ? nil : kinds
+            collection.coffeeBar = nil
+            if collection.typicalMenus?.isEmpty == true { collection.typicalMenus = nil }
+        }
+    }
+
+    func setTypicalMenu(_ entries: [FoodEntry], for kind: String, in id: UUID) {
+        update(id) { collection in
+            var menus = collection.typicalMenus ?? [:]
+            menus[kind] = entries.map(Self.template(from:))
+            collection.typicalMenus = menus
+        }
     }
 
     func setAlsoHere(_ note: String, for id: UUID) {

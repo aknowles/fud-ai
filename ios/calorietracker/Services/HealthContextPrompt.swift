@@ -192,8 +192,9 @@ enum HealthContextPrompt {
             if !collection.items.isEmpty {
                 parts.append(collection.items.prefix(12).map { "\($0.name) (\($0.calories) kcal)" }.joined(separator: ", ") + ".")
             }
-            if collection.hasCoffeeBar {
-                parts.append("There is a coffee bar with a barista: any standard drink is available (lattes, cappuccinos, flat whites, americanos, brewed coffee, cold brew, mochas, matcha and chai lattes, hot teas, hot chocolate) with whole, 2%, skim, oat, almond or soy milk and optional syrup.")
+            let kinds = collection.placeKinds
+            if !kinds.isEmpty {
+                parts.append("Here: \(kinds.map(\.promptDescription).joined(separator: "; ")). Assume anything typical of these is available.")
             }
             if let note = collection.alsoHereNote {
                 parts.append("Also here: \(note).")

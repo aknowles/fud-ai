@@ -227,7 +227,7 @@ struct AtPlaceCardView: View {
                         Text(collection.name)
                             .font(.system(.headline, design: .rounded, weight: .semibold))
                         Spacer()
-                        if collection.items.count > Self.shownItems || active.count > 1 {
+                        if collection.items.count > Self.shownItems || active.count > 1 || !collection.placeKinds.isEmpty {
                             Button("All") { showing = collection }
                                 .font(.system(.subheadline, design: .rounded, weight: .semibold))
                                 .buttonStyle(.borderless)
@@ -258,6 +258,12 @@ struct AtPlaceCardView: View {
                     }
                     if collection.hasCoffeeBar {
                         coffeeRow
+                    }
+                    let otherKinds = collection.placeKinds.filter { $0.known != .coffeeBar }
+                    if !otherKinds.isEmpty {
+                        Text(String(localized: "Here: \(otherKinds.map(\.displayName).joined(separator: ", ")). Tap All for typical menus."))
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
                     }
                     if let note = collection.alsoHereNote {
                         Text(String(localized: "Also here: \(note)"))

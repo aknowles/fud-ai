@@ -57,7 +57,7 @@ struct CoffeeBarTests {
         store.setSchedule(CollectionSchedule(weekdays: Set(1...7), startMinute: 0, endMinute: 24 * 60 - 1), for: cafe.id)
         #expect(store.activeCollections(at: nil).isEmpty)
 
-        store.setCoffeeBar(true, for: cafe.id)
+        store.toggleKind(PlaceKind.coffeeBar.rawValue, for: cafe.id)
         store.setAlsoHere("  fruit basket  ", for: cafe.id)
         let reloaded = FoodCollectionStore(defaults: defaults)
         let active = reloaded.activeCollections(at: nil)
@@ -65,12 +65,12 @@ struct CoffeeBarTests {
         #expect(active.first?.alsoHere == "fruit basket")
 
         let lines = HealthContextPrompt.onHandLines(active)
-        #expect(lines.contains { $0.hasPrefix("- Office cafe: There is a coffee bar") && $0.hasSuffix("Also here: fruit basket.") })
+        #expect(lines.contains { $0.hasPrefix("- Office cafe: Here: a coffee bar with a barista") && $0.hasSuffix("Also here: fruit basket.") })
 
-        reloaded.setCoffeeBar(false, for: cafe.id)
+        reloaded.toggleKind(PlaceKind.coffeeBar.rawValue, for: cafe.id)
         reloaded.setAlsoHere(" ", for: cafe.id)
         let cleared = try #require(FoodCollectionStore(defaults: defaults).collection(id: cafe.id))
-        #expect(cleared.coffeeBar == nil)
+        #expect(cleared.kinds == nil)
         #expect(cleared.alsoHere == nil)
     }
 
