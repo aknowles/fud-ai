@@ -541,11 +541,11 @@ struct FoodResultView: View {
                             )
                         }
                         .id(ScrollTarget.quantity)
-                        if servingSizeIsKnown && !selectedServingOption.isGramUnit {
+                        if servingSizeIsKnown && !FoodUnits.isBaseWeight(selectedServingOption) {
                             HStack {
                                 Text("Total")
                                 Spacer()
-                                Text("~\(Self.formatGrams(servingSizeGrams)) g")
+                                Text("~\(FoodUnits.weightText(grams: servingSizeGrams))")
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -907,7 +907,7 @@ struct MealIngredientsSection: View {
                                     .font(.system(.body, design: .rounded, weight: .semibold))
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                Text("\(MacroValueFormatter.string(ingredient.grams))g · \(energyUnit.format(kcal: ingredient.calories))")
+                                Text("\(FoodUnits.weightText(grams: ingredient.grams)) · \(energyUnit.format(kcal: ingredient.calories))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")
@@ -993,7 +993,7 @@ struct IngredientEditorSheet: View {
             protein: target.ingredient.protein, carbs: target.ingredient.carbs, fat: target.ingredient.fat
         ))
         _name = State(initialValue: target.ingredient.name)
-        _grams = State(initialValue: MacroValueFormatter.string(target.ingredient.grams))
+        _grams = State(initialValue: FoodUnits.fieldText(grams: target.ingredient.grams))
         _calories = State(initialValue: String(energyUnit.displayValue(kcal: target.ingredient.calories)))
         _protein = State(initialValue: MacroValueFormatter.string(target.ingredient.protein))
         _carbs = State(initialValue: MacroValueFormatter.string(target.ingredient.carbs))
@@ -1003,7 +1003,7 @@ struct IngredientEditorSheet: View {
     private var parsedIngredient: MealIngredient? {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty,
-              let grams = decimal(grams), grams > 0, nutritionBase.resized(to: grams) != nil,
+              let grams = decimal(grams).map({ FoodUnits.grams(fromField: $0) }), grams > 0, nutritionBase.resized(to: grams) != nil,
               let calories = decimal(calories), calories < Double(Int32.max),
               let protein = decimal(protein),
               let carbs = decimal(carbs),
@@ -1028,7 +1028,7 @@ struct IngredientEditorSheet: View {
             Form {
                 Section("Ingredient") {
                     TextField("Name", text: $name)
-                    valueRow("Weight", text: Binding(get: { grams }, set: changeWeight), unit: "g")
+                    valueRow("Weight", text: Binding(get: { grams }, set: changeWeight), unit: FoodUnits.fieldUnitLabel())
                     valueRow("Calories", text: nutritionBinding($calories), unit: energyUnit.symbol)
                 }
                 Section("Macros") {
@@ -1069,7 +1069,7 @@ struct IngredientEditorSheet: View {
 
     private func changeWeight(_ text: String) {
         grams = text
-        guard let weight = decimal(text), let scaled = nutritionBase.resized(to: weight) else { return }
+        guard let weight = decimal(text).map({ FoodUnits.grams(fromField: $0) }), let scaled = nutritionBase.resized(to: weight) else { return }
         calories = String(Int(round(scaled.calories)))
         protein = MacroValueFormatter.string(scaled.protein)
         carbs = MacroValueFormatter.string(scaled.carbs)
@@ -1079,7 +1079,7 @@ struct IngredientEditorSheet: View {
     private func nutritionBinding(_ field: Binding<String>) -> Binding<String> {
         Binding(get: { field.wrappedValue }, set: { value in
             field.wrappedValue = value
-            guard let weight = decimal(grams), weight > 0,
+            guard let weight = decimal(grams).map({ FoodUnits.grams(fromField: $0) }), weight > 0,
                   let energy = decimal(calories), let p = decimal(protein),
                   let c = decimal(carbs), let f = decimal(fat) else { return }
             nutritionBase = IngredientPortion(grams: weight, calories: energy, protein: p, carbs: c, fat: f)

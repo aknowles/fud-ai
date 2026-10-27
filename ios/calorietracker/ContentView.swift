@@ -3982,17 +3982,16 @@ struct FoodRow: View {
             let quantityText = ServingUnitEditor.formatQuantity(quantity)
             return "\(quantityText) \(String(localized: "Serving"))"
         }
-        let formatted = grams == grams.rounded() ? "\(Int(grams))" : String(format: "%.1f", grams)
         if let selectedUnit = entry.selectedServingUnit,
            let quantity = entry.selectedServingQuantity,
            quantity > 0 {
             let option = ServingUnitOption.option(matching: selectedUnit, in: entry.servingUnitOptions)
             if !option.isGramUnit {
                 let quantityText = ServingUnitEditor.formatQuantity(quantity)
-                return "\(quantityText) \(option.displayUnit(for: quantity)) (~\(formatted)g)"
+                return "\(quantityText) \(option.displayUnit(for: quantity)) (~\(FoodUnits.weightText(grams: grams)))"
             }
         }
-        return "\(formatted)g"
+        return FoodUnits.weightText(grams: grams)
     }
 
     var body: some View {
@@ -5320,10 +5319,16 @@ struct ProfileView: View {
                     .pickerStyle(.menu)
                     .tint(.secondary)
 
+                    NavigationLink {
+                        UnitsSettingsView()
+                    } label: {
+                        Label("Units", systemImage: "ruler")
+                    }
+
                     HStack {
                         Label {
                             HStack(spacing: 6) {
-                                Text("Default to Grams")
+                                Text(UnitConfig.current.weightIsUS ? "Default to Weight (oz)" : "Default to Weight (g)")
                                 Button {
                                     showDefaultGramsInfo = true
                                 } label: {

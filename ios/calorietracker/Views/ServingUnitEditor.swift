@@ -13,13 +13,13 @@ struct ServingUnitEditor: View {
 
     private var pickerOptions: [ServingUnitOption] {
         let options = ServingUnitOption.pickerOptions(for: unitOptions)
-        return allowsGramUnit ? options : options.filter { !$0.isGramUnit }
+        return allowsGramUnit ? options : options.filter { !FoodUnits.isBaseWeight($0) }
     }
 
     private var selectedOption: ServingUnitOption {
         pickerOptions.first { $0.id == selectedUnitID }
             ?? pickerOptions.first
-            ?? .grams
+            ?? FoodUnits.baseWeight()
     }
 
     private var selectedQuantity: Double? {
@@ -183,15 +183,12 @@ extension ServingUnitOption {
     }
 
     static func pickerOptions(for options: [ServingUnitOption]) -> [ServingUnitOption] {
-        var seen: Set<String> = [ServingUnitOption.grams.id]
-        let nonGramOptions = options.filter { option in
-            option.isValid && !option.isGramUnit && seen.insert(option.id).inserted
-        }
-        return [ServingUnitOption.grams] + nonGramOptions
+        FoodUnits.pickerOptions(options)
     }
 
     static func option(matching id: String, in options: [ServingUnitOption]) -> ServingUnitOption {
-        pickerOptions(for: options).first { $0.id == id } ?? .grams
+        let mapped = FoodUnits.mappedID(id)
+        return pickerOptions(for: options).first { $0.id == mapped } ?? FoodUnits.baseWeight()
     }
 
     static func initialUnitID(
@@ -201,15 +198,15 @@ extension ServingUnitOption {
     ) -> String {
         let pickerOptions = pickerOptions(for: options)
         if let preferredUnit {
-            let preferredID = preferredUnit.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let preferredID = FoodUnits.mappedID(preferredUnit)
             if pickerOptions.contains(where: { $0.id == preferredID }) {
                 return preferredID
             }
         }
         if defaultToGrams {
-            return ServingUnitOption.grams.id
+            return FoodUnits.baseWeight().id
         }
-        return options.first?.id ?? ServingUnitOption.grams.id
+        return options.first.map { FoodUnits.mappedID($0.id) } ?? FoodUnits.baseWeight().id
     }
 
     static func initialQuantityText(
@@ -219,7 +216,8 @@ extension ServingUnitOption {
         options: [ServingUnitOption]
     ) -> String {
         let option = option(matching: selectedUnitID, in: options)
-        if let selectedQuantity, selectedQuantity > 0, !option.isGramUnit {
+        if let selectedQuantity, selectedQuantity > 0, !FoodUnits.isBaseWeight(option),
+           option.id == selectedUnitID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
             return ServingUnitEditor.formatQuantity(selectedQuantity)
         }
         let quantity = option.gramsPerUnit > 0 ? totalGrams / option.gramsPerUnit : totalGrams

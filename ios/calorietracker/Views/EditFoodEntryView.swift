@@ -444,11 +444,11 @@ struct EditFoodEntryView: View {
                             )
                         }
                         .id(ScrollTarget.quantity)
-                        if servingSizeIsKnown && !selectedServingOption.isGramUnit {
+                        if servingSizeIsKnown && !FoodUnits.isBaseWeight(selectedServingOption) {
                             HStack {
                                 Text("Total")
                                 Spacer()
-                                Text("~\(Self.formatGrams(servingSizeGrams)) g")
+                                Text("~\(FoodUnits.weightText(grams: servingSizeGrams))")
                                     .foregroundStyle(.secondary)
                             }
                         }

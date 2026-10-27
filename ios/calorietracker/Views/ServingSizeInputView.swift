@@ -17,12 +17,12 @@ struct ServingSizeInputView: View {
         self.image = image
         self.labelAnalysis = labelAnalysis
         self.onContinue = onContinue
-        let defaultAmount = labelAnalysis.servingSizeGrams.map { String(Int($0)) } ?? "100"
+        let defaultAmount = FoodUnits.fieldText(grams: labelAnalysis.servingSizeGrams ?? 100)
         self._servingAmount = State(initialValue: defaultAmount)
     }
 
     private var grams: Double {
-        Double(servingAmount) ?? 100
+        Double(servingAmount).map { FoodUnits.grams(fromField: $0) } ?? 100
     }
 
     private var preview: GeminiService.FoodAnalysis {
@@ -52,10 +52,10 @@ struct ServingSizeInputView: View {
                 Section("How much are you eating?") {
                     HStack {
                         TextField("Amount", text: $servingAmount)
-                            .keyboardType(.numberPad)
+                            .keyboardType(.decimalPad)
                             .font(.title2)
                             .fontWeight(.semibold)
-                        Text("grams")
+                        Text(UnitConfig.current.weightIsUS ? "oz" : "grams")
                             .foregroundStyle(.secondary)
                     }
                 }
