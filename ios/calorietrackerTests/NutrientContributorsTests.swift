@@ -27,6 +27,22 @@ struct NutrientContributorsTests {
         #expect(NutrientContribution.make(.protein, entries: entries).count == 2)
     }
 
+    @Test func everyHomeBarBreaksDownToItsOwnTotal() {
+        var lentils = food("Lentils", purines: 120, sodium: 300)
+        lentils.fiber = 8
+        var beer = food("Beer", purines: 40)
+        beer.supplementalNutrients["alcohol"] = 14
+        let entries = [lentils, beer, food("Rice")]
+
+        for home in HomeTopNutrient.allCases {
+            let breakdown = NutrientContribution.make(NutrientMetric(home), entries: entries).reduce(0) { $0 + $1.amount }
+            #expect(abs(breakdown - home.total(in: entries)) < 0.0001, "\(home)")
+        }
+        #expect(NutrientMetric(.protein) == .protein)
+        #expect(NutrientMetric(.fat) == .fat)
+        #expect(NutrientMetric(.fiber) == .nutrient(.fiber))
+    }
+
     @Test func tableEstimatesAreLabeled() throws {
         var sardines = food("Canned sardines", purines: nil)
         sardines.servingSizeGrams = 100

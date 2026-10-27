@@ -1703,6 +1703,7 @@ private var dailyStepsTaskKey: String {
 
                     HStack(alignment: .top, spacing: 4) {
                         ForEach(displayedHomeNutrients) { nutrient in
+                            NutrientContributorsLink(metric: NutrientMetric(nutrient), date: selectedDate) {
                             MacroVerticalBar(
                                 label: nutrient.displayName,
                                 current: nutrient.value(from: foodStore, on: selectedDate),
@@ -1711,6 +1712,7 @@ private var dailyStepsTaskKey: String {
                                 gradient: nutrient.gradientColors,
                                 launchFillEpoch: launchFillEpoch
                             )
+                            }
                         }
                         if waterTrackingEnabled {
                             MacroVerticalBar(

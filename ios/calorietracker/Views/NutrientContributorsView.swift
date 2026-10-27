@@ -52,6 +52,20 @@ enum NutrientMetric: Hashable, Identifiable {
     }
 }
 
+extension NutrientMetric {
+    /// The metric behind a home nutrient bar; only the macros have no `OptionalNutrient`.
+    init(_ home: HomeTopNutrient) {
+        switch home {
+        case .protein: self = .protein
+        case .carbs: self = .carbs
+        case .fat: self = .fat
+        default:
+            guard let nutrient = home.optionalNutrient else { preconditionFailure("No metric for \(home)") }
+            self = .nutrient(nutrient)
+        }
+    }
+}
+
 /// One contributor: a food and its share of the day's total.
 struct NutrientContribution: Identifiable {
     let entry: FoodEntry
