@@ -120,6 +120,10 @@ struct NutrientContributorsView: View {
                             .font(.system(.headline, design: .rounded))
                             .foregroundStyle(AppColors.calorie)
                     }
+                } footer: {
+                    if case .nutrient(let nutrient) = metric, let explanation = nutrient.plainExplanation {
+                        Text(explanation)
+                    }
                 }
                 .listRowBackground(AppColors.appCard)
 
