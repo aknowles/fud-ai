@@ -14,6 +14,7 @@ enum FoodLogMethod: String, CaseIterable, Codable, Identifiable, Sendable {
     case favorites
     case collections
     case suggestions
+    case fromCoach = "from_coach"
     case copyFromDay = "copy_from_day"
 
     var id: String { rawValue }
@@ -39,6 +40,7 @@ enum FoodLogMethod: String, CaseIterable, Codable, Identifiable, Sendable {
         case .favorites: String(localized: "Favorites", comment: "Add menu logging method")
         case .collections: String(localized: "Collections", comment: "Add menu logging method")
         case .suggestions: String(localized: "Suggestions", comment: "Add menu logging method")
+        case .fromCoach: String(localized: "From Coach", comment: "Add menu logging method")
         case .copyFromDay: String(localized: "Copy from Day", comment: "Add menu logging method")
         }
     }
@@ -57,6 +59,7 @@ enum FoodLogMethod: String, CaseIterable, Codable, Identifiable, Sendable {
         case .favorites: "heart.fill"
         case .collections: "folder.fill"
         case .suggestions: "sparkles"
+        case .fromCoach: "bubble.left.and.text.bubble.right.fill"
         case .copyFromDay: "calendar"
         }
     }
@@ -75,6 +78,7 @@ enum FoodLogMethod: String, CaseIterable, Codable, Identifiable, Sendable {
         case .siriPhrases, .copyFromDay: nil
         case .collections: nil
         case .suggestions: nil
+        case .fromCoach: nil
         }
     }
 

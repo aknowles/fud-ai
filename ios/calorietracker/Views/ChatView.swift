@@ -201,6 +201,7 @@ struct ChatView: View {
                             onDismissProposal: { chatStore.dismissExerciseProposal($0.id, in: msg.id) }
                         )
                             .id(msg.id)
+                        CoachMessageFoodsButton(message: msg)
                     }
                     if isSending {
                         HStack(alignment: .top, spacing: 8) {

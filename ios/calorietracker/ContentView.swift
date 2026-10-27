@@ -1720,7 +1720,7 @@ private var dailyStepsTaskKey: String {
                             MacroVerticalBar(
                                 label: "Water",
                                 current: waterUnit.displayAmount(
-                                    forMilliliters: waterStore.total(on: selectedDate)
+                                    forMilliliters: waterStore.totalIncludingDrinks(on: selectedDate, foods: foodStore)
                                 ),
                                 goal: waterUnit.displayAmount(forMilliliters: waterDailyGoal),
                                 unit: waterPillarUnit,
@@ -1744,6 +1744,10 @@ private var dailyStepsTaskKey: String {
                         .listRowSeparator(.hidden)
 
                     HealthSetupCardView()
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
+                    WaterSuggestionCardView()
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
 
@@ -2935,6 +2939,8 @@ extension HomeView {
             savedMealsMode = .collections
         case .suggestions:
             savedMealsMode = .suggestions
+        case .fromCoach:
+            savedMealsMode = .fromCoach
         case .frequent:
             savedMealsMode = .frequent
         case .recent:
@@ -3272,7 +3278,7 @@ struct NutritionDetailView: View {
                         NutritionDetailRow(
                             icon: "drop.fill",
                             label: "Water",
-                            value: waterUnit.displayValue(forMilliliters: waterStore.total(on: date)),
+                            value: waterUnit.displayValue(forMilliliters: waterStore.totalIncludingDrinks(on: date, foods: foodStore)),
                             unit: waterUnit.symbol,
                             goal: waterUnit.displayValue(forMilliliters: waterDailyGoal)
                         )
@@ -5598,6 +5604,7 @@ struct ProfileView: View {
                     }
 
                     if waterTrackingEnabled {
+                        CountDrinksTowardWaterToggle()
                         Button {
                             showWaterGoalPicker = true
                         } label: {
