@@ -167,7 +167,7 @@ enum AddMenuSettings {
         guard let data,
               let decoded = try? JSONDecoder().decode(AddMenuConfig.self, from: data)
         else {
-            return .iOSDefault
+            return .forkDefault
         }
         let sanitized = decoded.sanitized()
         if sanitized.groups.isEmpty, sanitized.flatMethods.isEmpty {
@@ -178,7 +178,7 @@ enum AddMenuSettings {
             let hadConfiguredContent = groups.contains { ($0["methods"] as? [String])?.isEmpty == false }
                 || (raw?["flatMethods"] as? [String])?.isEmpty == false
             if hadConfiguredContent {
-                return .iOSDefault
+                return .forkDefault
             }
         }
         return sanitized

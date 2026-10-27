@@ -53,7 +53,7 @@ struct AddMenuSettingsView: View {
             Section {
                 Button("Reset to Default", role: .destructive) {
                     AddMenuSettings.reset()
-                    config = .iOSDefault
+                    config = .forkDefault
                 }
             }
         }

@@ -1215,6 +1215,8 @@ struct HomeView: View {
     /// recipe, so it hides "Servings in recipe" (#458).
     @State private var currentFoodResultIsLoggedPortion = false
     @State private var showNutritionDetail = false
+    @State private var isAskingSharedImageKind = false
+    @State private var sharedMenuImage: SharedMenuImage?
     @State private var showCustomWaterLog = false
     @State private var showFastingStart = false
     @State private var editingFastingSession: FastingSession?
@@ -1738,6 +1740,10 @@ private var dailyStepsTaskKey: String {
                         .listRowSeparator(.hidden)
 
                     HealthSetupCardView()
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
+
+                    MealPlanCardView(date: selectedDate)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
 
@@ -2321,9 +2327,16 @@ private var dailyStepsTaskKey: String {
             .sheet(isPresented: $showCustomWaterLog) {
                 WaterCustomAmountSheet(unit: waterUnit, onAdd: logWater)
             }
+            .confirmationDialog("What did you share?", isPresented: $isAskingSharedImageKind, titleVisibility: .visible) {
+                Button("Food to log") { checkAndConsumeSharedImage() }
+                Button("A menu to plan the week") { sharedMenuImage = ShareImportManager.consumeSharedImage().map(SharedMenuImage.init) }
+            }
+            .sheet(item: $sharedMenuImage) { shared in
+                NavigationStack { ImportMenuView(weekStart: Calendar.current.mondayOfWeek(containing: .now), initialPhoto: shared.image) }
+            }
             .onOpenURL { url in
                 if url.scheme == "fudai", url.host == "import-share-image" {
-                    checkAndConsumeSharedImage()
+                    if ShareImportManager.hasSharedImage() { isAskingSharedImageKind = true }
                 } else if MealShare.handles(url) {
                     // Shared meal — custom scheme or https Universal Link (issue #107).
                     // Universal Links open the app directly (no browser). Confirm before adding.
@@ -2337,7 +2350,7 @@ private var dailyStepsTaskKey: String {
                 }
             }
             .onAppear {
-                checkAndConsumeSharedImage()
+                if ShareImportManager.hasSharedImage() { isAskingSharedImageKind = true }
                 prewarmFoodDestinations()
             }
             .task(id: quickActionRequest?.id) {
@@ -2359,7 +2372,7 @@ private var dailyStepsTaskKey: String {
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
-                    checkAndConsumeSharedImage()
+                    if ShareImportManager.hasSharedImage() { isAskingSharedImageKind = true }
                     Task { await refreshDailySteps() }
                     // Returned to the foreground -> replay the fill-from-zero reveal.
                     // Gated on wasBackgrounded so transient .inactive blips (control
@@ -5337,6 +5350,12 @@ struct ProfileView: View {
                         UnitsSettingsView()
                     } label: {
                         Label("Units", systemImage: "ruler")
+                    }
+
+                    NavigationLink {
+                        FoodMemoryView()
+                    } label: {
+                        Label("Food Memory", systemImage: "brain")
                     }
 
                     HStack {

@@ -177,3 +177,15 @@ final class MealPlanStore {
         blob.save(meals)
     }
 }
+
+extension AddMenuConfig {
+    /// The + menu for anyone who has not customized it: upstream's layout with Collections and
+    /// Suggestions (meal plans live there) added to Reuse Meal.
+    static var forkDefault: AddMenuConfig {
+        var config = iOSDefault
+        if !config.groups.isEmpty {
+            config.groups[0].methods += [.collections, .suggestions]
+        }
+        return config
+    }
+}

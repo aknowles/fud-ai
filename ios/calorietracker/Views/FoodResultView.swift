@@ -1036,6 +1036,7 @@ struct IngredientEditorSheet: View {
                     valueRow("Carbs", text: nutritionBinding($carbs), unit: "g")
                     valueRow("Fat", text: nutritionBinding($fat), unit: "g")
                 }
+                if target.index != nil { FoodMemoryOfferSection(original: target.ingredient.name, edited: name) }
                 if let onDelete {
                     Section {
                         Button("Remove Ingredient", role: .destructive) {

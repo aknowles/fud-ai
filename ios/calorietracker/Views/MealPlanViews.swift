@@ -229,9 +229,12 @@ private struct PlannedOptionRow: View {
     }
 }
 
-/// Imports a multi-day menu from a photo or pasted text into the chosen week.
-private struct ImportMenuView: View {
+/// Imports a multi-day menu from a photo or pasted text into the chosen week. With
+/// `initialPhoto` it starts reading that photo right away.
+struct ImportMenuView: View {
     let weekStart: Date
+    var initialPhoto: UIImage? = nil
+    var onImported: (() -> Void)? = nil
 
     @Environment(\.dismiss) private var dismiss
     @Environment(FoodStore.self) private var foodStore
@@ -276,6 +279,9 @@ private struct ImportMenuView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
         }
+        .task {
+            if let initialPhoto, !isWorking { run(.photo(initialPhoto)) }
+        }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
             photoItem = nil
@@ -298,6 +304,7 @@ private struct ImportMenuView: View {
                     entries: foodStore.entries
                 )
                 MealPlanStore.shared.add(meals)
+                onImported?()
                 dismiss()
             } catch {
                 self.error = GeminiService.analysisErrorMessage(error)
@@ -360,4 +367,10 @@ private struct AddPlannedFoodView: View {
             day = (weekStart...weekEnd).contains(today) ? today : weekStart
         }
     }
+}
+
+/// A shared screenshot the user chose to import as a menu.
+struct SharedMenuImage: Identifiable {
+    let id = UUID()
+    let image: UIImage
 }

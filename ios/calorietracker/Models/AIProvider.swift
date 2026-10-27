@@ -791,7 +791,8 @@ struct AIProviderSettings {
     }
 
     static var currentUserContext: String? {
-        let ctx = userContext.trimmingCharacters(in: .whitespacesAndNewlines)
+        let ctx = [userContext.trimmingCharacters(in: .whitespacesAndNewlines), FoodMemory.promptText()]
+            .filter { !$0.isEmpty }.joined(separator: "\n\n")
         return ctx.isEmpty ? nil : ctx
     }
 

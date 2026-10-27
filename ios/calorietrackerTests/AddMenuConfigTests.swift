@@ -33,7 +33,7 @@ struct AddMenuConfigTests {
         let store = UserDefaults(suiteName: suiteName)!
         defer { store.removePersistentDomain(forName: suiteName) }
 
-        #expect(AddMenuSettings.load(store: store) == .iOSDefault)
+        #expect(AddMenuSettings.load(store: store) == .forkDefault)
     }
 
     @Test func foodLogMethodMapsQuickActions() {
@@ -64,7 +64,7 @@ struct AddMenuConfigTests {
         {"version":1,"groups":[{"id":"00000000-0000-0000-0000-000000000001","name":"Quick","methods":["unknown_future_method"]}],"flatMethods":[]}
         """
         store.set(json.data(using: .utf8), forKey: AddMenuConfig.storageKey)
-        #expect(AddMenuSettings.load(store: store) == .iOSDefault)
+        #expect(AddMenuSettings.load(store: store) == .forkDefault)
     }
 
     @Test func explicitlyEmptyMenuStaysEmptyAfterReload() {
