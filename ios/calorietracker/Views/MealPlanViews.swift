@@ -122,7 +122,7 @@ struct WeekPlanView: View {
         let profile = health.profile.effective(on: day)
         let summary = PlanDaySummary.make(day: day, meals: meals, logged: logged,
                                           calorieGoal: UserProfile.load()?.effectiveCalories ?? 0,
-                                          goals: .current, profile: profile)
+                                          goals: .current, profile: profile, tastes: FoodTastesStore.shared.tastes)
         let isToday = calendar.isDateInToday(day)
         return Section {
             Text(summaryLine(summary))
@@ -391,7 +391,12 @@ struct ImportMenuView: View {
                     healthLines: HealthContextPrompt.lines(foods: foodStore.entries, plan: [], onHand: []),
                     entries: foodStore.entries
                 )
-                step = .review(meals)
+                let tastes = FoodTastesStore.shared.tastes
+                step = .review(meals.map { meal in
+                    var meal = meal
+                    meal.applyTastes(tastes)
+                    return meal
+                })
             } catch {
                 self.error = GeminiService.analysisErrorMessage(error)
                 step = .setup

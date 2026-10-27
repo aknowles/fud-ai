@@ -93,11 +93,11 @@ struct CollectionPlaceTests {
     @Test func coachHearsWhatIsOnHand() {
         let office = FoodCollection(name: "Office snacks", items: [snack("Almonds"), snack("Apple")], schedule: CollectionSchedule())
         let lines = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: [], symptoms: [],
-                                              onHand: [office], now: at(26, 12), calendar: calendar)
+                                              onHand: [office], tastes: FoodTastes(), now: at(26, 12), calendar: calendar)
         #expect(lines.contains("## On hand now"))
         #expect(lines.contains("- Office snacks: Almonds (100 kcal), Apple (100 kcal)."))
         #expect(HealthContextPrompt.lines(foods: [], goals: .defaults, profile: HealthProfile(), plan: [], symptoms: [],
-                                          onHand: [], now: at(26, 12), calendar: calendar).isEmpty)
+                                          onHand: [], tastes: FoodTastes(), now: at(26, 12), calendar: calendar).isEmpty)
     }
 
     @Test func scheduleSummaryNamesCommonDaySets() {

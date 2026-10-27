@@ -40,6 +40,17 @@ struct HealthProfileView: View {
 
             Section {
                 NavigationLink {
+                    FoodTastesView()
+                } label: {
+                    Label("Tastes & treats", systemImage: "heart.text.square")
+                }
+            } footer: {
+                Text("Likes, dislikes and guilty pleasures, for picks and treats that suit you.")
+            }
+            .listRowBackground(AppColors.appCard)
+
+            Section {
+                NavigationLink {
                     SymptomLogView()
                 } label: {
                     Label("Symptom log and possible triggers", systemImage: "list.bullet.clipboard")

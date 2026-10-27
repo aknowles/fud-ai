@@ -54,11 +54,11 @@ struct HealthCourseTests {
                                     courses: ["metronidazole": HealthCourse(start: day(-7), end: day(-1))])
 
         let during = HealthContextPrompt.lines(foods: [drink("Beer", on: day(0))], goals: .defaults, profile: profile,
-                                               plan: [], symptoms: [], onHand: [], now: day(0), calendar: calendar)
+                                               plan: [], symptoms: [], onHand: [], tastes: FoodTastes(), now: day(0), calendar: calendar)
         #expect(during.contains { $0.hasPrefix("- Metronidazole or tinidazole course:") && $0.contains("its food rules last through") })
         #expect(during.contains("- Logged today despite a medicine interaction: Beer (alcohol). Mention it if relevant."))
 
-        let after = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: profile, plan: [], symptoms: [], onHand: [], now: day(3), calendar: calendar)
+        let after = HealthContextPrompt.lines(foods: [], goals: .defaults, profile: profile, plan: [], symptoms: [], onHand: [], tastes: FoodTastes(), now: day(3), calendar: calendar)
         #expect(after.isEmpty)
     }
 

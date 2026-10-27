@@ -101,7 +101,7 @@ struct SymptomTriggerTests {
         let (entries, symptoms) = heartburnFortnight()
 
         let lines = HealthContextPrompt.lines(foods: entries, goals: .defaults, profile: HealthProfile(), plan: [],
-                                              symptoms: symptoms, onHand: [], now: at(12, daysAgo: 0), calendar: calendar)
+                                              symptoms: symptoms, onHand: [], tastes: FoodTastes(), now: at(12, daysAgo: 0), calendar: calendar)
 
         #expect(lines.contains("## Symptoms"))
         #expect(lines.contains { $0.hasPrefix("- Logged in the last 3 days: heartburn (moderate) yesterday 22:00") })

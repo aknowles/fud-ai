@@ -96,7 +96,8 @@ struct PlanDaySummary {
         logged: [FoodEntry],
         calorieGoal: Int,
         goals: OptionalNutrientGoals,
-        profile: HealthProfile
+        profile: HealthProfile,
+        tastes: FoodTastes = FoodTastes()
     ) -> PlanDaySummary {
         let pending = meals.filter { !$0.isLogged(in: logged) }
         let entries = logged + pending.compactMap { $0.chosen?.entry }
@@ -115,7 +116,8 @@ struct PlanDaySummary {
                 let current = chosen.entry.amount(of: nutrient) ?? 0
                 for option in meal.options where option.id != chosen.id {
                     let amount = option.entry.amount(of: nutrient) ?? 0
-                    guard total - current + amount <= goal, !PlanDaySummary.isRuledOut(option, profile: profile) else { continue }
+                    guard total - current + amount <= goal, !PlanDaySummary.isRuledOut(option, profile: profile),
+                          !tastes.isDisliked(option.entry, contains: option.contains) else { continue }
                     if best == nil || amount < best!.amount {
                         best = (PlanSwap(mealID: meal.id, fromName: chosen.entry.name, to: option.id,
                                          toName: option.entry.name, nutrient: nutrient), amount)

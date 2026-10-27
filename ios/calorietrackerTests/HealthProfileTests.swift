@@ -122,7 +122,7 @@ struct HealthConditionEntryTests {
                               saturatedFat: 15, supplementalNutrients: ["phosphorus": 400], sodium: 1_200, potassium: 600)
 
         let lines = HealthContextPrompt.lines(foods: [lunch], goals: .defaults,
-                                              profile: HealthProfile(entries: [.dash, .heartHealth, .kidneyDisease]), plan: [], symptoms: [], onHand: [], now: now)
+                                              profile: HealthProfile(entries: [.dash, .heartHealth, .kidneyDisease]), plan: [], symptoms: [], onHand: [], tastes: FoodTastes(), now: now)
 
         #expect(lines.contains { $0.hasPrefix("- High cholesterol or heart disease:") })
         #expect(lines.contains { $0.hasPrefix("- Chronic kidney disease:") && $0.contains("protein goal") })

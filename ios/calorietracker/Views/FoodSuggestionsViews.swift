@@ -76,8 +76,14 @@ struct FoodSuggestionsSection: View {
                 Label("Log a symptom", systemImage: "list.bullet.clipboard")
                     .font(.system(.body, design: .rounded, weight: .medium))
             }
+            NavigationLink {
+                FoodTastesView()
+            } label: {
+                Label("Tastes & treats", systemImage: "heart.text.square")
+                    .font(.system(.body, design: .rounded, weight: .medium))
+            }
         } header: {
-            Text("Feeling off?")
+            Text("About you")
         }
         .listRowBackground(AppColors.appCard)
 
@@ -297,11 +303,13 @@ struct FoodSuggestionsResultView: View {
             for rule in profile.rules where rule.direction == .steady {
                 usual[rule.nutrient] = SteadyBand.usual(rule.nutrient, entries: foodStore.entries, before: now, calendar: calendar)
             }
+            let tastes = FoodTastesStore.shared.tastes
             suggestions.options = SuggestionRanking.ranked(SuggestionRanking.evaluate(
                 suggestions.options, today: today, calorieGoal: calorieGoal, goals: .current, profile: profile, usual: usual
-            ))
+            ), tastes: tastes)
             let originalPick = suggestions.pick
-            suggestions.pick = SuggestionRanking.safePick(originalPick, in: suggestions.options)
+            suggestions.pick = SuggestionRanking.safePick(
+                SuggestionRanking.tastePick(originalPick, in: suggestions.options, tastes: tastes), in: suggestions.options)
             let everyOptionAvoided = originalPick != nil && suggestions.pick == nil
             let saved = foodStore.favorites + FoodCollectionStore.shared.collections.flatMap(\.items)
             suggestions.bridgeSnack = SuggestionRanking.bridgeSnack(from: saved)

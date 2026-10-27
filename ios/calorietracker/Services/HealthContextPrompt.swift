@@ -11,6 +11,8 @@ enum HealthContextPrompt {
         plan: [PlannedMeal] = MealPlanStore.shared.meals,
         symptoms: [Symptom] = SymptomStore.shared.symptoms,
         onHand: [FoodCollection] = FoodCollectionStore.shared.activeCollections(at: PlaceLocationService.shared.coordinate),
+        tastes: FoodTastes = FoodTastesStore.shared.tastes,
+        calorieGoal: Int = UserProfile.load()?.effectiveCalories ?? 0,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
@@ -18,6 +20,8 @@ enum HealthContextPrompt {
                                 now: now, calendar: calendar)
             + symptomLines(symptoms: symptoms, foods: foods, now: now, calendar: calendar)
             + onHandLines(onHand)
+            + tasteLines(tastes, foods: foods, goals: goals, profile: profile.effective(on: now, calendar: calendar),
+                         calorieGoal: calorieGoal, now: now, calendar: calendar)
         let full = profile
         let profile = profile.effective(on: now, calendar: calendar)
         guard !profile.isEmpty else { return planned }
@@ -189,6 +193,29 @@ enum HealthContextPrompt {
         }
         return lines.isEmpty ? [] : ["", "## On hand now"] + lines
             + ["- These are what the user can get right now; prefer them when suggesting a snack or meal."]
+    }
+
+    /// Likes, dislikes and treats, and which treats fit today.
+    static func tasteLines(_ tastes: FoodTastes, foods: [FoodEntry], goals: OptionalNutrientGoals, profile: HealthProfile,
+                           calorieGoal: Int, now: Date, calendar: Calendar) -> [String] {
+        guard !tastes.isEmpty else { return [] }
+        var lines = ["", "## Tastes"]
+        if !tastes.likes.isEmpty {
+            lines.append("- Likes: \(tastes.likes.joined(separator: ", ")). Prefer foods with these when they fit the goals.")
+        }
+        if !tastes.dislikes.isEmpty {
+            lines.append("- Dislikes: \(tastes.dislikes.joined(separator: ", ")). Never suggest foods with these.")
+        }
+        if !tastes.treats.isEmpty {
+            let treats = tastes.treats.prefix(10).map { "\($0.name) (\($0.calories) kcal)" }
+            lines.append("- Treats they enjoy: \(treats.joined(separator: ", ")). Talk about treats as normal food to plan for, never as cheating, guilt or something earned.")
+            let fitting = TreatRoom.fitting(tastes.treats, entries: foods, now: now, calorieGoal: calorieGoal, goals: goals,
+                                            profile: profile, calendar: calendar)
+            if !fitting.isEmpty {
+                lines.append("- Room for a treat today: \(fitting.prefix(3).map(\.name).joined(separator: ", ")) still \(fitting.count == 1 ? "fits" : "fit") within every goal. Mention it if they ask about a treat or dessert.")
+            }
+        }
+        return lines
     }
 
     private static func doseLines(profile: HealthProfile, full: HealthProfile, today: [FoodEntry], now: Date,
