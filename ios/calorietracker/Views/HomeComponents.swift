@@ -689,6 +689,8 @@ struct MacroVerticalBar: View {
     let gradient: [Color]
     /// Increments when the app is opened; drives the fill-from-zero reveal.
     var launchFillEpoch: Int = 0
+    /// Fork: direction-aware colors, status and the usual-pace tick (`TrackStyle`).
+    var track: TrackStyle? = nil
 
     private let barWidth: CGFloat = 16
     private let barHeight: CGFloat = 64
@@ -700,7 +702,10 @@ struct MacroVerticalBar: View {
         goal > 0 ? CGFloat(min(current / goal, 1.0)) : 0
     }
 
+    private var fill: [Color] { track?.tone.gradient ?? gradient }
+
     private var statusText: String {
+        if let track { return track.status }
         guard goal > 0 else { return String(localized: "No goal") }
         let difference = goal - current
         if abs(difference) < 0.0001 { return String(localized: "Goal reached") }
@@ -713,7 +718,7 @@ struct MacroVerticalBar: View {
             Text(MacroValueFormatter.string(current))
                 .font(.system(.callout, design: .rounded, weight: .bold))
                 .foregroundStyle(
-                    LinearGradient(colors: gradient, startPoint: .top, endPoint: .bottom)
+                    LinearGradient(colors: fill, startPoint: .top, endPoint: .bottom)
                 )
                 .contentTransition(.numericText())
                 .animation(.snappy, value: current)
@@ -726,18 +731,25 @@ struct MacroVerticalBar: View {
                     .frame(width: barWidth, height: barHeight)
 
                 Capsule()
-                    .fill(LinearGradient(colors: gradient, startPoint: .bottom, endPoint: .top))
+                    .fill(LinearGradient(colors: fill, startPoint: .bottom, endPoint: .top))
                     .frame(width: barWidth, height: max(barWidth, barHeight * shownProgress))
-                    .shadow(color: (gradient.first ?? AppColors.calorie).opacity(0.4), radius: 5)
+                    .shadow(color: (fill.first ?? AppColors.calorie).opacity(0.4), radius: 5)
+
+                if let pace = track?.paceFraction {
+                    TrackPaceTick(fraction: pace, barHeight: barHeight, barWidth: barWidth)
+                }
             }
 
             VStack(spacing: 1) {
-                Text(LocalizedDisplayText.text(label))
-                    .font(.system(.caption, design: .rounded, weight: .semibold))
-                    .foregroundStyle(.primary)
+                TrackLabel(text: LocalizedDisplayText.text(label), track: track)
                 Text(statusText)
                     .font(.system(.caption2, design: .rounded, weight: .medium))
-                    .foregroundStyle(current > goal && goal > 0 ? AppColors.calorie : .secondary)
+                    .foregroundStyle(track.map(TrackStatusColor.color) ?? (current > goal && goal > 0 ? AppColors.calorie : .secondary))
+                if let note = track?.shortPaceNote {
+                    Text(note)
+                        .font(.system(.caption2, design: .rounded, weight: .semibold))
+                        .foregroundStyle(TrackTone.caution.color)
+                }
             }
             .lineLimit(1)
             .minimumScaleFactor(0.6)

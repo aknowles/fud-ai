@@ -61,14 +61,13 @@ private struct DASHScorecardRow: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
-            MacroProgressRow(
+            TrackedProgressRow(
                 label: line.nutrient.displayName,
                 current: line.today,
                 goal: line.goal,
                 unit: line.nutrient.unit,
-                color: barColor,
-                gradientColors: barGradient,
-                localizeLabel: false
+                track: TrackStyle.make(direction: line.isLimit ? .limit : .target, current: line.today,
+                                       goal: Double(line.goal), unit: line.nutrient.unit)
             )
             HStack(spacing: 6) {
                 Image(systemName: line.weekMeetsGoal ? "checkmark.circle.fill" : "circle")
@@ -79,14 +78,6 @@ private struct DASHScorecardRow: View {
                     .foregroundStyle(.secondary)
             }
         }
-    }
-
-    private var barColor: Color {
-        line.isLimit && !line.todayMeetsGoal ? .red : AppColors.calorie
-    }
-
-    private var barGradient: [Color] {
-        line.isLimit && !line.todayMeetsGoal ? [Color.red.opacity(0.75), Color.red] : AppColors.calorieGradient
     }
 }
 

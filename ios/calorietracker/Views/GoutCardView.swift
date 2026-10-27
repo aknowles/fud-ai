@@ -40,6 +40,19 @@ struct GoutCardView: View {
         if health.contains(.gout) { card }
     }
 
+    /// Limits with the usual-pace tick for today.
+    private func track(for row: Line) -> TrackStyle {
+        let now = Date()
+        let calendar = Calendar.current
+        let expected: Double? = calendar.isDate(date, inSameDayAs: now)
+            ? TrackPace.usualFraction(
+                at: TrackPace.minute(of: now),
+                days: TrackPace.days(foodStore.entries, date: \.timestamp, amount: { $0.amount(of: row.nutrient) ?? 0 }, before: now))
+            : nil
+        return TrackStyle.make(direction: .limit, current: row.value, goal: Double(row.goal), unit: row.nutrient.unit,
+                               expectedFraction: expected)
+    }
+
     @ViewBuilder
     private var card: some View {
         let rows = lines
@@ -61,14 +74,12 @@ struct GoutCardView: View {
 
             ForEach(rows) { row in
                 NutrientContributorsLink(metric: .nutrient(row.nutrient), date: date) {
-                MacroProgressRow(
+                TrackedProgressRow(
                     label: row.nutrient.displayName,
                     current: row.value,
                     goal: row.goal,
                     unit: row.nutrient.unit,
-                    color: row.isOver ? .red : AppColors.calorie,
-                    gradientColors: row.isOver ? [Color.red.opacity(0.75), Color.red] : AppColors.calorieGradient,
-                    localizeLabel: false
+                    track: track(for: row)
                 )
                 }
             }

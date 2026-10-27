@@ -1712,7 +1712,10 @@ private var dailyStepsTaskKey: String {
                                 goal: nutrient.goal(for: userProfile, optionalGoals: optionalNutrientGoals),
                                 unit: nutrient.unit,
                                 gradient: nutrient.gradientColors,
-                                launchFillEpoch: launchFillEpoch
+                                launchFillEpoch: launchFillEpoch,
+                                track: HomeTrack.style(for: nutrient, current: nutrient.value(from: foodStore, on: selectedDate),
+                                                       goal: nutrient.goal(for: userProfile, optionalGoals: optionalNutrientGoals),
+                                                       date: selectedDate, entries: foodStore.entries)
                             )
                             }
                         }
@@ -1725,7 +1728,11 @@ private var dailyStepsTaskKey: String {
                                 goal: waterUnit.displayAmount(forMilliliters: waterDailyGoal),
                                 unit: waterPillarUnit,
                                 gradient: AppColors.calorieGradient,
-                                launchFillEpoch: launchFillEpoch
+                                launchFillEpoch: launchFillEpoch,
+                                track: HomeTrack.waterStyle(
+                                    current: waterUnit.displayAmount(forMilliliters: waterStore.totalIncludingDrinks(on: selectedDate, foods: foodStore)),
+                                    goal: waterUnit.displayAmount(forMilliliters: waterDailyGoal),
+                                    unit: waterPillarUnit, date: selectedDate, water: waterStore.entries)
                             )
                         }
                     }
