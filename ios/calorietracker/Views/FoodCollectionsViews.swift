@@ -135,6 +135,8 @@ struct FoodCollectionDetailView: View {
                             Label("Add foods from Favorites, Frequent or Recent", systemImage: "plus.circle.fill")
                         }
                         .listRowBackground(AppColors.appCard)
+                    } footer: {
+                        Text("Or tap + to photograph what's there, like a snack drawer or vending machine, or scan a barcode.")
                     }
                 } else {
                     Section {
@@ -169,11 +171,7 @@ struct FoodCollectionDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button {
-                    isPicking = true
-                } label: {
-                    Label("Add Foods", systemImage: "plus")
-                }
+                CollectionAddMenu(collectionID: collectionID)
                 Menu {
                     EditButton()
                     Button {
@@ -216,7 +214,7 @@ struct FoodCollectionDetailView: View {
 }
 
 /// Picks foods for a collection from Favorites, Frequent and Recent; tap toggles membership.
-private struct FoodCollectionPicker: View {
+struct FoodCollectionPicker: View {
     let collectionID: UUID
 
     @Environment(FoodStore.self) private var foodStore

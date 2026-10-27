@@ -94,6 +94,15 @@ final class FoodCollectionStore {
         }
     }
 
+    /// Adds photo-free copies of `entries`, skipping foods already in the collection.
+    func addItems(_ entries: [FoodEntry], to id: UUID) {
+        update(id) { collection in
+            for entry in entries where !collection.items.contains(where: { $0.favoriteKey == entry.favoriteKey }) {
+                collection.items.append(Self.template(from: entry))
+            }
+        }
+    }
+
     func removeItems(at offsets: IndexSet, from id: UUID) {
         update(id) { $0.items.remove(atOffsets: offsets) }
     }
