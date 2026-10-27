@@ -1679,12 +1679,14 @@ private var dailyStepsTaskKey: String {
                 // one section removes an unhelpful List section gap and matches Android's
                 // compact top-region hierarchy.
                 Section {
+                    NutrientContributorsLink(metric: .calories, date: selectedDate) {
                     CalorieGauge(
                         eaten: selectedCalories,
                         goal: calorieGoal,
                         burnLine: homeBurnLine,
                         launchFillEpoch: launchFillEpoch
                     )
+                    }
                         .frame(maxWidth: .infinity)
                         .padding(.top, -8)
                         .contentShape(Rectangle())
