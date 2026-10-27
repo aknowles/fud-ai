@@ -12,7 +12,8 @@ enum HealthContextPrompt {
         symptoms: [Symptom] = SymptomStore.shared.symptoms,
         onHand: [FoodCollection] = FoodCollectionStore.shared.activeCollections(at: PlaceLocationService.shared.coordinate),
         tastes: FoodTastes = FoodTastesStore.shared.tastes,
-        calorieGoal: Int = UserProfile.load()?.effectiveCalories ?? 0,
+        calorieGoal: Int = ActivityGoalStore.shared.goal(on: Date(), profile: UserProfile.load()),
+        activityBonus: Int = ActivityGoalStore.shared.bonus(on: Date(), profile: UserProfile.load()),
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
@@ -20,6 +21,7 @@ enum HealthContextPrompt {
                                 now: now, calendar: calendar)
             + symptomLines(symptoms: symptoms, foods: foods, now: now, calendar: calendar)
             + onHandLines(onHand)
+            + activityLines(bonus: activityBonus, goal: calorieGoal)
             + tasteLines(tastes, foods: foods, goals: goals, profile: profile.effective(on: now, calendar: calendar),
                          calorieGoal: calorieGoal, now: now, calendar: calendar)
         let full = profile
@@ -203,6 +205,14 @@ enum HealthContextPrompt {
         }
         return lines.isEmpty ? [] : ["", "## On hand now"] + lines
             + ["- These are what the user can get right now; prefer them when suggesting a snack or meal."]
+    }
+
+    /// Today's goal change from Apple Health activity, when the user has turned it on.
+    static func activityLines(bonus: Int, goal: Int) -> [String] {
+        guard bonus != 0 else { return [] }
+        let change = bonus > 0 ? "raised by \(bonus)" : "lowered by \(-bonus)"
+        return ["", "## Activity",
+                "- Today's calorie goal is \(change) kcal to \(goal) kcal for activity Apple Health recorded. Use this goal, not the profile's, for calories left today."]
     }
 
     /// Likes, dislikes and treats, and which treats fit today.

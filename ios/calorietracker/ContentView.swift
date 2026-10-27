@@ -1364,6 +1364,7 @@ private var dailyStepsTaskKey: String {
             homeBurnLine = nil
             return
         }
+        ActivityGoalStore.shared.record(activeCalories: energy.activeCalories, on: requestDate)
         guard !Task.isCancelled, inputsStillMatch() else { return }
         guard let burned = DailySummaryPolicy.resolveBurnedCalories(
             measuredTotalCalories: energy.totalCalories,
@@ -1682,7 +1683,7 @@ private var dailyStepsTaskKey: String {
                     NutrientContributorsLink(metric: .calories, date: selectedDate) {
                     CalorieGauge(
                         eaten: selectedCalories,
-                        goal: calorieGoal,
+                        goal: ActivityGoalStore.shared.goal(on: selectedDate, profile: userProfile),
                         burnLine: homeBurnLine,
                         launchFillEpoch: launchFillEpoch
                     )

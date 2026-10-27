@@ -169,7 +169,7 @@ struct TreatCardView: View {
         let today = calendar.startOfDay(for: now)
         let fitting = calendar.isDateInToday(date) && store.tastes.treatCard && dismissedDay != today.timeIntervalSince1970
             ? TreatRoom.fitting(store.tastes.treats, entries: foodStore.entries, now: now,
-                                calorieGoal: UserProfile.load()?.effectiveCalories ?? 0, goals: .current,
+                                calorieGoal: ActivityGoalStore.shared.goal(on: now, profile: UserProfile.load()), goals: .current,
                                 profile: health.profile.effective(on: now))
             : []
         if !fitting.isEmpty {

@@ -127,6 +127,10 @@ struct NutrientContributorsView: View {
                 }
                 .listRowBackground(AppColors.appCard)
 
+                if case .calories = metric {
+                    CalorieBreakdownSection(date: date)
+                }
+
                 Section {
                     if contributions.isEmpty {
                         Text("Nothing logged this day has a value for \(metric.label.lowercased()).")

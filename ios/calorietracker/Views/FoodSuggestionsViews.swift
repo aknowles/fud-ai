@@ -287,7 +287,7 @@ struct FoodSuggestionsResultView: View {
         let now = Date()
         let calendar = Calendar.current
         let today = foodStore.entries.filter { calendar.isDate($0.timestamp, inSameDayAs: now) }
-        let calorieGoal = UserProfile.load()?.effectiveCalories ?? 0
+        let calorieGoal = ActivityGoalStore.shared.goal(on: now, profile: UserProfile.load())
         let context = SuggestionContext(
             caloriesLeft: calorieGoal - today.reduce(0) { $0 + $1.calories },
             nextMeal: UsualMeal.next(after: now, entries: foodStore.entries, calendar: calendar),
