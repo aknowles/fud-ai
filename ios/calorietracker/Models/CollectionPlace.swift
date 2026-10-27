@@ -45,9 +45,9 @@ extension FoodCollection {
 }
 
 extension FoodCollectionStore {
-    /// Collections that apply right now, with items, in the user's order.
+    /// Collections that apply right now, with items or a coffee bar or note, in the user's order.
     func activeCollections(at coordinate: CLLocationCoordinate2D?, now: Date = Date(), calendar: Calendar = .current) -> [FoodCollection] {
-        collections.filter { !$0.items.isEmpty && $0.isActive(at: coordinate, now: now, calendar: calendar) }
+        collections.filter { (!$0.items.isEmpty || $0.hasExtras) && $0.isActive(at: coordinate, now: now, calendar: calendar) }
     }
 }
 

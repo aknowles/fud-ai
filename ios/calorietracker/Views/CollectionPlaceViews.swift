@@ -211,6 +211,7 @@ struct AtPlaceCardView: View {
     @State private var location = PlaceLocationService.shared
     @State private var logged: Set<String> = []
     @State private var showing: FoodCollection?
+    @State private var orderingCoffee = false
 
     private static let shownItems = 4
 
@@ -255,6 +256,14 @@ struct AtPlaceCardView: View {
                             }
                         }
                     }
+                    if collection.hasCoffeeBar {
+                        coffeeRow
+                    }
+                    if let note = collection.alsoHereNote {
+                        Text(String(localized: "Also here: \(note)"))
+                            .font(.system(.caption, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
                     if active.count > 1 {
                         Text("Also on hand: \(active.dropFirst().map(\.name).joined(separator: ", "))")
                             .font(.system(.caption, design: .rounded))
@@ -263,6 +272,12 @@ struct AtPlaceCardView: View {
                 }
                 .padding()
                 .progressCardStyle()
+                .sheet(isPresented: $orderingCoffee) {
+                    NavigationStack {
+                        CoffeeBarView(onLog: { log($0); orderingCoffee = false })
+                            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { orderingCoffee = false } } }
+                    }
+                }
                 .sheet(item: $showing) { collection in
                     NavigationStack {
                         FoodCollectionDetailView(collectionID: collection.id, onLog: { log($0); showing = nil })
@@ -274,6 +289,45 @@ struct AtPlaceCardView: View {
         .onAppear { location.refreshIfNeeded(collections: store.collections) }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active { location.refreshIfNeeded(collections: store.collections) }
+        }
+    }
+
+    /// The usual coffee-bar order with one-tap logging, and a way to order something else.
+    private var coffeeRow: some View {
+        let usual = CoffeeUsual.load()
+        let entry = (usual ?? CoffeeOrder()).entry()
+        return VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 10) {
+                Text(entry.emoji ?? "☕️").font(.system(size: 22))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(usual == nil ? String(localized: "Coffee bar") : entry.name)
+                        .font(.system(.subheadline, design: .rounded, weight: .medium))
+                    Text(usual == nil ? String(localized: "Order any drink") : String(localized: "Your usual · \(entry.calories) kcal"))
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                if usual == nil {
+                    Button("Order") { orderingCoffee = true }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.calorie)
+                } else if logged.contains(entry.favoriteKey) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.title2)
+                        .foregroundStyle(AppColors.calorie)
+                        .accessibilityLabel("Logged")
+                } else {
+                    Button("Log") { log(entry) }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppColors.calorie)
+                }
+            }
+            if usual != nil {
+                Button("Order a different drink") { orderingCoffee = true }
+                    .font(.system(.caption, design: .rounded, weight: .semibold))
+                    .buttonStyle(.borderless)
+                    .padding(.leading, 32)
+            }
         }
     }
 

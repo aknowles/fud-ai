@@ -150,6 +150,7 @@ struct FoodCollectionDetailView: View {
                         .onMove { store.moveItems(from: $0, to: $1, in: collectionID) }
                     }
                 }
+                CollectionExtrasSection(collectionID: collectionID, onLog: onLog)
                 Section {
                     NavigationLink {
                         CollectionPlaceView(collectionID: collectionID)

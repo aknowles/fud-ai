@@ -187,9 +187,18 @@ enum HealthContextPrompt {
 
     /// Collections that apply where and when the user is now, e.g. office snacks.
     static func onHandLines(_ collections: [FoodCollection]) -> [String] {
-        let lines = collections.filter { !$0.items.isEmpty }.map { collection in
-            let items = collection.items.prefix(12).map { "\($0.name) (\($0.calories) kcal)" }
-            return "- \(collection.name): \(items.joined(separator: ", "))."
+        let lines = collections.filter { !$0.items.isEmpty || $0.hasExtras }.map { collection in
+            var parts: [String] = []
+            if !collection.items.isEmpty {
+                parts.append(collection.items.prefix(12).map { "\($0.name) (\($0.calories) kcal)" }.joined(separator: ", ") + ".")
+            }
+            if collection.hasCoffeeBar {
+                parts.append("There is a coffee bar with a barista: any standard drink is available (lattes, cappuccinos, flat whites, americanos, brewed coffee, cold brew, mochas, matcha and chai lattes, hot teas, hot chocolate) with whole, 2%, skim, oat, almond or soy milk and optional syrup.")
+            }
+            if let note = collection.alsoHereNote {
+                parts.append("Also here: \(note).")
+            }
+            return "- \(collection.name): \(parts.joined(separator: " "))"
         }
         return lines.isEmpty ? [] : ["", "## On hand now"] + lines
             + ["- These are what the user can get right now; prefer them when suggesting a snack or meal."]

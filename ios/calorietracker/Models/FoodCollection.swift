@@ -13,14 +13,32 @@ struct FoodCollection: Identifiable, Codable {
     var place: CollectionPlace?
     /// When it is on hand without location, e.g. weekdays 8–6.
     var schedule: CollectionSchedule?
+    /// There is a barista: any standard coffee-bar drink is on hand (`CoffeeDrink`).
+    var coffeeBar: Bool?
+    /// Anything else on hand, in the user's words, e.g. "fruit basket, salad bar Tuesdays".
+    var alsoHere: String?
 
-    init(id: UUID = UUID(), name: String, items: [FoodEntry] = [], place: CollectionPlace? = nil, schedule: CollectionSchedule? = nil) {
+    init(id: UUID = UUID(), name: String, items: [FoodEntry] = [], place: CollectionPlace? = nil, schedule: CollectionSchedule? = nil,
+         coffeeBar: Bool? = nil, alsoHere: String? = nil) {
         self.id = id
         self.name = name
         self.items = items
         self.place = place
         self.schedule = schedule
+        self.coffeeBar = coffeeBar
+        self.alsoHere = alsoHere
     }
+
+    var hasCoffeeBar: Bool { coffeeBar == true }
+
+    /// The "also here" note, trimmed, or nil when empty.
+    var alsoHereNote: String? {
+        let trimmed = alsoHere?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    /// Has something on hand besides its items.
+    var hasExtras: Bool { hasCoffeeBar || alsoHereNote != nil }
 }
 
 /// Stores food collections in their own defaults key, outside the food diary.
@@ -119,6 +137,15 @@ final class FoodCollectionStore {
 
     func setSchedule(_ schedule: CollectionSchedule?, for id: UUID) {
         update(id) { $0.schedule = schedule }
+    }
+
+    func setCoffeeBar(_ isOn: Bool, for id: UUID) {
+        update(id) { $0.coffeeBar = isOn ? true : nil }
+    }
+
+    func setAlsoHere(_ note: String, for id: UUID) {
+        let trimmed = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        update(id) { $0.alsoHere = trimmed.isEmpty ? nil : trimmed }
     }
 
     /// The copy a collection keeps: same food and nutrition, no photos.
