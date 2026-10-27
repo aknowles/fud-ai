@@ -17,12 +17,13 @@ import os
 /// * A file with no marker in defaults means the defaults domain was wiped (UI test
 ///   reset); the file is kept aside and the diary reads as empty.
 /// * A file that exists but cannot be read is never overwritten.
-nonisolated final class DiaryFileDefaults: UserDefaults, @unchecked Sendable {
+nonisolated final class DiaryFileDefaults: UserDefaults {
     static let diaryKey = "foodEntries"
     /// Set in the defaults plist whenever the file holds the diary.
     static let markerKey = "fork.foodEntriesInFile"
 
-    static let shared: DiaryFileDefaults = DiaryFileDefaults(directory: defaultDirectory())!
+    /// Shared across threads; every diary-key access goes through `lock`.
+    nonisolated(unsafe) static let shared: DiaryFileDefaults = DiaryFileDefaults(directory: defaultDirectory())!
 
     let fileURL: URL
     private let archiveDirectory: URL

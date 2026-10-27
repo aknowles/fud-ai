@@ -7,7 +7,7 @@ import Foundation
 /// stays as a single constant so the upstream code paths remain intact and mergeable.
 enum ForkSettings {
     /// When false, RevenueCat is never configured and every paid or hosted option is hidden.
-    static let paidFeaturesEnabled = false
+    nonisolated static let paidFeaturesEnabled = false
 }
 
 extension AIMode {

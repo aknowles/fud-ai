@@ -15,11 +15,11 @@ struct DiaryFileDefaultsTests {
 
         init() { plain = UserDefaults(suiteName: suite)! }
 
-        func makeDefaults() -> DiaryFileDefaults {
+        @MainActor func makeDefaults() -> DiaryFileDefaults {
             DiaryFileDefaults(suiteName: suite, directory: directory)!
         }
 
-        func makeStore() -> FoodStore {
+        @MainActor func makeStore() -> FoodStore {
             FoodStore(observesExternalChanges: false, defaults: makeDefaults(), corruptBackupDirectory: backups)
         }
 

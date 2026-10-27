@@ -13,7 +13,7 @@ struct HealthProfileTests {
 
         init() { defaults = UserDefaults(suiteName: suite)! }
 
-        func makeStore() -> HealthProfileStore {
+        @MainActor func makeStore() -> HealthProfileStore {
             HealthProfileStore(defaults: defaults, corruptBackupDirectory: backups)
         }
 

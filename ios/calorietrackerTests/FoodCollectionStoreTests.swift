@@ -13,7 +13,7 @@ struct FoodCollectionStoreTests {
 
         init() { defaults = UserDefaults(suiteName: suite)! }
 
-        func makeStore() -> FoodCollectionStore {
+        @MainActor func makeStore() -> FoodCollectionStore {
             FoodCollectionStore(defaults: defaults, corruptBackupDirectory: backups)
         }
 
