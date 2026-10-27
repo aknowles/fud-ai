@@ -212,6 +212,8 @@ struct AtPlaceCardView: View {
     @State private var logged: Set<String> = []
     @State private var showing: FoodCollection?
     @State private var orderingCoffee = false
+    /// Observed so the card updates as soon as an order becomes the usual.
+    @AppStorage(CoffeeUsual.storageKey) private var usualData: Data?
 
     private static let shownItems = 4
 
@@ -300,7 +302,7 @@ struct AtPlaceCardView: View {
 
     /// The usual coffee-bar order with one-tap logging, and a way to order something else.
     private var coffeeRow: some View {
-        let usual = CoffeeUsual.load()
+        let usual = usualData.flatMap { try? JSONDecoder().decode(CoffeeOrder.self, from: $0) }
         let entry = (usual ?? CoffeeOrder()).entry()
         return VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 10) {

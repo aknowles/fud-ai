@@ -1743,6 +1743,22 @@ private var dailyStepsTaskKey: String {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
 
+                    Button {
+                        showNutritionDetail = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("View More")
+                                .font(.system(.subheadline, design: .rounded, weight: .medium))
+                            Image(systemName: "chevron.right")
+                                .font(.caption2)
+                            Spacer()
+                        }
+                        .foregroundStyle(AppColors.calorie.opacity(0.6))
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
                     GoutCardView(date: selectedDate)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
@@ -1770,22 +1786,6 @@ private var dailyStepsTaskKey: String {
                     TreatCardView(date: selectedDate)
                         .listRowBackground(Color.clear)
                         .listRowSeparator(.hidden)
-
-                    Button {
-                        showNutritionDetail = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("View More")
-                                .font(.system(.subheadline, design: .rounded, weight: .medium))
-                            Image(systemName: "chevron.right")
-                                .font(.caption2)
-                            Spacer()
-                        }
-                        .foregroundStyle(AppColors.calorie.opacity(0.6))
-                    }
-                    .listRowBackground(Color.clear)
-                    .listRowSeparator(.hidden)
                 }
 
                 // Unified diary: water and fasting are grouped by their log/end time,
