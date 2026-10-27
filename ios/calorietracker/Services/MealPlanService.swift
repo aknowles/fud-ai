@@ -14,6 +14,7 @@ enum MealPlanService {
     static func importMenu(
         _ input: Input,
         weekStart: Date,
+        day: Date? = nil,
         defaultMeal: MealType,
         source: String,
         healthLines: [String],
@@ -22,32 +23,42 @@ enum MealPlanService {
     ) async throws -> [PlannedMeal] {
         let image: UIImage? = if case .photo(let photo) = input { photo } else { nil }
         let text = try await GeminiService.callAI(
-            prompt: prompt(for: input, weekStart: weekStart, defaultMeal: defaultMeal, healthLines: healthLines),
+            prompt: prompt(for: input, weekStart: weekStart, day: day, defaultMeal: defaultMeal, healthLines: healthLines),
             image: image
         )
-        return try parse(text, weekStart: weekStart, defaultMeal: defaultMeal, source: source,
+        return try parse(text, weekStart: weekStart, day: day, defaultMeal: defaultMeal, source: source,
                          entries: entries, calendar: calendar)
     }
 
-    static func prompt(for input: Input, weekStart: Date, defaultMeal: MealType, healthLines: [String]) -> String {
-        var lines = [
-            "This is a menu covering several days, for example a workplace cafe's weekly menu. Plan the user's meals from it.",
-            "The week starts on Monday \(isoDay(weekStart)). Unless the menu says otherwise, every item is for \(defaultMeal.rawValue).",
-        ]
+    /// With `day`, the menu is for that one day; otherwise it covers the week from `weekStart`.
+    static func prompt(for input: Input, weekStart: Date, day: Date? = nil, defaultMeal: MealType, healthLines: [String]) -> String {
+        var lines: [String]
+        if let day {
+            lines = [
+                "This is a menu for one day, for example a workplace cafe's menu of the day. Plan the user's meals from it.",
+                "It is for \(isoDay(day)); use that date for every item. Unless the menu says otherwise, every item is for \(defaultMeal.rawValue).",
+            ]
+        } else {
+            lines = [
+                "This is a menu covering several days, for example a workplace cafe's weekly menu. Plan the user's meals from it.",
+                "The week starts on Monday \(isoDay(weekStart)). Match each day the menu names to its date in that week; if days are not named, assume they run Monday onward. Unless the menu says otherwise, every item is for \(defaultMeal.rawValue).",
+            ]
+        }
         if case .text(let text) = input { lines += ["", "## Menu", text] }
         lines += healthLines
         lines += [
             "",
             "## Answer",
             "Respond ONLY with JSON:",
-            #"{"days":[{"date":"YYYY-MM-DD","meal":"lunch","options":[{"food":{...},"reason":"..."}],"pick":0}]}"#,
+            #"{"days":[{"date":"YYYY-MM-DD","meal":"lunch","options":[{"food":{...},"includes":["..."],"reason":"..."}],"pick":0}]}"#,
             "- One object per day and meal that has items. date is that day in the menu's week; meal is breakfast, lunch, dinner or snack.",
             "- options: up to \(maxOptionsPerMeal), best first for the user's goals above; estimate one typical portion of each. food uses this shape:",
             FoodSuggestionService.foodShape,
             GeminiService.foodNutrientInstruction(includingAminoAcids: false),
             "- contains: the main allergens and notable ingredients, lowercase (for example wheat, milk, egg, peanut, tree nut, soy, fish, shellfish, sesame, grapefruit); [] when none.",
+            "- Each option is one dish as served: a main with the sides that come with it, a soup, or a station item. food.name is the dish's menu name; includes lists the sides and components served with it (for example [\"rice pilaf\", \"green beans\"]), [] when none; the food's nutrition covers the dish and everything in includes.",
             "- reason: one short sentence on why it ranks where it does, naming purines, sodium or calories when they matter.",
-            "- pick: the 0-based index of the best option for that meal.",
+            "- pick: the 0-based index of the option you suggest for that meal.",
         ]
         return lines.joined(separator: "\n")
     }
@@ -57,6 +68,7 @@ enum MealPlanService {
     static func parse(
         _ text: String,
         weekStart: Date,
+        day: Date? = nil,
         defaultMeal: MealType,
         source: String,
         entries: [FoodEntry],
@@ -71,8 +83,8 @@ enum MealPlanService {
         let weekEnd = calendar.date(byAdding: .day, value: 7, to: weekStartDay) ?? weekStartDay
         var meals: [PlannedMeal] = []
         for raw in days {
-            guard let dateText = raw["date"] as? String, let parsedDay = parseDay(dateText, calendar: calendar),
-                  parsedDay >= weekStartDay, parsedDay < weekEnd,
+            let rawDay = day.map { calendar.startOfDay(for: $0) } ?? (raw["date"] as? String).flatMap { parseDay($0, calendar: calendar) }
+            guard let parsedDay = rawDay, day != nil || (parsedDay >= weekStartDay && parsedDay < weekEnd),
                   let rawOptions = raw["options"] as? [[String: Any]]
             else { continue }
             let meal = (raw["meal"] as? String).flatMap { MealType(rawValue: $0.lowercased()) } ?? defaultMeal
@@ -82,16 +94,32 @@ enum MealPlanService {
                       let analysis = FoodSuggestionService.foodAnalysis(from: food) else { return nil }
                 let entry = VoiceAssistantFoodBuilder.entry(from: analysis, images: [], source: .textInput, servings: 1,
                                                             timestamp: time, mealType: meal)
+                let includes = (option["includes"] as? [String] ?? food["includes"] as? [String] ?? [])
+                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
                 return PlannedOption(entry: entry, contains: food["contains"] as? [String] ?? [],
-                                     reason: option["reason"] as? String)
+                                     reason: option["reason"] as? String, includes: includes.isEmpty ? nil : includes)
             }
             guard !options.isEmpty else { continue }
             let pick = (raw["pick"] as? NSNumber)?.intValue
-            let chosen = pick.flatMap { options.indices.contains($0) ? options[$0].id : nil } ?? options.first?.id
-            meals.append(PlannedMeal(day: parsedDay, mealType: meal, source: source, options: options, chosenID: chosen))
+            let suggested = pick.flatMap { options.indices.contains($0) ? options[$0].id : nil } ?? options.first?.id
+            meals.append(PlannedMeal(day: parsedDay, mealType: meal, source: source, options: options, suggestedID: suggested))
         }
         guard !meals.isEmpty else { throw ParseError.noMeals }
-        return meals
+        return merged(meals, calendar: calendar)
+    }
+
+    /// One meal per day and meal type: repeats (e.g. two lunch stations on a one-day menu)
+    /// become options of the first.
+    static func merged(_ meals: [PlannedMeal], calendar: Calendar = .current) -> [PlannedMeal] {
+        var result: [PlannedMeal] = []
+        for meal in meals {
+            if let index = result.firstIndex(where: { calendar.isDate($0.day, inSameDayAs: meal.day) && $0.mealType == meal.mealType }) {
+                result[index].options += meal.options
+            } else {
+                result.append(meal)
+            }
+        }
+        return result
     }
 
     /// A planned meal from a saved food or recipe, on `day` at the usual time for `meal`.

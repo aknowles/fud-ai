@@ -171,7 +171,7 @@ enum HealthContextPrompt {
                     let amounts = limits.compactMap { nutrient -> String? in
                         chosen.entry.amount(of: nutrient).map { "\(nutrient.promptName.lowercased()) \(Int($0.rounded())) \(nutrient.unit)" }
                     }
-                    text += "planned \(chosen.entry.name) (\(([String(chosen.entry.calories) + " kcal"] + amounts).joined(separator: ", ")))"
+                    text += "\(meal.isSuggestion ? "suggested" : "planned") \(chosen.entry.name) (\(([String(chosen.entry.calories) + " kcal"] + amounts).joined(separator: ", ")))"
                 }
                 let others = meal.options.filter { $0.id != meal.chosen?.id }.map(\.entry.name)
                 if !others.isEmpty { text += "\(meal.chosen == nil ? "options" : "; other options"): \(others.joined(separator: ", "))" }

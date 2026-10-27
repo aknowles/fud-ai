@@ -8,6 +8,9 @@ struct PlannedOption: Codable, Identifiable {
     var entry: FoodEntry
     var contains: [String] = []
     var reason: String?
+    /// Sides and components served with the dish, e.g. ["rice pilaf", "green beans"];
+    /// the entry's nutrition covers them.
+    var includes: [String]?
 }
 
 /// A meal known ahead: one planned food (a recipe or saved meal) or a set of options (a day
@@ -20,11 +23,20 @@ struct PlannedMeal: Codable, Identifiable {
     /// Where it comes from, e.g. "Work cafe" or "Recipe".
     var source: String?
     var options: [PlannedOption]
+    /// The user's own pick.
     var chosenID: UUID?
+    /// The AI's suggestion, counted until the user picks.
+    var suggestedID: UUID?
 
-    /// The picked option; a single-option meal is always picked.
+    /// The option the plan counts: the user's pick, else the suggestion; a single-option meal
+    /// is always picked.
     var chosen: PlannedOption? {
-        options.first { $0.id == chosenID } ?? (options.count == 1 ? options.first : nil)
+        options.first { $0.id == chosenID } ?? options.first { $0.id == suggestedID } ?? (options.count == 1 ? options.first : nil)
+    }
+
+    /// True when `chosen` is only the AI's suggestion.
+    var isSuggestion: Bool {
+        options.count > 1 && !options.contains { $0.id == chosenID } && chosen != nil
     }
 
     /// True when the diary already has the chosen food (or any option) logged that day.

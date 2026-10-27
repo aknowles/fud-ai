@@ -152,8 +152,9 @@ struct WeekPlanView: View {
                 }
                 ForEach(meal.options) { option in
                     let chosen = meal.chosen?.id == option.id
-                    PlannedOptionRow(option: option, caption: option.reason, isChosen: chosen,
-                                     warnings: warnings(for: option, profile: profile))
+                    PlannedOptionRow(option: option, caption: option.reason, isChosen: chosen && !meal.isSuggestion,
+                                     warnings: warnings(for: option, profile: profile),
+                                     isSuggested: chosen && meal.isSuggestion)
                         .contentShape(Rectangle())
                         .onTapGesture { withAnimation { plan.choose(option.id, in: meal.id) } }
                         .swipeActions(edge: .trailing) {
@@ -167,7 +168,8 @@ struct WeekPlanView: View {
         } header: {
             Text(day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day()))
         } footer: {
-            if isToday { Text("Tap an option to pick it; swipe left to log it now.") }
+            Text(isToday ? "✨ is the suggestion until you tap an option to pick it; swipe left to log it now."
+                 : "✨ is the suggestion until you tap an option to pick it.")
         }
         .listRowBackground(AppColors.appCard)
     }
@@ -200,6 +202,7 @@ private struct PlannedOptionRow: View {
     let caption: String?
     let isChosen: Bool
     let warnings: [String]
+    var isSuggested = false
     @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
 
     var body: some View {
@@ -211,6 +214,12 @@ private struct PlannedOptionRow: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(option.entry.name)
                     .font(.system(.body, design: .rounded, weight: isChosen ? .semibold : .regular))
+                if let includes = option.includes, !includes.isEmpty {
+                    Text(String(localized: "With \(includes.joined(separator: ", "))"))
+                        .font(.system(.caption, design: .rounded))
+                        .foregroundStyle(.primary.opacity(0.8))
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Text(energyUnit.format(kcal: option.entry.calories) + (caption.map { " · \($0)" } ?? ""))
                     .font(.system(.caption, design: .rounded))
                     .foregroundStyle(.secondary)
@@ -224,13 +233,17 @@ private struct PlannedOptionRow: View {
             Spacer(minLength: 0)
             if isChosen {
                 Image(systemName: "checkmark.circle.fill").foregroundStyle(AppColors.calorie)
+            } else if isSuggested {
+                Text("✨").accessibilityLabel("Suggested")
             }
         }
     }
 }
 
-/// Imports a multi-day menu from a photo or pasted text into the chosen week. With
-/// `initialPhoto` it starts reading that photo right away.
+/// Imports a menu from a photo or pasted text: say whether it covers the week or one day,
+/// read it, then check the days before saving. With `initialPhoto` it starts reading that
+/// photo right away. Nothing needs picking here; each meal keeps the AI's suggestion until
+/// the user picks.
 struct ImportMenuView: View {
     let weekStart: Date
     var initialPhoto: UIImage? = nil
@@ -240,38 +253,33 @@ struct ImportMenuView: View {
     @Environment(FoodStore.self) private var foodStore
     @State private var meal: MealType = .lunch
     @State private var source = String(localized: "Work cafe")
+    @State private var coversWeek = true
+    @State private var weekOffset = 0
+    @State private var oneDay = Date()
     @State private var text = ""
     @State private var photoItem: PhotosPickerItem?
-    @State private var isWorking = false
+    @State private var showCamera = false
+    @State private var capturedImage: UIImage?
+    @State private var step: Step = .setup
     @State private var error: String?
 
+    private enum Step {
+        case setup
+        case reading
+        case review([PlannedMeal])
+    }
+
+    private var calendar: Calendar { .current }
+    private var chosenWeekStart: Date {
+        calendar.date(byAdding: .day, value: 7 * weekOffset, to: calendar.mondayOfWeek(containing: weekStart)) ?? weekStart
+    }
+
     var body: some View {
-        Form {
-            Section {
-                Picker("Usual meal", selection: $meal) {
-                    ForEach([MealType.breakfast, .lunch, .dinner], id: \.self) { Text($0.displayName).tag($0) }
-                }
-                TextField("Where", text: $source)
-            } footer: {
-                Text(String(localized: "Week of \(weekStart.formatted(date: .abbreviated, time: .omitted))"))
-            }
-            Section("From a photo") {
-                PhotosPicker(selection: $photoItem, matching: .images) {
-                    Label("Choose a menu photo or screenshot", systemImage: "photo.on.rectangle")
-                }
-                .disabled(isWorking)
-            }
-            Section("Or paste the menu") {
-                TextField("Mon: chili, garden salad…", text: $text, axis: .vertical)
-                    .lineLimit(4...12)
-                Button("Import text") { run(.text(text)) }
-                    .disabled(isWorking || text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            if isWorking {
-                Section { HStack { ProgressView(); Text("Reading the menu…").foregroundStyle(.secondary) } }
-            }
-            if let error {
-                Section { Text(error).foregroundStyle(.red) }
+        Group {
+            switch step {
+            case .setup: setupForm
+            case .reading: readingView
+            case .review(let meals): MenuImportReview(meals: meals, weekStart: chosenWeekStart, onSave: save)
             }
         }
         .navigationTitle("Import a Menu")
@@ -280,7 +288,16 @@ struct ImportMenuView: View {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
         }
         .task {
-            if let initialPhoto, !isWorking { run(.photo(initialPhoto)) }
+            if let initialPhoto, case .setup = step { run(.photo(initialPhoto)) }
+        }
+        .fullScreenCover(isPresented: $showCamera) {
+            CameraView(image: $capturedImage, onCancel: { showCamera = false }).ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, image in
+            guard let image else { return }
+            capturedImage = nil
+            showCamera = false
+            run(.photo(image))
         }
         .onChange(of: photoItem) { _, item in
             guard let item else { return }
@@ -293,23 +310,162 @@ struct ImportMenuView: View {
         }
     }
 
+    private var setupForm: some View {
+        Form {
+            Section {
+                Picker("Covers", selection: $coversWeek) {
+                    Text("A whole week").tag(true)
+                    Text("One day").tag(false)
+                }
+                .pickerStyle(.segmented)
+                if coversWeek {
+                    Picker("Week", selection: $weekOffset) {
+                        Text("This week").tag(0)
+                        Text("Next week").tag(1)
+                    }
+                } else {
+                    DatePicker("Day", selection: $oneDay, displayedComponents: .date)
+                }
+                Picker("Usual meal", selection: $meal) {
+                    ForEach([MealType.breakfast, .lunch, .dinner], id: \.self) { Text($0.displayName).tag($0) }
+                }
+                LabeledContent("Where") {
+                    TextField("Work cafe", text: $source)
+                        .multilineTextAlignment(.trailing)
+                }
+            } header: {
+                Text("The menu")
+            } footer: {
+                Text("You can move meals to other days before saving.")
+            }
+            Section {
+                Button { showCamera = true } label: {
+                    Label("Take a photo of the menu", systemImage: "camera")
+                }
+                PhotosPicker(selection: $photoItem, matching: .images) {
+                    Label("Choose a photo or screenshot", systemImage: "photo.on.rectangle")
+                }
+            } header: {
+                Text("From a photo")
+            } footer: {
+                Text(coversWeek ? "One photo can cover the whole week." : "")
+            }
+            Section("Or paste it") {
+                TextField("Mon: chili, garden salad…", text: $text, axis: .vertical)
+                    .lineLimit(4...12)
+                Button("Read text") { run(.text(text)) }
+                    .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            if let error {
+                Section { Text(error).foregroundStyle(.red) }
+            }
+        }
+    }
+
+    private var readingView: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .controlSize(.large)
+            Text("Reading the menu…")
+                .font(.system(.headline, design: .rounded))
+            Text("Estimating each dish with its sides. This can take a little while.")
+                .font(.system(.subheadline, design: .rounded))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+        }
+        .padding(32)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(AppColors.appBackground)
+    }
+
     private func run(_ input: MealPlanService.Input) {
-        isWorking = true
+        step = .reading
         error = nil
+        let week = chosenWeekStart
+        let day = coversWeek ? nil : oneDay
         Task {
             do {
                 let meals = try await MealPlanService.importMenu(
-                    input, weekStart: weekStart, defaultMeal: meal, source: source,
+                    input, weekStart: day.map { calendar.mondayOfWeek(containing: $0) } ?? week, day: day,
+                    defaultMeal: meal, source: source,
                     healthLines: HealthContextPrompt.lines(foods: foodStore.entries, plan: [], onHand: []),
                     entries: foodStore.entries
                 )
-                MealPlanStore.shared.add(meals)
-                onImported?()
-                dismiss()
+                step = .review(meals)
             } catch {
                 self.error = GeminiService.analysisErrorMessage(error)
+                step = .setup
             }
-            isWorking = false
+        }
+    }
+
+    private func save(_ meals: [PlannedMeal]) {
+        MealPlanStore.shared.add(meals)
+        onImported?()
+        dismiss()
+    }
+}
+
+/// Checks an imported menu before it is saved: each meal's day and meal type can change,
+/// and options or meals can go. Suggestions are marked but nothing has to be picked.
+private struct MenuImportReview: View {
+    @State var meals: [PlannedMeal]
+    let weekStart: Date
+    let onSave: ([PlannedMeal]) -> Void
+
+    private var calendar: Calendar { .current }
+
+    /// Two weeks from the menu's Monday, plus any day the AI chose outside them.
+    private var dayChoices: [Date] {
+        let base = (0..<14).compactMap { calendar.date(byAdding: .day, value: $0, to: calendar.mondayOfWeek(containing: weekStart)) }
+        let extra = meals.map { calendar.startOfDay(for: $0.day) }.filter { !base.contains($0) }
+        return (base + extra).sorted()
+    }
+
+    var body: some View {
+        List {
+            Section {
+                Text(meals.count == 1 ? String(localized: "Found 1 meal.") : String(localized: "Found \(meals.count) meals."))
+                    .font(.system(.subheadline, design: .rounded, weight: .semibold))
+                Text("Check each day, then save. ✨ marks the suggested option, which counts toward that day until you pick another in the week plan.")
+                    .font(.system(.footnote, design: .rounded))
+                    .foregroundStyle(.secondary)
+            }
+            .listRowBackground(AppColors.appCard)
+
+            ForEach($meals) { $meal in
+                Section {
+                    Picker("Day", selection: Binding(
+                        get: { calendar.startOfDay(for: meal.day) },
+                        set: { meal.day = $0 }
+                    )) {
+                        ForEach(dayChoices, id: \.self) { day in
+                            Text(day.formatted(.dateTime.weekday(.wide).month(.abbreviated).day())).tag(day)
+                        }
+                    }
+                    Picker("Meal", selection: $meal.mealType) {
+                        ForEach([MealType.breakfast, .lunch, .dinner, .snack], id: \.self) { Text($0.displayName).tag($0) }
+                    }
+                    ForEach(meal.options) { option in
+                        PlannedOptionRow(option: option, caption: nil, isChosen: false, warnings: [],
+                                         isSuggested: meal.chosen?.id == option.id && meal.options.count > 1)
+                    }
+                    .onDelete { meal.options.remove(atOffsets: $0) }
+                    Button("Remove this meal", role: .destructive) {
+                        let id = meal.id
+                        withAnimation { meals.removeAll { $0.id == id } }
+                    }
+                }
+                .listRowBackground(AppColors.appCard)
+            }
+        }
+        .scrollContentBackground(.hidden)
+        .background(AppColors.appBackground)
+        .toolbar {
+            ToolbarItem(placement: .confirmationAction) {
+                Button("Save") { onSave(meals.filter { !$0.options.isEmpty }) }
+                    .disabled(meals.allSatisfy { $0.options.isEmpty })
+            }
         }
     }
 }

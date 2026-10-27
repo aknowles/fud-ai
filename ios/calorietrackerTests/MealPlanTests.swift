@@ -100,6 +100,9 @@ struct MealPlanTests {
         #expect(meals.count == 2)
         #expect(meals[0].day == monday)
         #expect(meals[0].chosen?.entry.name == "Garden salad")
+        #expect(meals[0].isSuggestion)
+        #expect(meals[0].chosenID == nil)
+        #expect(!meals[1].isSuggestion)
         #expect(meals[0].options[1].contains == ["egg"])
         #expect(meals[0].options[0].entry.sodium == 1_100)
         #expect(meals[1].mealType == .dinner)
@@ -107,6 +110,60 @@ struct MealPlanTests {
         #expect(throws: (any Error).self) {
             try MealPlanService.parse(#"{"days":[]}"#, weekStart: monday, defaultMeal: .lunch, source: "x", entries: [])
         }
+    }
+
+    @Test func aOneDayMenuLandsOnThatDayWithSidesAndOneMealPerSlot() throws {
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2))!
+        let thursday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 5, hour: 9))!
+        let response = """
+        {"days":[
+          {"date":"2026-11-02","meal":"lunch","options":[
+            {"food":{"name":"Roast chicken","calories":650,"protein":45,"carbs":50,"fat":25},"includes":["rice pilaf"," green beans",""]}
+          ],"pick":0},
+          {"date":"2026-11-03","meal":"lunch","options":[
+            {"food":{"name":"Tomato soup","calories":200,"protein":5,"carbs":30,"fat":6}}
+          ]}
+        ]}
+        """
+
+        let meals = try MealPlanService.parse(response, weekStart: monday, day: thursday, defaultMeal: .lunch,
+                                              source: "Work cafe", entries: [], calendar: calendar)
+
+        #expect(meals.count == 1)
+        #expect(meals[0].day == calendar.startOfDay(for: thursday))
+        #expect(meals[0].options.map(\.entry.name) == ["Roast chicken", "Tomato soup"])
+        #expect(meals[0].options[0].includes == ["rice pilaf", "green beans"])
+        #expect(meals[0].options[1].includes == nil)
+        #expect(meals[0].chosen?.entry.name == "Roast chicken")
+        #expect(meals[0].isSuggestion)
+    }
+
+    @Test func aUserPickReplacesTheSuggestion() throws {
+        let defaults = try #require(UserDefaults(suiteName: "MealPlanTests-pick-\(UUID())"))
+        let store = MealPlanStore(defaults: defaults)
+        let options = [PlannedOption(entry: food("Chili", calories: 450)), PlannedOption(entry: food("Salad", calories: 250))]
+        let meal = PlannedMeal(day: today, mealType: .lunch, options: options, suggestedID: options[0].id)
+        store.add([meal])
+        store.choose(options[1].id, in: meal.id)
+        let reloaded = try #require(MealPlanStore(defaults: defaults).meals.first)
+        #expect(reloaded.chosen?.entry.name == "Salad")
+        #expect(!reloaded.isSuggestion)
+    }
+
+    @Test func plansSavedBeforeSuggestionsStillDecode() throws {
+        let json = #"[{"id":"\#(UUID().uuidString)","day":0,"mealType":"lunch","options":[]}]"#
+        let decoded = try JSONDecoder().decode([PlannedMeal].self, from: Data(json.utf8))
+        #expect(decoded.first?.suggestedID == nil)
+    }
+
+    @Test func theOneDayPromptNamesTheDayAndAsksForSides() {
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2))!
+        let thursday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 5))!
+        let prompt = MealPlanService.prompt(for: .text("Roast chicken"), weekStart: monday, day: thursday,
+                                            defaultMeal: .lunch, healthLines: [])
+        #expect(prompt.contains("menu for one day"))
+        #expect(prompt.contains("2026-11-05"))
+        #expect(prompt.contains("includes"))
     }
 
     @Test func theImportPromptCarriesTheWeekAndTheFoodShape() {

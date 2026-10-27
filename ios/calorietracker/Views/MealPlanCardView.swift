@@ -1,15 +1,15 @@
-import PhotosUI
 import SwiftUI
 
 /// Home card for meal planning: today's next planned meals with one-tap logging, or, early in
-/// a week with nothing planned, a two-tap menu import (tap, pick the photo).
+/// a week with nothing planned, a two-tap menu import (tap, snap the menu).
 struct MealPlanCardView: View {
     let date: Date
 
     @Environment(FoodStore.self) private var foodStore
     @State private var plan = MealPlanStore.shared
     @AppStorage("fork.mealPlanCardDismissedWeek") private var dismissedWeek: Double = 0
-    @State private var photoItem: PhotosPickerItem?
+    @State private var showCamera = false
+    @State private var capturedImage: UIImage?
     @State private var sheet: Sheet?
 
     private enum Sheet: Identifiable {
@@ -62,7 +62,7 @@ struct MealPlanCardView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(chosen.entry.name)
                                         .font(.system(.subheadline, design: .rounded, weight: .medium))
-                                    Text("\(meal.mealType.displayName)\(meal.source.map { " · \($0)" } ?? "") · \(chosen.entry.calories) kcal")
+                                    Text("\(meal.mealType.displayName)\(meal.source.map { " · \($0)" } ?? "")\(meal.isSuggestion ? " · ✨" : "") · \(chosen.entry.calories) kcal")
                                         .font(.system(.caption, design: .rounded))
                                         .foregroundStyle(.secondary)
                                 }
@@ -74,17 +74,17 @@ struct MealPlanCardView: View {
                         }
                     }
                 } else {
-                    Text("Got this week's cafe menu? Import it and get a pick for each day.")
+                    Text("Got this week's cafe menu? Snap it to see the best choice each day.")
                         .font(.system(.subheadline, design: .rounded))
                         .foregroundStyle(.secondary)
                     HStack {
-                        PhotosPicker(selection: $photoItem, matching: .images) {
-                            Label("Menu photo", systemImage: "photo.on.rectangle")
+                        Button { showCamera = true } label: {
+                            Label("Camera", systemImage: "camera")
                                 .lineLimit(1)
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(AppColors.calorie)
-                        Button("Paste text") { sheet = .importText }
+                        Button("Photo or text") { sheet = .importText }
                             .lineLimit(1)
                             .buttonStyle(.bordered)
                     }
@@ -95,14 +95,17 @@ struct MealPlanCardView: View {
             }
             .padding()
             .progressCardStyle()
-            .onChange(of: photoItem) { _, item in
-                guard let item else { return }
-                photoItem = nil
-                Task {
-                    if let data = try? await item.loadTransferable(type: Data.self), let image = UIImage(data: data) {
-                        sheet = .importPhoto(image)
-                    }
+            .fullScreenCover(isPresented: $showCamera, onDismiss: {
+                // Present the import only once the camera is gone.
+                if let image = capturedImage {
+                    capturedImage = nil
+                    sheet = .importPhoto(image)
                 }
+            }) {
+                CameraView(image: $capturedImage, onCancel: { showCamera = false }).ignoresSafeArea()
+            }
+            .onChange(of: capturedImage) { _, image in
+                if image != nil { showCamera = false }
             }
             .sheet(item: $sheet) { which in
                 NavigationStack {
