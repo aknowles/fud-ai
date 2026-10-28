@@ -113,7 +113,7 @@ extension ProfileSettingsCategory {
         case .healthData: "health"
         case .dataManagement: "data"
         case .voiceAssistant: "voice_assistant"
-        case .healthProfile: nil
+        case .healthProfile, .medicines: nil
         case .appUpdates, .support, .helpFeedback, .community, .legal: "about"
         }
     }

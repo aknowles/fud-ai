@@ -14,6 +14,7 @@ enum HealthContextPrompt {
         tastes: FoodTastes = FoodTastesStore.shared.tastes,
         calorieGoal: Int = ActivityGoalStore.shared.goal(on: Date(), profile: UserProfile.load()),
         activityBonus: Int = ActivityGoalStore.shared.bonus(on: Date(), profile: UserProfile.load()),
+        shareMedicineNames: Bool = MedicinePrivacy.sharesNamesWithAI,
         now: Date = Date(),
         calendar: Calendar = .current
     ) -> [String] {
@@ -29,8 +30,13 @@ enum HealthContextPrompt {
         guard !profile.isEmpty else { return planned }
         let today = foods.filter { calendar.isDate($0.timestamp, inSameDayAs: now) }
         var lines: [String] = ["", "## Health goals"]
+        let medicines = profile.entries.filter(\.isMedicine)
         for kind in profile.entries {
-            lines.append("- " + kind.promptGuidance)
+            if !shareMedicineNames, let nameless = kind.namelessGuidance, let index = medicines.firstIndex(of: kind) {
+                lines.append("- Medicine \(index + 1): \(nameless)")
+            } else {
+                lines.append("- " + kind.promptGuidance)
+            }
         }
         for kind in profile.entries {
             guard let course = full.course(for: kind) else { continue }
@@ -83,6 +89,10 @@ enum HealthContextPrompt {
 
         for conflict in conflicts {
             lines.append("- Conflict on \(label(for: conflict.nutrient).lowercased()): \(conflict.raisedBy.joined(separator: " and ")) raises it, \(conflict.limitedBy.joined(separator: " and ")) limits it. Do not pick a side; point it out and suggest the user ask their doctor which goal applies.")
+        }
+        if !shareMedicineNames {
+            lines.append("- The user keeps their medicine names private; refer to them as Medicine 1, Medicine 2 and so on, and never guess which drug they are.")
+            return MedicinePrivacy.anonymized(lines, medicines: medicines) + planned
         }
         return lines + planned
     }

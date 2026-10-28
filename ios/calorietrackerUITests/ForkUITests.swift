@@ -323,6 +323,31 @@ final class ForkUITests: XCTestCase {
     }
 
     @MainActor
+    func testMedicinesHaveTheirOwnSettingsAndTheLockHidesNamesOnHome() {
+        let now = Calendar.current.dateComponents([.hour, .minute], from: Date())
+        let doseMinute = min((now.hour ?? 0) * 60 + (now.minute ?? 0) + 90, 23 * 60 + 59)
+        let profile: [String: Any] = ["entries": ["levothyroxine"],
+                                      "doseSchedules": ["levothyroxine": ["times": [doseMinute]]]]
+        let app = makeApp(["fork.healthProfile": profile])
+        XCTAssertTrue(text(containing: "Levothyroxine at", in: app).waitForExistence(timeout: 5))
+
+        app.tabBars.buttons["Settings"].tap()
+        let category = app.buttons["settings.category.medicines"]
+        reveal(category, in: app)
+        category.tap()
+        XCTAssertTrue(app.navigationBars["Medicines"].waitForExistence(timeout: 5))
+        let lock = app.switches["Lock with Face ID"]
+        reveal(lock, in: app)
+        lock.switches.firstMatch.tap()
+        XCTAssertEqual(lock.value as? String, "1")
+        XCTAssertTrue(app.switches.containing(NSPredicate(format: "label CONTAINS %@", "Share medicine names with AI")).firstMatch.exists)
+
+        app.tabBars.buttons["Home"].tap()
+        XCTAssertTrue(text(containing: "Medicine at", in: app).waitForExistence(timeout: 5))
+        XCTAssertFalse(text(containing: "Levothyroxine", in: app).exists)
+    }
+
+    @MainActor
     func testWaterSettingsCountDrinksToggle() {
         let app = makeApp(["waterTrackingEnabled": true])
         app.tabBars.buttons["Settings"].tap()

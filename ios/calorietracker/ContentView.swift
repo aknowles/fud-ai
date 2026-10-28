@@ -4635,6 +4635,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     case personalInfo
     case goalsNutrition
     case healthProfile
+    case medicines
     case trackingNotifications
     case aiAccess
     case aiProviders
@@ -4654,6 +4655,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         .personalInfo,
         .goalsNutrition,
         .healthProfile,
+        .medicines,
         .trackingNotifications,
         .aiAccess,
         .aiProviders,
@@ -4680,6 +4682,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         case .personalInfo: "Personal Info"
         case .goalsNutrition: "Goals & Nutrition"
         case .healthProfile: "Health Profile"
+        case .medicines: "Medicines"
         case .trackingNotifications: "Tracking & Notifications"
         case .aiAccess: "AI Access"
         case .aiProviders: "AI Providers & Fallbacks"
@@ -4702,6 +4705,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         case .personalInfo: "person.crop.circle"
         case .goalsNutrition: "target"
         case .healthProfile: "heart.text.square"
+        case .medicines: "pills.fill"
         case .trackingNotifications: "bell"
         case .aiAccess: "key.horizontal"
         case .aiProviders: "sparkles"
@@ -4953,6 +4957,10 @@ struct ProfileView: View {
                                     .background(AppColors.appBackground)
                             } else if category == .healthProfile {
                                 HealthProfileView()
+                                    .readableWidth()
+                                    .background(AppColors.appBackground)
+                            } else if category == .medicines {
+                                MedicinesView()
                                     .readableWidth()
                                     .background(AppColors.appBackground)
                             } else if category == .voiceAssistant {

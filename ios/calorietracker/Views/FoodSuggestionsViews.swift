@@ -347,7 +347,7 @@ private struct SuggestionOptionRow: View {
                     .foregroundStyle(level == .avoid ? .red : .orange)
             }
             ForEach(doseWindowKinds) { kind in
-                Label(String(localized: "Not now: inside your \(kind.doseName) dose window"), systemImage: "clock.badge.exclamationmark")
+                Label(String(localized: "Not now: inside your \(MedicinePrivacy.visibleDoseName(kind)) dose window"), systemImage: "clock.badge.exclamationmark")
                     .font(.system(.caption, design: .rounded, weight: .semibold))
                     .foregroundStyle(.red)
             }

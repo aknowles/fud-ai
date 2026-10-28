@@ -3,7 +3,12 @@ import SwiftUI
 /// Settings → Goals → Other Nutrients → Health Profile: turn conditions on or off, see
 /// the goals each one uses and any conflicts between them.
 struct HealthProfileView: View {
+    /// The Health Profile itself, or the Medicines page (`MedicinesView`) built from the same rows.
+    enum Page { case profile, medicines }
+    var page: Page = .profile
+
     @State private var store = HealthProfileStore.shared
+    @State private var lock = MedicineLock.shared
     @State private var newAvoidTerm = ""
     @State private var newSensitivityTerm = ""
     @AppStorage(OptionalNutrientGoals.storageKey) private var goalsData = Data()
@@ -11,6 +16,33 @@ struct HealthProfileView: View {
     private var goals: OptionalNutrientGoals { OptionalNutrientGoals.decoded(from: goalsData) }
 
     var body: some View {
+        switch page {
+        case .profile: profilePage
+        case .medicines: medicinesPage
+        }
+    }
+
+    private var medicinesPage: some View {
+        List {
+            Section {
+                ForEach(HealthEntryKind.allCases.filter(\.isMedicine)) { kind in
+                    entryRow(kind)
+                }
+            } footer: {
+                Text("Add the medicines you take so Coach and Suggestions account for food interactions. This never changes how you take them; ask your doctor or pharmacist about your own medicines.")
+            }
+            .listRowBackground(AppColors.appCard)
+
+            MedicinePrivacySection()
+        }
+        .scrollContentBackground(.hidden)
+        .background(AppColors.appBackground)
+        .navigationTitle("Medicines")
+        .navigationBarTitleDisplayMode(.inline)
+        .onAppear { store.reload() }
+    }
+
+    private var profilePage: some View {
         List {
             Section {
                 ForEach(HealthEntryKind.allCases.filter { !$0.isMedicine }) { kind in
@@ -24,13 +56,19 @@ struct HealthProfileView: View {
             .listRowBackground(AppColors.appCard)
 
             Section {
-                ForEach(HealthEntryKind.allCases.filter(\.isMedicine)) { kind in
-                    entryRow(kind)
+                NavigationLink {
+                    MedicinesView()
+                } label: {
+                    HStack {
+                        Label("Medicines", systemImage: "pills.fill")
+                        Spacer()
+                        Text(medicineSummary)
+                            .font(.system(.footnote, design: .rounded))
+                            .foregroundStyle(.secondary)
+                    }
                 }
-            } header: {
-                Text("Medicines")
             } footer: {
-                Text("Add the medicines you take so Coach and Suggestions account for food interactions. This never changes how you take them; ask your doctor or pharmacist about your own medicines.")
+                Text("Food interactions, courses and dose times. Can be locked with Face ID.")
             }
             .listRowBackground(AppColors.appCard)
 
@@ -95,6 +133,13 @@ struct HealthProfileView: View {
         .navigationTitle("Health Profile")
         .navigationBarTitleDisplayMode(.inline)
         .onAppear { store.reload() }
+    }
+
+    /// "Locked", "2 added" or "None", without names.
+    private var medicineSummary: String {
+        if lock.isLocked { return String(localized: "Locked") }
+        let count = store.profile.entries.filter(\.isMedicine).count
+        return count == 0 ? String(localized: "None") : count == 1 ? String(localized: "1 added") : String(localized: "\(count) added")
     }
 
     private func entryRow(_ kind: HealthEntryKind) -> some View {
@@ -396,7 +441,7 @@ struct HealthProfileView: View {
         VStack(alignment: .leading, spacing: 2) {
             Label(title, systemImage: systemImage)
                 .font(.system(.caption, design: .rounded, weight: .semibold))
-            Text(sources.joined(separator: ", "))
+            Text(sources.map(MedicinePrivacy.visibleSource).joined(separator: ", "))
                 .font(.system(.caption, design: .rounded))
                 .foregroundStyle(.secondary)
         }

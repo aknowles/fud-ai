@@ -45,7 +45,7 @@ struct DoseTimingCardView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 ForEach(Array(upcoming.enumerated()), id: \.offset) { _, window in
-                    Text(String(localized: "\(window.kind.doseName.prefix(1).uppercased() + window.kind.doseName.dropFirst()) at \(time(window.dose)): no \(window.rule.foods.displayName) from \(time(window.start)) to \(time(window.end))"))
+                    Text(String(localized: "\(MedicinePrivacy.visibleDoseName(window.kind).prefix(1).uppercased() + MedicinePrivacy.visibleDoseName(window.kind).dropFirst()) at \(time(window.dose)): no \(window.rule.foods.displayName) from \(time(window.start)) to \(time(window.end))"))
                         .font(.system(.caption, design: .rounded))
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
@@ -59,7 +59,7 @@ struct DoseTimingCardView: View {
     private func clashText(_ clash: Clash) -> String {
         let gap = abs(clash.conflict.minutesFromDose)
         let doseTime = time(clash.conflict.dose)
-        let name = clash.conflict.kind.doseName
+        let name = MedicinePrivacy.visibleDoseName(clash.conflict.kind)
         let relation = clash.conflict.minutesFromDose < 0
             ? String(localized: "\(gap) min before your \(doseTime) \(name) dose")
             : String(localized: "\(gap) min after your \(doseTime) \(name) dose")

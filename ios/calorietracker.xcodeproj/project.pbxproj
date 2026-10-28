@@ -768,6 +768,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fud AI uses the camera to scan food and barcodes and to take photos of your custom exercises.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Fud AI uses your location only while the app is open, to show the food collections you saved for the place you are at, like office snacks. Your location stays on this iPhone.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Fud AI uses Face ID only if you lock your medicines, to open them.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your weight, height, body composition, nutrition, daily steps, and Fud AI workout calories to keep your history in sync.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Write, update, or remove your nutrition, body measurements, and calculated workout calories when you change your logs.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Fud AI uses the microphone so you can log food by voice and talk with the voice assistant.";
@@ -823,6 +824,7 @@
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				INFOPLIST_KEY_NSCameraUsageDescription = "Fud AI uses the camera to scan food and barcodes and to take photos of your custom exercises.";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Fud AI uses your location only while the app is open, to show the food collections you saved for the place you are at, like office snacks. Your location stays on this iPhone.";
+				INFOPLIST_KEY_NSFaceIDUsageDescription = "Fud AI uses Face ID only if you lock your medicines, to open them.";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "Read your weight, height, body composition, nutrition, daily steps, and Fud AI workout calories to keep your history in sync.";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "Write, update, or remove your nutrition, body measurements, and calculated workout calories when you change your logs.";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Fud AI uses the microphone so you can log food by voice and talk with the voice assistant.";
