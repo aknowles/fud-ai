@@ -4,8 +4,11 @@ import Testing
 
 @MainActor
 struct TrackedProgressTests {
-    @Test func limitsAreCalmThenAmberNearTheCapThenRedOver() {
-        #expect(TrackStyle.make(direction: .limit, current: 1_000, goal: 2_300, unit: "mg").tone == .calm)
+    @Test func limitsAreGreenUnderThenAmberNearTheCapThenRedOver() {
+        // Under a limit is good, never red; well under is great.
+        #expect(TrackStyle.make(direction: .limit, current: 0, goal: 400, unit: "mg").tone == .great)
+        #expect(TrackStyle.make(direction: .limit, current: 0, goal: 400, unit: "mg").symbol == "star.circle.fill")
+        #expect(TrackStyle.make(direction: .limit, current: 1_500, goal: 2_300, unit: "mg").tone == .good)
         #expect(TrackStyle.make(direction: .limit, current: 1_000, goal: 2_300, unit: "mg").status == "1300mg left")
         #expect(TrackStyle.make(direction: .limit, current: 2_000, goal: 2_300, unit: "mg").tone == .caution)
         let over = TrackStyle.make(direction: .limit, current: 2_500, goal: 2_300, unit: "mg")
@@ -23,11 +26,16 @@ struct TrackedProgressTests {
         #expect(met.tone == .good)
         #expect(met.status == "Goal met")
         #expect(met.symbol == "checkmark.circle.fill")
+        let past = TrackStyle.make(direction: .target, current: 3.2, goal: 2.5, unit: " L")
+        #expect(past.tone == .great)
+        #expect(past.status == "Well past goal")
     }
 
     @Test func rangesAreGoodNearTheGoalAndWarnOver() {
-        #expect(TrackStyle.make(direction: .range, current: 100, goal: 250, unit: "g").tone == .calm)
+        #expect(TrackStyle.make(direction: .range, current: 100, goal: 250, unit: "g").tone == .toGo)
         #expect(TrackStyle.make(direction: .range, current: 240, goal: 250, unit: "g").status == "On target")
+        #expect(TrackStyle.make(direction: .range, current: 240, goal: 250, unit: "g").tone == .great)
+        #expect(TrackStyle.make(direction: .range, current: 230, goal: 250, unit: "g").tone == .good)
         #expect(TrackStyle.make(direction: .range, current: 290, goal: 250, unit: "g").tone == .caution)
         #expect(TrackStyle.make(direction: .range, current: 330, goal: 250, unit: "g").tone == .bad)
     }
@@ -45,7 +53,7 @@ struct TrackedProgressTests {
         #expect(sodium.paceNote == "Ahead of your usual pace")
         // Under a limit and on pace is calm, never "behind".
         let calm = TrackStyle.make(direction: .limit, current: 300, goal: 2_300, unit: "mg", expectedFraction: 0.5)
-        #expect(calm.tone == .calm)
+        #expect(calm.tone == .great)
         #expect(calm.paceNote == nil)
     }
 

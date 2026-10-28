@@ -11,7 +11,7 @@ struct TrackLabel: View {
             if let track {
                 Image(systemName: track.symbol)
                     .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(track.tone == .calm || track.tone == .toGo ? Color.secondary : track.tone.color)
+                    .foregroundStyle(track.tone == .toGo ? Color.secondary : track.tone.color)
                     .accessibilityHidden(true)
             }
             Text(text)
@@ -24,8 +24,8 @@ struct TrackLabel: View {
 enum TrackStatusColor {
     static func color(_ track: TrackStyle) -> Color {
         switch track.tone {
-        case .calm, .toGo: .secondary
-        case .good, .caution, .bad: track.tone.color
+        case .toGo: .secondary
+        case .good, .great, .caution, .bad: track.tone.color
         }
     }
 }
@@ -60,7 +60,7 @@ struct TrackedProgressRow: View {
                 HStack(spacing: 5) {
                     Image(systemName: track.symbol)
                         .font(.system(size: 11, weight: .bold))
-                        .foregroundStyle(track.tone == .calm || track.tone == .toGo ? Color.secondary : track.tone.color)
+                        .foregroundStyle(track.tone == .toGo ? Color.secondary : track.tone.color)
                         .accessibilityHidden(true)
                     Text(label)
                         .font(.system(.subheadline, design: .rounded, weight: .medium))

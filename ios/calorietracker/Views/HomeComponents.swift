@@ -727,7 +727,7 @@ struct MacroVerticalBar: View {
 
             ZStack(alignment: .bottom) {
                 Capsule()
-                    .fill(AppColors.calorie.opacity(0.12))
+                    .fill((track?.tone.color ?? AppColors.calorie).opacity(0.12))
                     .frame(width: barWidth, height: barHeight)
 
                 Capsule()

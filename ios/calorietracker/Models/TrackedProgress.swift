@@ -41,19 +41,21 @@ enum TrackDirection: Equatable {
 
 /// How a tracked amount is doing.
 enum TrackTone: Equatable {
-    /// A limit or range still filling, comfortably under.
-    case calm
-    /// A target still filling.
+    /// A target or range still filling.
     case toGo
+    /// Inside the goal: a limit under, a target met, a range on target. Red is only ever
+    /// "over", never "under a limit".
     case good
+    /// Better than the goal: well under a limit, well past a target, right on a range.
+    case great
     case caution
     case bad
 
     var gradient: [Color] {
         switch self {
-        case .calm: AppColors.calorieGradient
         case .toGo: [Color(red: 0.40, green: 0.68, blue: 0.96), Color(red: 0.22, green: 0.47, blue: 0.90)]
         case .good: [Color(red: 0.36, green: 0.78, blue: 0.52), Color(red: 0.18, green: 0.62, blue: 0.36)]
+        case .great: [Color(red: 0.25, green: 0.82, blue: 0.80), Color(red: 0.05, green: 0.62, blue: 0.64)]
         case .caution: [Color(red: 1.0, green: 0.72, blue: 0.30), Color(red: 0.96, green: 0.55, blue: 0.10)]
         case .bad: [Color.red.opacity(0.75), Color.red]
         }
@@ -78,6 +80,12 @@ struct TrackStyle: Equatable {
     static let rangeTolerance = 0.1
     /// A limit turns amber at this fraction of the goal.
     static let nearLimit = 0.85
+    /// Under this fraction of a limit is great.
+    static let wellUnderLimit = 0.5
+    /// Past this fraction of a target is great.
+    static let wellPastTarget = 1.25
+    /// Within this fraction of a range's goal is great.
+    static let rangeBullseye = 0.05
     /// A target this far behind the usual amount by now is behind pace.
     static let behindPace = 0.75
     /// A limit or range this far ahead of the usual amount by now is ahead of pace.
@@ -92,8 +100,8 @@ struct TrackStyle: Equatable {
     /// The SF Symbol that says which way is good.
     var symbol: String {
         switch direction {
-        case .limit: tone == .bad ? "exclamationmark.triangle.fill" : "arrow.down.to.line"
-        case .target: tone == .good ? "checkmark.circle.fill" : "flag.fill"
+        case .limit: tone == .bad ? "exclamationmark.triangle.fill" : tone == .great ? "star.circle.fill" : "arrow.down.to.line"
+        case .target: tone == .great ? "star.circle.fill" : tone == .good ? "checkmark.circle.fill" : "flag.fill"
         case .range: "scope"
         case .steady: "equal.circle"
         }
@@ -124,7 +132,7 @@ struct TrackStyle: Equatable {
             else if let expected, expected > 0, current > expected * aheadPace, ratio >= 0.4 {
                 tone = .caution
                 paceNote = String(localized: "Ahead of your usual pace")
-            } else { tone = .calm }
+            } else { tone = ratio < wellUnderLimit ? .great : .good }
             let status = goal <= 0 ? String(localized: "No limit")
                 : current > goal ? String(localized: "\(amount(current - goal)) over")
                 : String(localized: "\(amount(goal - current)) left")
@@ -132,12 +140,14 @@ struct TrackStyle: Equatable {
 
         case .target:
             let tone: TrackTone
-            if goal > 0, current >= goal { tone = .good }
+            if goal > 0, current >= goal * wellPastTarget { tone = .great }
+            else if goal > 0, current >= goal { tone = .good }
             else if let expected, expected > goal * 0.15, current < expected * behindPace {
                 tone = .caution
                 paceNote = String(localized: "Behind your usual pace")
             } else { tone = .toGo }
             let status = goal <= 0 ? String(localized: "No goal")
+                : current >= goal * wellPastTarget ? String(localized: "Well past goal")
                 : current >= goal ? String(localized: "Goal met")
                 : String(localized: "\(amount(goal - current)) to go")
             return TrackStyle(direction: direction, tone: tone, status: status, paceNote: paceNote, paceFraction: expectedFraction)
@@ -146,13 +156,14 @@ struct TrackStyle: Equatable {
             let tone: TrackTone
             if goal > 0, ratio > 1 + rangeTolerance * 2.5 { tone = .bad }
             else if goal > 0, ratio > 1 + rangeTolerance { tone = .caution }
+            else if goal > 0, abs(ratio - 1) <= rangeBullseye { tone = .great }
             else if goal > 0, ratio >= 1 - rangeTolerance { tone = .good }
             else if let expected, expected > 0, current > expected * aheadPace, ratio >= 0.4 {
                 tone = .caution
                 paceNote = String(localized: "Ahead of your usual pace")
-            } else { tone = .calm }
+            } else { tone = .toGo }
             let status = goal <= 0 ? String(localized: "No goal")
-                : tone == .good ? String(localized: "On target")
+                : tone == .good || tone == .great ? String(localized: "On target")
                 : current > goal ? String(localized: "\(amount(current - goal)) over")
                 : String(localized: "\(amount(goal - current)) left")
             return TrackStyle(direction: direction, tone: tone, status: status, paceNote: paceNote, paceFraction: expectedFraction)
