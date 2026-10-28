@@ -455,7 +455,7 @@ struct GeminiService {
         // Photos taken with the AR Measure camera carry the table's real-world scale (#601).
         // Hosted requests send only the first few photos, so describe only those.
         let sentImages = AIModeSettings.isHosted ? Array(images.prefix(HostedAIConstants.maxHostedImages)) : images
-        let portionScaleSection = PortionScale.promptSection(for: sentImages.map(PortionScaleRegistry.scale(for:)))
+        let portionScaleSection = PortionReference.promptSection(for: sentImages.map(PortionScaleRegistry.scale(for:)))
         let prompt = multiPhotoAnalysisPrompt(
             progressiveMeal: progressiveMeal,
             description: description,

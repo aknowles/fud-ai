@@ -412,4 +412,34 @@ final class ForkUITests: XCTestCase {
         button.tap()
         XCTAssertTrue(app.alerts["Log a workout first"].waitForExistence(timeout: 5))
     }
+
+    // MARK: - Review Food
+
+    @MainActor
+    func testReviewFoodOffersPortionMultipliersAndTheGuide() {
+        var salmon = Self.food("Grilled salmon", calories: 400, daysAgo: 1, hour: 12)
+        salmon["servingSizeGrams"] = 200
+        let app = makeApp(["foodEntries": [salmon]])
+        open("recent", in: app)
+        let row = text(containing: "Grilled salmon", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        let double = app.buttons["review.portion.multiplier.2"]
+        XCTAssertTrue(double.waitForExistence(timeout: 5))
+        reveal(double, in: app)
+        XCTAssertTrue(app.buttons["review.portion.multiplier.1"].isSelected)
+        double.tap()
+        XCTAssertTrue(double.isSelected)
+        XCTAssertTrue(text(containing: "800", in: app).exists, "Calories follow the doubled portion")
+
+        let guide = app.buttons["review.portion.guide"]
+        reveal(guide, in: app)
+        guide.tap()
+        XCTAssertTrue(app.navigationBars["Portion guide"].waitForExistence(timeout: 5))
+        XCTAssertTrue(text(containing: "Palm", in: app).exists)
+        reveal(text(containing: "Deck of cards", in: app), in: app)
+        app.navigationBars["Portion guide"].buttons["Done"].tap()
+        XCTAssertFalse(app.navigationBars["Portion guide"].waitForExistence(timeout: 2))
+    }
 }
