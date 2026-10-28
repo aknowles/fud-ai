@@ -304,6 +304,30 @@ final class ForkUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["From Coach"].waitForExistence(timeout: 5))
     }
 
+    // MARK: - Progress
+
+    @MainActor
+    func testTrendsOpenWithTheGoutPresetAndShowADayWhenTapped() {
+        var dinner = Self.food("Dinner", calories: 1_800, daysAgo: 1, hour: 19)
+        dinner["supplementalNutrients"] = ["purines": 450, "alcohol": 28]
+        let flare: [String: Any] = ["id": UUID().uuidString, "date": Self.stamp(hour: 7), "kind": "goutFlare", "severity": 2]
+        let app = makeApp(["foodEntries": [dinner], "fork.symptoms": [flare], "fork.healthProfile": ["entries": ["gout"]]])
+        app.tabBars.buttons["Progress"].tap()
+        let card = app.staticTexts["Trends"]
+        reveal(card, in: app)
+        card.tap()
+        XCTAssertTrue(app.navigationBars["Trends"].waitForExistence(timeout: 5))
+        XCTAssertTrue(text(containing: "Purines (mg)", in: app).exists)
+        XCTAssertTrue(text(containing: "Alcohol (g)", in: app).exists)
+        app.buttons["7 days"].tap()
+        let chart = text(containing: "Purines trend chart", in: app)
+        XCTAssertTrue(chart.waitForExistence(timeout: 5))
+        // Yesterday sits near the right edge of a 7-day chart.
+        chart.coordinate(withNormalizedOffset: CGVector(dx: 0.78, dy: 0.5)).tap()
+        let foods = app.buttons["Foods behind purines"]
+        reveal(foods, in: app)
+    }
+
     // MARK: - Settings
 
     @MainActor

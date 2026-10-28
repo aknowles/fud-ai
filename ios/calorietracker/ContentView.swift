@@ -4266,6 +4266,9 @@ struct ProgressTabView: View {
                     WeeklyRecapCard()
                         .padding(.horizontal)
 
+                    TrendsEntryCard()
+                        .padding(.horizontal)
+
                     // Segmented Picker
                     Picker("Time Range", selection: timeRangeSelection) {
                         ForEach(TimeRange.allCases, id: \.self) { range in
