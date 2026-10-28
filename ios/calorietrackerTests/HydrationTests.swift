@@ -10,22 +10,25 @@ struct HydrationTests {
                   servingSizeGrams: ml)
     }
 
-    @Test func unsweetenedAlcoholFreeDrinksCountByVolume() {
+    @Test func everyNonAlcoholicDrinkCountsByVolume() {
         #expect(Hydration.milliliters(for: drink("Sparkling water", ml: 355)) == 355)
         #expect(Hydration.milliliters(for: drink("Green tea", ml: 240)) == 240)
         #expect(Hydration.milliliters(for: CoffeeOrder(drink: .latte, size: .small, milk: .oat).entry()) == 355)
-        #expect(Hydration.milliliters(for: drink("Iced coffee", ml: 473, addedSugar: 3)) == 473)
+        // Sugar counts against added sugar, not against fluid.
+        #expect(Hydration.milliliters(for: drink("Gatorade", ml: 591, addedSugar: 34)) == 591)
+        #expect(Hydration.milliliters(for: drink("Orange juice", ml: 240)) == 240)
+        #expect(Hydration.milliliters(for: drink("Cola", ml: 355, addedSugar: 39)) == 355)
+        #expect(Hydration.milliliters(for: CoffeeOrder(drink: .matchaLatte).entry()) > 0)
     }
 
-    @Test func sweetAlcoholicAndNonDrinkFoodsDoNotCount() {
-        #expect(Hydration.milliliters(for: drink("Orange juice", ml: 240)) == 0)
-        #expect(Hydration.milliliters(for: drink("Cola", ml: 355)) == 0)
-        #expect(Hydration.milliliters(for: drink("Sweet tea", ml: 473, addedSugar: 30)) == 0)
-        #expect(Hydration.milliliters(for: drink("Beer", ml: 355, alcohol: 14)) == 0)
-        #expect(Hydration.milliliters(for: drink("Bubble tea", ml: 500)) == 0)
-        #expect(Hydration.milliliters(for: drink("Chicken sandwich", ml: 220)) == 0)
-        #expect(Hydration.milliliters(for: drink("Black coffee", ml: nil)) == 0)
-        #expect(Hydration.milliliters(for: CoffeeOrder(drink: .matchaLatte).entry()) == 0)
+    @Test func alcoholFoodsAndDrinksWithoutASizeDoNotCount() {
+        #expect(Hydration.classify(drink("Beer", ml: 355, alcohol: 14)) == .alcohol)
+        #expect(Hydration.classify(drink("IPA", ml: 473)) == .alcohol)
+        #expect(Hydration.classify(drink("Black coffee", ml: nil)) == .noServingSize)
+        #expect(Hydration.classify(drink("Chicken sandwich", ml: 220)) == .notADrink)
+        #expect(Hydration.classify(drink("Ice cream", ml: 120)) == .notADrink)
+        #expect(Hydration.classify(drink("Watermelon", ml: 280)) == .notADrink)
+        #expect(Hydration.milliliters(from: [drink("Beer", ml: 355, alcohol: 14), drink("Tea", ml: 240)]) == 240)
     }
 
     @Test func waterIsSuggestedForGoutOrStonesButNeverWithKidneyDisease() throws {

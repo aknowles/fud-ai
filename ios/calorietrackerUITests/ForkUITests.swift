@@ -126,6 +126,23 @@ final class ForkUITests: XCTestCase {
     }
 
     @MainActor
+    func testTappingWaterShowsLoggedWaterAndCountedDrinks() {
+        var coffee = Self.food("Cold brew", calories: 5, hour: 8)
+        coffee["servingSizeGrams"] = 355
+        var beer = Self.food("Beer", calories: 150, hour: 8)
+        beer["servingSizeGrams"] = 355
+        let water: [[String: Any]] = [["id": UUID().uuidString, "date": Self.stamp(hour: 7), "milliliters": 500]]
+        let app = makeApp(["waterTrackingEnabled": true, "waterEntries": water, "foodEntries": [coffee, beer]])
+        let bar = text(containing: "Water", in: app)
+        XCTAssertTrue(bar.waitForExistence(timeout: 5))
+        app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "Water")).firstMatch.tap()
+        XCTAssertTrue(app.navigationBars["Water"].waitForExistence(timeout: 5))
+        XCTAssertTrue(text(containing: "855 ml of", in: app).exists)
+        XCTAssertTrue(app.staticTexts["Cold brew"].exists)
+        XCTAssertTrue(app.staticTexts["Alcohol doesn't count"].exists)
+    }
+
+    @MainActor
     func testHomeBarsSayWhichWayIsGood() {
         let app = makeApp(["foodEntries": [Self.food("Toast", calories: 200, protein: 8)],
                            "fork.healthProfile": ["entries": ["gout"]]])

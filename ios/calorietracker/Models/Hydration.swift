@@ -1,8 +1,9 @@
 import Foundation
 
-/// Drinks logged as food that count toward the water goal: unsweetened, alcohol-free drinks
-/// such as water, sparkling water, tea, coffee and milk. Juice, soda, shakes and smoothies
-/// do not count. Volume comes from the serving size (1 g ≈ 1 ml).
+/// Drinks logged as food that count toward the water goal: every non-alcoholic drink, as
+/// health guidance counts fluids (water, coffee, tea, milk, juice, sports drinks, soda).
+/// Their sugar and caffeine still count toward those limits; alcohol does not count as
+/// fluid. Volume comes from the serving size (1 g ≈ 1 ml).
 enum Hydration {
     static let countDrinksKey = "fork.water.countDrinks"
 
@@ -11,29 +12,44 @@ enum Hydration {
         UserDefaults.standard.object(forKey: countDrinksKey) as? Bool ?? true
     }
 
-    /// At most this much added sugar per drink still counts.
-    static let maxAddedSugar = 10.0
-
     static let drinkTerms = [
-        "water", "seltzer", "sparkling", "club soda", "mineral water", "tea", "coffee", "espresso", "americano",
-        "latte", "cappuccino", "flat white", "cold brew", "macchiato", "cortado", "matcha", "chai", "milk",
-        "kombucha", "broth",
+        "water", "seltzer", "sparkling", "club soda", "tea", "coffee", "espresso", "americano", "latte",
+        "cappuccino", "flat white", "cold brew", "macchiato", "cortado", "mocha", "matcha", "chai", "milk",
+        "kombucha", "broth", "juice", "lemonade", "soda", "cola", "pop", "gatorade", "powerade", "bodyarmor",
+        "sports drink", "electrolyte", "smoothie", "shake", "milkshake", "frappuccino", "frappe", "energy drink",
+        "hot chocolate", "cocoa", "bubble tea", "boba", "iced tea", "drink",
     ]
-    static let excludedTerms = [
-        "juice", "soda", "cola", "lemonade", "shake", "milkshake", "smoothie", "frappuccino", "frappe", "energy drink",
-        "beer", "wine", "cocktail", "liquor", "whiskey", "vodka", "cider", "hot chocolate", "cake", "cookie",
-        "ice cream", "chocolate milk", "bubble tea", "boba",
+    static let alcoholTerms = [
+        "beer", "wine", "cocktail", "liquor", "whiskey", "vodka", "gin", "rum", "tequila", "cider", "sake",
+        "margarita", "mimosa", "sangria", "seltzer hard", "hard seltzer", "ale", "lager", "ipa", "stout",
     ]
+    /// Foods that share a drink word but are not drinks.
+    static let notDrinkTerms = [
+        "ice cream", "cake", "cookie", "chocolate bar", "milk chocolate", "candy", "bread", "pancake", "tea cake",
+        "pop tart", "water chestnut", "water chestnuts", "cereal", "pudding",
+    ]
+
+    enum Result: Equatable {
+        case counts(Int)
+        case alcohol
+        case noServingSize
+        case notADrink
+    }
+
+    static func classify(_ entry: FoodEntry) -> Result {
+        guard !matches(entry.name, notDrinkTerms) else { return .notADrink }
+        let alcohol = (entry.supplementalNutrients[OptionalNutrient.alcohol.rawValue] ?? 0) > 0 || matches(entry.name, alcoholTerms)
+        let isDrink = alcohol || entry.selectedServingUnit == "drink" || matches(entry.name, drinkTerms)
+        guard isDrink else { return .notADrink }
+        if alcohol { return .alcohol }
+        guard let grams = entry.servingSizeGrams, grams > 0 else { return .noServingSize }
+        return .counts(Int(grams.rounded()))
+    }
 
     /// Milliliters this entry adds toward water, or 0.
     static func milliliters(for entry: FoodEntry) -> Int {
-        guard (entry.supplementalNutrients[OptionalNutrient.alcohol.rawValue] ?? 0) <= 0,
-              (entry.addedSugar ?? 0) <= maxAddedSugar,
-              let grams = entry.servingSizeGrams, grams > 0
-        else { return 0 }
-        let isDrink = entry.selectedServingUnit == "drink" || matches(entry.name, drinkTerms)
-        guard isDrink, !matches(entry.name, excludedTerms) else { return 0 }
-        return Int(grams.rounded())
+        if case .counts(let milliliters) = classify(entry) { return milliliters }
+        return 0
     }
 
     static func milliliters(from entries: [FoodEntry]) -> Int {

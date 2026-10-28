@@ -1721,6 +1721,7 @@ private var dailyStepsTaskKey: String {
                             }
                         }
                         if waterTrackingEnabled {
+                            WaterDetailsLink(date: selectedDate) {
                             MacroVerticalBar(
                                 label: "Water",
                                 current: waterUnit.displayAmount(
@@ -1735,6 +1736,7 @@ private var dailyStepsTaskKey: String {
                                     goal: waterUnit.displayAmount(forMilliliters: waterDailyGoal),
                                     unit: waterPillarUnit, date: selectedDate, water: waterStore.entries)
                             )
+                            }
                         }
                     }
                     .padding(.vertical, 4)
@@ -3283,6 +3285,7 @@ struct NutritionDetailView: View {
 
                 if waterTrackingEnabled {
                     Section {
+                        WaterDetailsLink(date: date) {
                         NutritionDetailRow(
                             icon: "drop.fill",
                             label: "Water",
@@ -3290,6 +3293,7 @@ struct NutritionDetailView: View {
                             unit: waterUnit.symbol,
                             goal: waterUnit.displayValue(forMilliliters: waterDailyGoal)
                         )
+                        }
                     } header: {
                         Text("Water")
                     } footer: {
