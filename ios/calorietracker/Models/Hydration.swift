@@ -26,8 +26,39 @@ enum Hydration {
     /// Foods that share a drink word but are not drinks.
     static let notDrinkTerms = [
         "ice cream", "cake", "cookie", "chocolate bar", "milk chocolate", "candy", "bread", "pancake", "tea cake",
-        "pop tart", "water chestnut", "water chestnuts", "cereal", "pudding",
+        "pop tart", "water chestnut", "water chestnuts", "cereal", "pudding", "coffee cake", "soda bread",
+        "milk bread", "water crackers", "water cracker", "tea sandwich", "tea sandwiches", "jelly", "gummies",
     ]
+
+    /// Drink brands whose names carry no drink word.
+    static let brandTerms = [
+        "coke", "coca-cola", "coca cola", "pepsi", "sprite", "fanta", "dr pepper", "mountain dew", "7up", "7-up",
+        "ginger ale", "root beer", "ginger beer", "red bull", "monster energy", "celsius", "la croix", "lacroix",
+        "bubly", "perrier", "san pellegrino", "pellegrino", "topo chico", "liquid iv", "liquid i.v.", "propel",
+        "snapple", "arizona", "nesquik", "yakult", "kefir", "lassi", "horchata", "agua fresca",
+    ]
+    /// Phrases that make a drink non-alcoholic despite a word like "beer".
+    static let nonAlcoholicTerms = ["non-alcoholic", "non alcoholic", "alcohol-free", "alcohol free", "root beer", "ginger beer", "0.0"]
+
+    /// A drink by name: a drink word, a brand, or a compound like "vitaminwater" or "smartwater".
+    static func nameLooksLikeDrink(_ name: String) -> Bool {
+        if matches(name, drinkTerms + brandTerms) { return true }
+        let words = name.lowercased().split { !$0.isLetter }
+        return words.contains { $0.count > 5 && $0.hasSuffix("water") && !$0.hasPrefix("water") }
+    }
+
+    /// Open Food Facts and USDA tag drinks as beverages.
+    static func isBeverageProduct(_ entry: FoodEntry) -> Bool {
+        (entry.productMetadata?.categories ?? []).contains { category in
+            let text = category.lowercased()
+            return text.contains("beverage") || text.contains("drink") || text.contains("water")
+        }
+    }
+
+    static func isAlcoholic(_ entry: FoodEntry) -> Bool {
+        if (entry.supplementalNutrients[OptionalNutrient.alcohol.rawValue] ?? 0) > 0 { return true }
+        return matches(entry.name, alcoholTerms) && !matches(entry.name, nonAlcoholicTerms)
+    }
 
     enum Result: Equatable {
         case counts(Int)
@@ -38,8 +69,8 @@ enum Hydration {
 
     static func classify(_ entry: FoodEntry) -> Result {
         guard !matches(entry.name, notDrinkTerms) else { return .notADrink }
-        let alcohol = (entry.supplementalNutrients[OptionalNutrient.alcohol.rawValue] ?? 0) > 0 || matches(entry.name, alcoholTerms)
-        let isDrink = alcohol || entry.selectedServingUnit == "drink" || matches(entry.name, drinkTerms)
+        let alcohol = isAlcoholic(entry)
+        let isDrink = alcohol || entry.selectedServingUnit == "drink" || nameLooksLikeDrink(entry.name) || isBeverageProduct(entry)
         guard isDrink else { return .notADrink }
         if alcohol { return .alcohol }
         guard let grams = entry.servingSizeGrams, grams > 0 else { return .noServingSize }
@@ -56,7 +87,7 @@ enum Hydration {
         entries.reduce(0) { $0 + milliliters(for: $1) }
     }
 
-    private static func matches(_ name: String, _ terms: [String]) -> Bool {
+    static func matches(_ name: String, _ terms: [String]) -> Bool {
         !AvoidList(custom: terms).matches(texts: [name]).isEmpty
     }
 }

@@ -7,12 +7,14 @@ struct ServingUnitEditor: View {
 
     let unitOptions: [ServingUnitOption]
     var allowsGramUnit = true
+    /// Fork: a liquid's picker leads with volume units (`FoodUnits.isLiquid`).
+    var isLiquid = false
     let focusRequest: Int
     var onEditingChanged: (Bool) -> Void
     var onClear: () -> Void
 
     private var pickerOptions: [ServingUnitOption] {
-        let options = ServingUnitOption.pickerOptions(for: unitOptions)
+        let options = FoodUnits.pickerOptions(unitOptions, liquid: isLiquid)
         return allowsGramUnit ? options : options.filter { !FoodUnits.isBaseWeight($0) }
     }
 

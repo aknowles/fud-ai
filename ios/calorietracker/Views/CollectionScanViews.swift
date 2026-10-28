@@ -187,7 +187,7 @@ private struct ScannedFoodRow: View {
     private var detail: String {
         inCollection
             ? String(localized: "Already in this collection")
-            : ([energyUnit.format(kcal: entry.calories)] + [entry.servingSizeGrams.map { FoodUnits.weightText(grams: $0) }].compactMap { $0 })
+            : ([energyUnit.format(kcal: entry.calories)] + [entry.servingSizeGrams.map { FoodUnits.amountText(grams: $0, entry: entry) }].compactMap { $0 })
                 .joined(separator: " · ")
     }
 

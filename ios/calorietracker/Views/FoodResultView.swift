@@ -530,6 +530,7 @@ struct FoodResultView: View {
                                 selectedUnitID: $selectedServingUnitID,
                                 unitOptions: servingUnitOptions,
                                 allowsGramUnit: servingSizeIsKnown,
+                                isLiquid: FoodUnits.isLiquid(name: name, options: servingUnitOptions),
                                 focusRequest: quantityFocusRequest,
                                 onEditingChanged: { editing in
                                     isQuantityEditing = editing
@@ -545,7 +546,7 @@ struct FoodResultView: View {
                             HStack {
                                 Text("Total")
                                 Spacer()
-                                Text("~\(FoodUnits.weightText(grams: servingSizeGrams))")
+                                Text("~\(FoodUnits.isLiquid(name: name, options: servingUnitOptions) ? FoodUnits.volumeText(milliliters: servingSizeGrams) : FoodUnits.weightText(grams: servingSizeGrams))")
                                     .foregroundStyle(.secondary)
                             }
                         }
@@ -907,7 +908,7 @@ struct MealIngredientsSection: View {
                                     .font(.system(.body, design: .rounded, weight: .semibold))
                                     .foregroundStyle(.primary)
                                 Spacer()
-                                Text("\(FoodUnits.weightText(grams: ingredient.grams)) · \(energyUnit.format(kcal: ingredient.calories))")
+                                Text("\(FoodUnits.amountText(grams: ingredient.grams, name: ingredient.name)) · \(energyUnit.format(kcal: ingredient.calories))")
                                     .font(.subheadline)
                                     .foregroundStyle(.secondary)
                                 Image(systemName: "chevron.right")

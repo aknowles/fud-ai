@@ -4037,10 +4037,11 @@ struct FoodRow: View {
             let option = ServingUnitOption.option(matching: selectedUnit, in: entry.servingUnitOptions)
             if !option.isGramUnit {
                 let quantityText = ServingUnitEditor.formatQuantity(quantity)
-                return "\(quantityText) \(option.displayUnit(for: quantity)) (~\(FoodUnits.weightText(grams: grams)))"
+                if FoodUnits.isVolume(option.unit) { return "\(quantityText) \(option.displayUnit(for: quantity))" }
+                return "\(quantityText) \(option.displayUnit(for: quantity)) (~\(FoodUnits.amountText(grams: grams, entry: entry)))"
             }
         }
-        return FoodUnits.weightText(grams: grams)
+        return FoodUnits.amountText(grams: grams, entry: entry)
     }
 
     var body: some View {

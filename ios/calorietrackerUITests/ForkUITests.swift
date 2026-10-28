@@ -143,6 +143,18 @@ final class ForkUITests: XCTestCase {
     }
 
     @MainActor
+    func testDrinksInTheDiaryShowVolumeNotWeight() {
+        var vitaminwater = Self.food("Vitaminwater", calories: 120, daysAgo: 0, hour: 9)
+        vitaminwater["servingSizeGrams"] = 591
+        var chicken = Self.food("Chicken breast", calories: 900, daysAgo: 0, hour: 9)
+        chicken["servingSizeGrams"] = 591
+        let app = makeApp(["fork.units.system": "us", "foodEntries": [vitaminwater, chicken]])
+        let drink = text(containing: "20 fl oz", in: app)
+        reveal(drink, in: app)
+        XCTAssertTrue(text(containing: "1 lb 5 oz", in: app).exists, "Solid foods keep their weight")
+    }
+
+    @MainActor
     func testHomeBarsSayWhichWayIsGood() {
         let app = makeApp(["foodEntries": [Self.food("Toast", calories: 200, protein: 8)],
                            "fork.healthProfile": ["entries": ["gout"]]])

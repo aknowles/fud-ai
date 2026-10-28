@@ -433,6 +433,7 @@ struct EditFoodEntryView: View {
                                 selectedUnitID: $selectedServingUnitID,
                                 unitOptions: servingUnitOptions,
                                 allowsGramUnit: servingSizeIsKnown,
+                                isLiquid: FoodUnits.isLiquid(name: name, options: servingUnitOptions),
                                 focusRequest: quantityFocusRequest,
                                 onEditingChanged: { editing in
                                     isQuantityEditing = editing
@@ -448,7 +449,7 @@ struct EditFoodEntryView: View {
                             HStack {
                                 Text("Total")
                                 Spacer()
-                                Text("~\(FoodUnits.weightText(grams: servingSizeGrams))")
+                                Text("~\(FoodUnits.isLiquid(name: name, options: servingUnitOptions) ? FoodUnits.volumeText(milliliters: servingSizeGrams) : FoodUnits.weightText(grams: servingSizeGrams))")
                                     .foregroundStyle(.secondary)
                             }
                         }
