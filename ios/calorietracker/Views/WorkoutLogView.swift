@@ -1069,47 +1069,28 @@ private struct WorkoutLogBurnButton: View {
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 5) {
-                Group {
-                    if isCalculating {
-                        ProgressView()
-                            .tint(.white)
-                            .scaleEffect(1.05)
-                    } else {
-                        Image(systemName: "flame.fill")
-                            .font(.system(size: 27, weight: .black))
-                            .foregroundStyle(Color.white)
-                            .shadow(color: Color.black.opacity(0.52), radius: 2, y: 1)
-                    }
+            HStack(spacing: 8) {
+                if isCalculating {
+                    ProgressView()
+                        .tint(Color.workoutOnAccent)
+                } else {
+                    Image(systemName: "flame.fill")
+                        .font(.system(size: 16, weight: .semibold))
                 }
-                .frame(height: 32)
 
-                Text(isCalculating ? String(localized: "Calculating…") : String(localized: "Calculate"))
-                    .font(.system(size: isCalculating ? 18 : 22, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.white)
+                Text(isCalculating ? String(localized: "Calculating…") : String(localized: "Calculate calorie burn"))
+                    .font(.system(size: 17, weight: .semibold, design: .rounded))
                     .contentTransition(.opacity)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
-                    .frame(width: 118)
-                    .shadow(color: Color.black.opacity(0.62), radius: 2, y: 1)
-
-                Text("CALORIE BURN")
-                    .font(.system(size: 9, weight: .black, design: .rounded))
-                    .tracking(0.4)
-                    .foregroundStyle(Color.white.opacity(0.90))
-                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
-            .frame(width: 156, height: 156)
-            .background {
-                Image("timer_button_red")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 176, height: 176)
-                    .shadow(color: Color.black.opacity(0.34), radius: 16, y: 8)
-            }
+            .foregroundStyle(Color.workoutOnAccent)
+            .frame(maxWidth: .infinity, minHeight: 50)
+            .background(Color.workoutAccent, in: Capsule())
         }
         .buttonStyle(WorkoutLogBurnButtonStyle())
         .disabled(isCalculating)
+        .accessibilityIdentifier("workouts.log.calculateBurn")
         .accessibilityLabel("Calculate calorie burn")
         .accessibilityValue(isCalculating ? String(localized: "Calculating") : String(localized: "Ready"))
         .accessibilityHint("Uses saved exercise duration and intensity, or strength sets, repetitions and load, with current body weight")
@@ -1119,7 +1100,8 @@ private struct WorkoutLogBurnButton: View {
 private struct WorkoutLogBurnButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.88 : 1)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .opacity(configuration.isPressed ? 0.85 : 1)
             .animation(.snappy(duration: 0.12), value: configuration.isPressed)
     }
 }

@@ -396,4 +396,20 @@ final class ForkUITests: XCTestCase {
         toggle.switches.firstMatch.tap()
         XCTAssertEqual(toggle.value as? String, "0")
     }
+
+    // MARK: - Workouts
+
+    @MainActor
+    func testCalorieBurnButtonIsAFullWidthBarThatAsksForAWorkoutFirst() {
+        let app = makeApp(["fudai.workouts.tab.mode.v2": "log"])
+        app.tabBars.buttons["Workouts"].tap()
+        let button = app.buttons["workouts.log.calculateBurn"]
+        XCTAssertTrue(button.waitForExistence(timeout: 5))
+        XCTAssertEqual(button.label, "Calculate calorie burn")
+        // A wide, short bar, not the old 156-pt round button.
+        XCTAssertGreaterThan(button.frame.width, app.windows.firstMatch.frame.width * 0.8)
+        XCTAssertLessThan(button.frame.height, 80)
+        button.tap()
+        XCTAssertTrue(app.alerts["Log a workout first"].waitForExistence(timeout: 5))
+    }
 }
