@@ -6,9 +6,9 @@ import UIKit
 @Suite(.serialized)
 struct AIRequestConfigurationTests {
     @Test func settingsHubKeepsEveryFocusedCategory() {
-        // The fork adds Health Profile and Medicines.
-        #expect(ProfileSettingsCategory.allCases.count == 18)
-        #expect(Set(ProfileSettingsCategory.allCases.map(\.rawValue)).count == 18)
+        // The fork adds Health Profile and Medicines, and three group rows (#24).
+        #expect(ProfileSettingsCategory.allCases.count == 21)
+        #expect(Set(ProfileSettingsCategory.allCases.map(\.rawValue)).count == 21)
         #expect(ProfileSettingsCategory.preferenceCases.count == 13)
         #expect(ProfileSettingsCategory.preferenceCases.contains(.healthProfile))
         #expect(ProfileSettingsCategory.preferenceCases.contains(.medicines))

@@ -56,6 +56,10 @@ final class calorietrackerUITests: XCTestCase {
         let settings = app.tabBars.buttons["Settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 15))
         settings.tap()
+        // Fork (#24): AI pages open from the AI group row.
+        if ["aiAccess", "aiProviders", "speechToText", "voiceAssistant"].contains(identifier) {
+            app.buttons["settings.category.aiGroup"].tap()
+        }
         let category = app.buttons["settings.category.\(identifier)"]
         reveal(category, in: app)
         category.tap()
@@ -219,6 +223,10 @@ final class calorietrackerUITests: XCTestCase {
         let settings = app.tabBars.buttons["Settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 8))
         settings.tap()
+        // Fork (#24): the five pages open from the About group row.
+        let aboutGroup = app.buttons["settings.category.aboutGroup"]
+        reveal(aboutGroup, in: app)
+        aboutGroup.tap()
 
         for (identifier, title, expectedAction) in categories {
             let category = app.buttons["settings.category.\(identifier)"]
@@ -254,6 +262,7 @@ final class calorietrackerUITests: XCTestCase {
             backButton.tap()
             XCTAssertTrue(app.buttons["settings.category.\(identifier)"].waitForExistence(timeout: 3))
         }
+        app.navigationBars["About"].buttons.firstMatch.tap()
         reveal(app.staticTexts["Made by Apoorv Darshan"], in: app)
     }
 

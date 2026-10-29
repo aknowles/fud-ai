@@ -347,6 +347,15 @@ struct ContentView: View {
                     }
             }
 
+            if !hiddenTabs.contains(.workouts) {
+                WorkoutsView()
+                    .tag(AppTab.workouts)
+                    .tabItem {
+                        Image(systemName: workoutsTabIcon)
+                        Text("Workouts")
+                    }
+            }
+
             ProfileView(
                 updateState: $appUpdateState,
                 refreshUpdateState: {
@@ -359,15 +368,6 @@ struct ContentView: View {
                     Text("Settings")
                 }
                 .badge(appUpdateState.isUpdateAvailable ? "!" : nil)
-
-            if !hiddenTabs.contains(.workouts) {
-                WorkoutsView()
-                    .tag(AppTab.workouts)
-                    .tabItem {
-                        Image(systemName: workoutsTabIcon)
-                        Text("Workouts")
-                    }
-            }
         }
     }
 
@@ -4654,6 +4654,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     case helpFeedback
     case community
     case legal
+    case aiGroup, appDataGroup, aboutGroup // Fork: group rows in Settings (SettingsGroups.swift)
 
     static let preferenceCases: [Self] = [
         .personalInfo,
@@ -4701,6 +4702,9 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         case .helpFeedback: "Help & Feedback"
         case .community: "Community"
         case .legal: "Legal"
+        case .aiGroup: "AI"
+        case .appDataGroup: "Workouts, Health & Data"
+        case .aboutGroup: "About"
         }
     }
 
@@ -4724,6 +4728,9 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
         case .helpFeedback: "exclamationmark.bubble.fill"
         case .community: "person.3.fill"
         case .legal: "lock.shield.fill"
+        case .aiGroup: "sparkles.rectangle.stack"
+        case .appDataGroup: "tray.full"
+        case .aboutGroup: "info.circle"
         }
     }
 
@@ -4739,7 +4746,7 @@ enum ProfileSettingsCategory: String, CaseIterable, Identifiable, Hashable {
     }
 }
 
-private struct ProfileSettingsCategoryRow: View {
+struct ProfileSettingsCategoryRow: View {
     let category: ProfileSettingsCategory
 
     var body: some View {
@@ -4955,7 +4962,10 @@ struct ProfileView: View {
                         .readableWidth()
                         .background(AppColors.appBackground)
                         .navigationDestination(for: ProfileSettingsCategory.self) { category in
-                            if category == .aiAccess {
+                            if category.groupMembers != nil {
+                                SettingsGroupView(group: category)
+                                    .readableWidth()
+                            } else if category == .aiAccess {
                                 HostedAISettingsView()
                                     .readableWidth()
                                     .background(AppColors.appBackground)
@@ -5002,14 +5012,14 @@ struct ProfileView: View {
     private var settingsHub: some View {
         List {
             Section {
-                ForEach(ProfileSettingsCategory.preferenceCases) { category in
+                ForEach(SettingsHubLayout.topCases) { category in
                     ProfileSettingsCategoryRow(category: category)
                 }
             }
             .listRowBackground(AppColors.appCard)
 
             Section {
-                ForEach(ProfileSettingsCategory.appInfoCases) { category in
+                ForEach(SettingsHubLayout.groupCases) { category in
                     ProfileSettingsCategoryRow(category: category)
                 }
             }

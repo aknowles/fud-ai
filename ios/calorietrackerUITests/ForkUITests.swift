@@ -442,4 +442,33 @@ final class ForkUITests: XCTestCase {
         app.navigationBars["Portion guide"].buttons["Done"].tap()
         XCTAssertFalse(app.navigationBars["Portion guide"].waitForExistence(timeout: 2))
     }
+
+    // MARK: - Settings layout
+
+    @MainActor
+    func testSettingsIsTheLastTabAndGroupsOpenTheirPages() {
+        let app = makeApp()
+        let tabs = app.tabBars.buttons
+        XCTAssertEqual(tabs.element(boundBy: tabs.count - 1).label, "Settings")
+        XCTAssertEqual(tabs.element(boundBy: tabs.count - 2).label, "Workouts")
+
+        tabs["Settings"].tap()
+        let first = app.buttons["settings.category.goalsNutrition"]
+        XCTAssertTrue(first.waitForExistence(timeout: 5))
+        XCTAssertLessThan(first.frame.minY, app.buttons["settings.category.personalInfo"].frame.minY,
+                          "Goals & Nutrition leads the list")
+        XCTAssertFalse(app.buttons["settings.category.aiProviders"].exists, "AI pages sit inside the AI group")
+
+        for (group, title, page) in [("aiGroup", "AI", "speechToText"),
+                                     ("appDataGroup", "Workouts, Health & Data", "dataManagement"),
+                                     ("aboutGroup", "About", "legal")] {
+            let row = app.buttons["settings.category.\(group)"]
+            reveal(row, in: app)
+            row.tap()
+            XCTAssertTrue(app.navigationBars[title].waitForExistence(timeout: 5))
+            XCTAssertTrue(app.buttons["settings.category.\(page)"].exists, "\(title) lists \(page)")
+            app.navigationBars[title].buttons.firstMatch.tap()
+            XCTAssertTrue(row.waitForExistence(timeout: 5))
+        }
+    }
 }
