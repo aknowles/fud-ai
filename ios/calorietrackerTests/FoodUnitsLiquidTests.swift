@@ -63,4 +63,34 @@ struct FoodUnitsLiquidTests {
             #expect(!FoodUnits.isLiquid(name: name), "\(name)")
         }
     }
+
+    // A nitro cold brew read "355 fl oz": the AI's 355 ml was kept as the count after the
+    // unit was mapped to fl oz. A stored quantity now counts only when it fits the total.
+    @Test func convertedVolumeUnitDoesNotReuseTheOriginalCount() throws {
+        let ml = ServingUnitOption(unit: "ml", gramsPerUnit: 1, quantity: 355)
+        let flOz = try #require(FoodUnits.pickerOptions([ml], config: us).first { $0.id == "fl oz" })
+        #expect(FoodUnits.storedQuantity(355, fits: flOz, totalGrams: 355) == nil)
+        #expect(FoodUnits.storedQuantity(12, fits: flOz, totalGrams: 355) == 12)
+        #expect(ServingUnitEditor.formatQuantity(355 / flOz.gramsPerUnit) == "12")
+    }
+
+    @Test func storedQuantityKeepsCountsThatFitTheTotal() {
+        let slice = ServingUnitOption(unit: "slice", gramsPerUnit: 60, quantity: 2)
+        #expect(FoodUnits.storedQuantity(2, fits: slice, totalGrams: 120) == 2)
+        #expect(FoodUnits.storedQuantity(2.2, fits: slice, totalGrams: 120) == 2.2, "Within 15%")
+        #expect(FoodUnits.storedQuantity(0.5, fits: ServingUnitOption(unit: "lb", gramsPerUnit: 453.6), totalGrams: 500) == nil,
+                "0.5 kg is not 0.5 lb")
+        #expect(FoodUnits.storedQuantity(nil, fits: slice, totalGrams: 120) == nil)
+        #expect(FoodUnits.storedQuantity(0, fits: slice, totalGrams: 120) == nil)
+    }
+
+    /// Under the test runner the system is metric, so a fl oz suggestion maps to ml.
+    @Test func reviewFoodShowsTheConvertedAmountNotTheSuggestedCount() {
+        let options = ServingUnitOption.normalizedOptions(
+            [ServingUnitOption(unit: "fl oz", gramsPerUnit: 29.5735, quantity: 12)], totalGrams: 355)
+        let unitID = ServingUnitOption.initialUnitID(preferredUnit: "fl oz", options: options)
+        #expect(unitID == "ml")
+        let text = ServingUnitOption.initialQuantityText(totalGrams: 355, selectedUnitID: unitID, selectedQuantity: 12, options: options)
+        #expect(text == "355")
+    }
 }

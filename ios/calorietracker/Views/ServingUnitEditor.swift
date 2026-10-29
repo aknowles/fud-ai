@@ -218,8 +218,8 @@ extension ServingUnitOption {
         options: [ServingUnitOption]
     ) -> String {
         let option = option(matching: selectedUnitID, in: options)
-        if let selectedQuantity, selectedQuantity > 0, !FoodUnits.isBaseWeight(option),
-           option.id == selectedUnitID.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        if let selectedQuantity = FoodUnits.storedQuantity(selectedQuantity, fits: option, totalGrams: totalGrams),
+           !FoodUnits.isBaseWeight(option) {
             return ServingUnitEditor.formatQuantity(selectedQuantity)
         }
         let quantity = option.gramsPerUnit > 0 ? totalGrams / option.gramsPerUnit : totalGrams

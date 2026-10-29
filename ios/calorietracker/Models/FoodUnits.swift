@@ -157,6 +157,17 @@ enum FoodUnits {
         }
     }
 
+    /// A stored or AI-suggested quantity, when it still describes `totalGrams` in `option`.
+    /// Units are mapped to the configured system first, so a "355" saved with ml must not be
+    /// shown as 355 fl oz: the quantity counts only when quantity × unit size matches the total
+    /// (within the 15% the AI's unit options are held to); otherwise nil, and callers derive it.
+    static func storedQuantity(_ quantity: Double?, fits option: ServingUnitOption, totalGrams: Double) -> Double? {
+        guard let quantity, quantity.isFinite, quantity > 0, option.gramsPerUnit > 0 else { return nil }
+        guard totalGrams.isFinite, totalGrams > 0 else { return quantity }
+        let represented = quantity * option.gramsPerUnit
+        return abs(represented - totalGrams) <= max(1, totalGrams * 0.15) ? quantity : nil
+    }
+
     private static func converted(_ option: ServingUnitOption, config: UnitConfig) -> [ServingUnitOption] {
         func scaled(_ unit: String, factor: Double) -> ServingUnitOption {
             ServingUnitOption(unit: unit, gramsPerUnit: option.gramsPerUnit * factor, quantity: option.quantity.map { $0 / factor })

@@ -31,7 +31,7 @@ enum VoiceAssistantFoodBuilder {
         )
         let option = ServingUnitOption.option(matching: unitID, in: options)
         let quantity: Double = {
-            if let selected = base.selectedServingQuantity, selected > 0, !option.isGramUnit { return selected }
+            if let selected = FoodUnits.storedQuantity(base.selectedServingQuantity, fits: option, totalGrams: grams), !option.isGramUnit { return selected }
             return option.gramsPerUnit > 0 ? grams / option.gramsPerUnit : grams
         }()
         // Without a known mass the analysis amount is a count of logged servings (a saved
