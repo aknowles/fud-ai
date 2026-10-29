@@ -195,4 +195,29 @@ struct MealPlanTests {
         #expect(noProfile.contains("## Meal plan"))
         #expect(!noProfile.contains("## Health goals"))
     }
+
+    // A shared week menu failed after a long spin: the reply hit the 1,024-token default
+    // cap twice. Menu import and Suggestions now raise the cap for their own calls only.
+    @Test func menuImportAndSuggestionsRaiseTheReplyCapOnlyForTheirOwnCalls() async {
+        let outside = AIProviderSettings.maxResponseTokens
+        #expect(AIResponseBudget.minimumTokens == 0)
+        let inside = await AIResponseBudget.withMinimum(AIResponseBudget.menuImport) { AIProviderSettings.maxResponseTokens }
+        #expect(inside == max(outside, 8_192))
+        let nested = await AIResponseBudget.withMinimum(AIResponseBudget.menuImport) {
+            await AIResponseBudget.withMinimum(AIResponseBudget.suggestions) { AIProviderSettings.maxResponseTokens }
+        }
+        #expect(nested == max(outside, 8_192), "An inner, smaller budget never lowers an outer one")
+        #expect(AIProviderSettings.maxResponseTokens == outside)
+    }
+
+    @Test func aMenuMealKeepsAtMostFourOptions() throws {
+        let monday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2))!
+        let dishes = (1...6).map { #"{"food":{"name":"Dish \#($0)","calories":500,"protein":20,"carbs":50,"fat":15},"includes":[]}"# }
+        let response = #"{"days":[{"date":"2026-11-02","meal":"lunch","options":["# + dishes.joined(separator: ",") + #"],"pick":0}]}"#
+        let meals = try MealPlanService.parse(response, weekStart: monday, defaultMeal: .lunch, source: "Work cafe",
+                                              entries: [], calendar: calendar)
+        #expect(meals.first?.options.count == 4)
+        let prompt = MealPlanService.prompt(for: .text("Mon: chili"), weekStart: monday, defaultMeal: .lunch, healthLines: [])
+        #expect(prompt.contains("options: up to 4,"))
+    }
 }

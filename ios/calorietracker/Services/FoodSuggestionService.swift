@@ -41,10 +41,12 @@ enum FoodSuggestionService {
     ) async throws -> (FoodSuggestions, aiPickedWait: Bool) {
         let saved = Array(input.savedEntries.prefix(maxSaved))
         let image: UIImage? = if case .photo(let photo) = input { photo } else { nil }
-        let text = try await GeminiService.callAI(
-            prompt: prompt(for: input, saved: saved, context: context, healthLines: healthLines, now: now),
-            image: image
-        )
+        let text = try await AIResponseBudget.withMinimum(AIResponseBudget.suggestions) {
+            try await GeminiService.callAI(
+                prompt: prompt(for: input, saved: saved, context: context, healthLines: healthLines, now: now),
+                image: image
+            )
+        }
         return try parse(text, saved: saved, source: image == nil ? .textInput : .snapFood, now: now)
     }
 

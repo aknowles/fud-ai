@@ -300,6 +300,30 @@ final class ForkUITests: XCTestCase {
         XCTAssertTrue(element(labeled: "Day", in: app).waitForExistence(timeout: 5))
     }
 
+    /// A failed read returns to the form; the error leads it instead of sitting below the fold.
+    @MainActor
+    func testMenuImportShowsAFailedReadAtTheTop() {
+        let app = makeApp()
+        open("suggestions", in: app)
+        let week = app.staticTexts["Week plan"]
+        reveal(week, in: app)
+        week.tap()
+        app.navigationBars["Week Plan"].buttons["Add"].tap()
+        app.buttons["Import a menu"].tap()
+        XCTAssertTrue(app.navigationBars["Import a Menu"].waitForExistence(timeout: 5))
+
+        let paste = app.textFields["Mon: chili, garden salad…"]
+        reveal(paste, in: app)
+        paste.tap()
+        paste.typeText("Tue: seared sea scallops")
+        app.buttons["Read text"].tap()
+
+        let error = app.descendants(matching: .any).matching(identifier: "menuImport.error").firstMatch
+        XCTAssertTrue(error.waitForExistence(timeout: 30))
+        XCTAssertTrue(app.windows.firstMatch.frame.contains(error.frame), "The error shows without scrolling")
+        XCTAssertLessThan(error.frame.minY, app.buttons["One day"].frame.minY, "It sits above the form")
+    }
+
     // MARK: - Coach
 
     @MainActor

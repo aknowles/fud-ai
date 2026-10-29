@@ -241,8 +241,8 @@ private struct PlannedOptionRow: View {
 }
 
 /// Imports a menu from a photo or pasted text: say whether it covers the week or one day,
-/// read it, then check the days before saving. With `initialPhoto` it starts reading that
-/// photo right away. Nothing needs picking here; each meal keeps the AI's suggestion until
+/// read it, then check the days before saving. An `initialPhoto` (shared from another app)
+/// waits for the user to choose week or day, then "Read this menu". Nothing needs picking here; each meal keeps the AI's suggestion until
 /// the user picks.
 struct ImportMenuView: View {
     let weekStart: Date
@@ -287,9 +287,6 @@ struct ImportMenuView: View {
         .toolbar {
             ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
         }
-        .task {
-            if let initialPhoto, case .setup = step { run(.photo(initialPhoto)) }
-        }
         .fullScreenCover(isPresented: $showCamera) {
             CameraView(image: $capturedImage, onCancel: { showCamera = false }).ignoresSafeArea()
         }
@@ -312,6 +309,13 @@ struct ImportMenuView: View {
 
     private var setupForm: some View {
         Form {
+            if let error {
+                Section {
+                    Label(error, systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.red)
+                        .accessibilityIdentifier("menuImport.error")
+                }
+            }
             Section {
                 Picker("Covers", selection: $coversWeek) {
                     Text("A whole week").tag(true)
@@ -338,6 +342,23 @@ struct ImportMenuView: View {
             } footer: {
                 Text("You can move meals to other days before saving.")
             }
+            if let initialPhoto {
+                Section {
+                    Image(uiImage: initialPhoto)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxHeight: 220)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Button { run(.photo(initialPhoto)) } label: {
+                        Label("Read this menu", systemImage: "text.viewfinder")
+                    }
+                    .accessibilityIdentifier("menuImport.readShared")
+                } header: {
+                    Text("Shared photo")
+                } footer: {
+                    Text("Choose a whole week or one day above first.")
+                }
+            }
             Section {
                 Button { showCamera = true } label: {
                     Label("Take a photo of the menu", systemImage: "camera")
@@ -355,9 +376,6 @@ struct ImportMenuView: View {
                     .lineLimit(4...12)
                 Button("Read text") { run(.text(text)) }
                     .disabled(text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            if let error {
-                Section { Text(error).foregroundStyle(.red) }
             }
         }
     }

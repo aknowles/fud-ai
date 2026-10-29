@@ -536,7 +536,7 @@ struct AIProviderSettings {
     static var maxResponseTokens: Int {
         get {
             let v = UserDefaults.standard.integer(forKey: maxResponseTokensKey)
-            return v > 0 ? v : 1024 // 0 == unset -> default
+            return max(v > 0 ? v : 1024, AIResponseBudget.minimumTokens) // 0 == unset -> default; fork: per-call floor
         }
         set { UserDefaults.standard.set(max(1, newValue), forKey: maxResponseTokensKey) }
     }

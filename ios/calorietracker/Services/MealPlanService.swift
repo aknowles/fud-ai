@@ -9,7 +9,8 @@ enum MealPlanService {
         case text(String)
     }
 
-    static let maxOptionsPerMeal = 8
+    /// Cafe menus rarely offer more per meal, and each option adds a full nutrition block.
+    static let maxOptionsPerMeal = 4
 
     static func importMenu(
         _ input: Input,
@@ -22,10 +23,12 @@ enum MealPlanService {
         calendar: Calendar = .current
     ) async throws -> [PlannedMeal] {
         let image: UIImage? = if case .photo(let photo) = input { photo } else { nil }
-        let text = try await GeminiService.callAI(
-            prompt: prompt(for: input, weekStart: weekStart, day: day, defaultMeal: defaultMeal, healthLines: healthLines),
-            image: image
-        )
+        let text = try await AIResponseBudget.withMinimum(AIResponseBudget.menuImport) {
+            try await GeminiService.callAI(
+                prompt: prompt(for: input, weekStart: weekStart, day: day, defaultMeal: defaultMeal, healthLines: healthLines),
+                image: image
+            )
+        }
         return try parse(text, weekStart: weekStart, day: day, defaultMeal: defaultMeal, source: source,
                          entries: entries, calendar: calendar)
     }
