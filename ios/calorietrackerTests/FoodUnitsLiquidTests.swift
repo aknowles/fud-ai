@@ -93,4 +93,10 @@ struct FoodUnitsLiquidTests {
         let text = ServingUnitOption.initialQuantityText(totalGrams: 355, selectedUnitID: unitID, selectedQuantity: 12, options: options)
         #expect(text == "355")
     }
+
+    @Test func portionResetAfterAnIngredientEditUsesTheConfiguredWeightUnit() {
+        #expect(FoodUnits.baseWeightSelection(grams: 263.4, config: us) == ("oz", "9.29"))
+        #expect(FoodUnits.baseWeightSelection(grams: 354.4, config: us) == ("oz", "12.5"))
+        #expect(FoodUnits.baseWeightSelection(grams: 263.4, config: metric) == ("g", "263.4"))
+    }
 }

@@ -409,8 +409,7 @@ struct FoodResultView: View {
         guard totals.grams > 0 else { return }
         baseServingSizeGrams = totals.grams
         servingSizeGrams = totals.grams
-        servingSizeText = Self.formatGrams(totals.grams)
-        selectedServingUnitID = ServingUnitOption.grams.unit
+        (selectedServingUnitID, servingSizeText) = FoodUnits.baseWeightSelection(grams: totals.grams)
         servingUnitOptions = []
         servingSizeIsKnown = true
         // The edited list is now the whole meal again, so any split is gone.

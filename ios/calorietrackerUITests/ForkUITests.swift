@@ -443,6 +443,38 @@ final class ForkUITests: XCTestCase {
         XCTAssertFalse(app.navigationBars["Portion guide"].waitForExistence(timeout: 2))
     }
 
+    /// Editing an ingredient resets the portion to the new total, which must read in ounces
+    /// under US units, not the gram number next to "oz".
+    @MainActor
+    func testEditingAnIngredientKeepsThePortionInOunces() {
+        func ingredient(_ name: String, grams: Double, calories: Int) -> [String: Any] {
+            ["id": UUID().uuidString, "name": name, "grams": grams, "calories": calories, "protein": 10, "carbs": 20, "fat": 5]
+        }
+        var bowl = Self.food("Chicken rice bowl", calories: 560, daysAgo: 1, hour: 12)
+        bowl["servingSizeGrams"] = 350
+        bowl["ingredients"] = [ingredient("Chicken", grams: 150, calories: 250), ingredient("Rice", grams: 200, calories: 310)]
+        let app = makeApp(["fork.units.system": "us", "foodEntries": [bowl]])
+        open("recent", in: app)
+        let row = text(containing: "Chicken rice bowl", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        let rice = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Rice")).firstMatch
+        reveal(rice, in: app)
+        rice.tap()
+        XCTAssertTrue(app.navigationBars["Edit Ingredient"].waitForExistence(timeout: 5))
+        let weight = app.textFields.matching(NSPredicate(format: "value == %@", "7.1")).firstMatch
+        XCTAssertTrue(weight.waitForExistence(timeout: 5), "Rice opens at 7.1 oz")
+        weight.coordinate(withNormalizedOffset: CGVector(dx: 0.95, dy: 0.5)).tap() // cursor after the text
+        weight.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 4) + "4")
+        app.navigationBars["Edit Ingredient"].buttons["Save"].tap()
+
+        // 150 g chicken + 4 oz rice = 263.4 g = 9.29 oz.
+        let portion = app.textFields.matching(NSPredicate(format: "value == %@", "9.29")).firstMatch
+        reveal(portion, in: app)
+        XCTAssertFalse(app.textFields.matching(NSPredicate(format: "value == %@", "263.4")).firstMatch.exists)
+    }
+
     // MARK: - Settings layout
 
     @MainActor

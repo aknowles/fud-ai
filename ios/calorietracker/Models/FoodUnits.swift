@@ -157,6 +157,14 @@ enum FoodUnits {
         }
     }
 
+    /// The plain weight unit and amount for `grams`, for screens that reset a portion to its
+    /// total weight (after an ingredient edit): "12.5" oz in US, "355" g in metric. Selecting
+    /// "g" in US would leave the picker on oz with the gram number in it.
+    static func baseWeightSelection(grams: Double, config: UnitConfig = .current) -> (unitID: String, quantityText: String) {
+        let base = baseWeight(config)
+        return (base.id, ServingUnitEditor.formatQuantity(grams / base.gramsPerUnit))
+    }
+
     /// A stored or AI-suggested quantity, when it still describes `totalGrams` in `option`.
     /// Units are mapped to the configured system first, so a "355" saved with ml must not be
     /// shown as 355 fl oz: the quantity counts only when quantity × unit size matches the total
