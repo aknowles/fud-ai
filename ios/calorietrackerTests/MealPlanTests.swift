@@ -81,6 +81,106 @@ struct MealPlanTests {
         #expect(MealPlanStore(defaults: defaults).meals.isEmpty)
     }
 
+    // MARK: - Repeating meals
+
+    private func freshDefaults() -> (UserDefaults, () -> Void) {
+        let suite = "MealPlanTests.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        return (defaults, { defaults.removePersistentDomain(forName: suite) })
+    }
+
+    private func days(_ offset: Int) -> Date { calendar.date(byAdding: .day, value: offset, to: today)! }
+
+    /// Taco Tuesday at the cafe, first planned `offset` days from today, with the second option picked.
+    private func tacoTuesday(startingAt offset: Int) -> PlannedMeal {
+        var meal = cafeLunch([food("Chicken burrito"), food("Taco salad")], chosen: 1, day: days(offset))
+        meal.repeatsWeekly = true
+        return meal
+    }
+
+    @Test func aRepeatingMealIsFilledInOnTheSameWeekdayUpToTwoWeeksAhead() throws {
+        let (defaults, cleanUp) = freshDefaults()
+        defer { cleanUp() }
+        let store = MealPlanStore(defaults: defaults)
+        let taco = tacoTuesday(startingAt: -7)
+
+        store.add([taco])
+
+        let copies = store.meals.filter { $0.repeatOf == taco.id }.sorted { $0.day < $1.day }
+        #expect(copies.map(\.day) == [days(0), days(7)])
+        let next = try #require(copies.last)
+        #expect(next.chosen?.entry.name == "Taco salad")
+        #expect(next.isPartOfRepeat && !next.isRepeating)
+        #expect(calendar.isDate(next.chosen!.entry.timestamp, inSameDayAs: days(7)))
+        #expect(Set(next.options.map(\.id)).isDisjoint(with: taco.options.map(\.id)))
+
+        let reloaded = MealPlanStore(defaults: defaults)
+        #expect(reloaded.meals.count == 3, "A reload fills nothing twice")
+    }
+
+    @Test func aRemovedCopyStaysRemovedAfterAReload() {
+        let (defaults, cleanUp) = freshDefaults()
+        defer { cleanUp() }
+        let store = MealPlanStore(defaults: defaults)
+        let taco = tacoTuesday(startingAt: 0)
+        store.add([taco])
+        let nextWeek = store.meals.first { $0.repeatOf == taco.id }!
+
+        store.remove(nextWeek.id)
+
+        let reloaded = MealPlanStore(defaults: defaults)
+        #expect(reloaded.meals(on: days(7)).isEmpty)
+        #expect(reloaded.meals.first { $0.id == taco.id }?.skippedDays?.count == 1)
+    }
+
+    @Test func stoppingTheRepeatFromACopyRemovesTheComingCopiesOnly() {
+        let (defaults, cleanUp) = freshDefaults()
+        defer { cleanUp() }
+        let store = MealPlanStore(defaults: defaults)
+        let taco = tacoTuesday(startingAt: -7)
+        store.add([taco])
+        let todayCopy = store.meals.first { $0.repeatOf == taco.id && calendar.isDate($0.day, inSameDayAs: today) }!
+
+        store.setRepeatsWeekly(false, for: todayCopy.id)
+
+        let reloaded = MealPlanStore(defaults: defaults)
+        #expect(reloaded.meals.first { $0.id == taco.id }?.isRepeating == false)
+        #expect(reloaded.meals.map(\.day).sorted() == [days(-7), days(0)])
+    }
+
+    @Test func removingTheRepeatingMealHandsTheRepeatToItsNextCopy() {
+        let (defaults, cleanUp) = freshDefaults()
+        defer { cleanUp() }
+        let store = MealPlanStore(defaults: defaults)
+        let taco = tacoTuesday(startingAt: -7)
+        store.add([taco])
+
+        store.remove(taco.id)
+
+        let reloaded = MealPlanStore(defaults: defaults)
+        let template = reloaded.meals.first { $0.isRepeating }
+        #expect(template?.day == days(0))
+        #expect(template?.repeatOf == nil)
+        #expect(reloaded.meals.map(\.day).sorted() == [days(0), days(7)])
+        #expect(reloaded.meals.first { $0.day == days(7) }?.repeatOf == template?.id)
+    }
+
+    @Test func anOldRepeatingMealSurvivesTheCleanupAndKeepsFillingIn() {
+        let (defaults, cleanUp) = freshDefaults()
+        defer { cleanUp() }
+        let store = MealPlanStore(defaults: defaults)
+        var old = tacoTuesday(startingAt: -40)
+        old.repeatsWeekly = nil
+        var repeating = tacoTuesday(startingAt: -40)
+        repeating.mealType = .dinner
+        store.add([old, repeating])
+
+        let reloaded = MealPlanStore(defaults: defaults)
+        #expect(reloaded.meals.contains { $0.id == repeating.id })
+        #expect(!reloaded.meals.contains { $0.id == old.id })
+        #expect(reloaded.meals.filter { $0.repeatOf == repeating.id }.map(\.day).sorted() == [days(2), days(9)])
+    }
+
     @Test func aWeeklyMenuBecomesPlannedMealsInsideTheWeek() throws {
         let monday = calendar.date(from: DateComponents(year: 2026, month: 11, day: 2))!
         let response = """
