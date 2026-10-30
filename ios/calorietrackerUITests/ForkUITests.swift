@@ -285,6 +285,34 @@ final class ForkUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["salmon"].waitForExistence(timeout: 5))
     }
 
+    /// A planned meal can repeat every week from the week plan (its copy shows up next week),
+    /// and a saved food can be planned as repeating from the start.
+    @MainActor
+    func testAPlannedMealCanRepeatEveryWeek() {
+        let lunch: [String: Any] = [
+            "id": UUID().uuidString, "day": Self.stamp(hour: 0), "mealType": "lunch", "source": "Work cafe",
+            "options": [["id": UUID().uuidString, "entry": Self.food("Taco salad", calories: 400), "contains": []]],
+        ]
+        let app = makeApp(["fork.mealPlan": [lunch]])
+        open("suggestions", in: app)
+        let week = app.staticTexts["Week plan"]
+        reveal(week, in: app)
+        week.tap()
+
+        let repeatButton = app.buttons["Repeat every week"]
+        XCTAssertTrue(repeatButton.waitForExistence(timeout: 5))
+        repeatButton.tap()
+        let weekday = Date().formatted(Date.FormatStyle().weekday(.wide).locale(Locale(identifier: "en_US")))
+        XCTAssertTrue(text(containing: "every \(weekday)", in: app).waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Stop repeating every week"].exists)
+        app.buttons["Next week"].tap()
+        XCTAssertTrue(text(containing: "Taco salad", in: app).waitForExistence(timeout: 5), "The copy is planned next week")
+
+        app.navigationBars["Week Plan"].buttons["Add"].tap()
+        app.buttons["Add a saved food"].tap()
+        XCTAssertTrue(app.switches["Repeat every week"].waitForExistence(timeout: 5))
+    }
+
     @MainActor
     func testMenuImportAsksForWeekOrDayAndOffersTheCamera() {
         let app = makeApp()

@@ -42,7 +42,7 @@ struct MealPlanSection: View {
             Text("Plan recipes or import a cafe's weekly menu; days that would break a limit get a swap.")
         }
         .listRowBackground(AppColors.appCard)
-        .onAppear { plan.reload() }
+        .onAppear { plan.reload(entries: foodStore.entries) }
     }
 }
 
@@ -113,7 +113,7 @@ struct WeekPlanView: View {
                 }
             }
         }
-        .onAppear { plan.reload() }
+        .onAppear { plan.reload(entries: foodStore.entries) }
     }
 
     private func daySection(_ day: Date) -> some View {
@@ -140,9 +140,16 @@ struct WeekPlanView: View {
             ForEach(meals) { meal in
                 let isLogged = meal.isLogged(in: logged)
                 HStack {
-                    Text("\(meal.mealType.displayName)\(meal.source.map { " · \($0)" } ?? "")\(isLogged ? " · logged" : "")")
+                    Text("\(meal.mealType.displayName)\(meal.source.map { " · \($0)" } ?? "")\(meal.isPartOfRepeat ? " · every \(day.formatted(.dateTime.weekday(.wide)))" : "")\(isLogged ? " · logged" : "")")
                         .font(.system(.subheadline, design: .rounded, weight: .semibold))
                     Spacer()
+                    Button {
+                        withAnimation { plan.setRepeatsWeekly(!meal.isPartOfRepeat, for: meal.id, entries: foodStore.entries) }
+                    } label: {
+                        Image(systemName: meal.isPartOfRepeat ? "repeat.circle.fill" : "repeat")
+                    }
+                    .buttonStyle(.borderless)
+                    .accessibilityLabel(meal.isPartOfRepeat ? "Stop repeating every week" : "Repeat every week")
                     Button(role: .destructive) {
                         withAnimation { plan.remove(meal.id) }
                     } label: {
@@ -501,6 +508,7 @@ private struct AddPlannedFoodView: View {
     @Environment(FoodStore.self) private var foodStore
     @State private var day = Date()
     @State private var meal: MealType = .dinner
+    @State private var repeatsWeekly = false
     @State private var search = ""
 
     private var saved: [FoodEntry] {
@@ -522,14 +530,18 @@ private struct AddPlannedFoodView: View {
                 Picker("Meal", selection: $meal) {
                     ForEach([MealType.breakfast, .lunch, .dinner, .snack], id: \.self) { Text($0.displayName).tag($0) }
                 }
+                Toggle("Repeat every week", isOn: $repeatsWeekly)
+            } footer: {
+                Text(repeatsWeekly ? "Planned on this weekday every week until you stop it from the week plan." : "")
             }
             Section("Saved foods") {
                 ForEach(saved) { entry in
                     PlannedOptionRow(option: PlannedOption(entry: entry), caption: nil, isChosen: false, warnings: [])
                         .contentShape(Rectangle())
                         .onTapGesture {
-                            MealPlanStore.shared.add([MealPlanService.plannedMeal(from: entry, day: day, meal: meal,
-                                                                                  entries: foodStore.entries)])
+                            var planned = MealPlanService.plannedMeal(from: entry, day: day, meal: meal, entries: foodStore.entries)
+                            planned.repeatsWeekly = repeatsWeekly ? true : nil
+                            MealPlanStore.shared.add([planned], entries: foodStore.entries)
                             dismiss()
                         }
                 }
