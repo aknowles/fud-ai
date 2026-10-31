@@ -580,6 +580,33 @@ final class ForkUITests: XCTestCase {
         XCTAssertTrue(text(containing: "12 fl oz", in: app).exists)
     }
 
+    /// Opening an ingredient and saving it without touching the weight keeps its exact grams;
+    /// the rounded ounce figure in the field must not be saved back as the weight.
+    @MainActor
+    func testSavingAnIngredientUnchangedKeepsTheMealWeight() {
+        func ingredient(_ name: String, grams: Double, calories: Int) -> [String: Any] {
+            ["id": UUID().uuidString, "name": name, "grams": grams, "calories": calories, "protein": 10, "carbs": 20, "fat": 5]
+        }
+        var bowl = Self.food("Chicken rice bowl", calories: 560, daysAgo: 1, hour: 12)
+        bowl["servingSizeGrams"] = 250
+        bowl["ingredients"] = [ingredient("Chicken", grams: 100, calories: 250), ingredient("Rice", grams: 150, calories: 310)]
+        let app = makeApp(["fork.units.system": "us", "foodEntries": [bowl]])
+        open("recent", in: app)
+        let row = text(containing: "Chicken rice bowl", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        let rice = app.buttons.containing(NSPredicate(format: "label CONTAINS %@", "Rice")).firstMatch
+        reveal(rice, in: app)
+        rice.tap()
+        XCTAssertTrue(app.navigationBars["Edit Ingredient"].waitForExistence(timeout: 5))
+        app.navigationBars["Edit Ingredient"].buttons["Save"].tap()
+
+// 250 g is 8.82 oz; saving the field's "5.3" oz rice would make it 250.25 g, 8.83 oz.
+        let portion = app.textFields.matching(NSPredicate(format: "value == %@", "8.82")).firstMatch
+        reveal(portion, in: app)
+    }
+
     /// Ounces to bowl, half a bowl, the 2× button, then back to ounces: every step follows the
     /// amount exactly, so two bowls of a 480 kcal bowl read 960 kcal, not 961.
     @MainActor

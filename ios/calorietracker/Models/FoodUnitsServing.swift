@@ -35,4 +35,11 @@ extension FoodUnits {
         }
         return quantity * option.gramsPerUnit
     }
+
+    /// Grams from a weight field that opened at `original`: unchanged text keeps the exact
+    /// original, so saving an ingredient in ounces does not round its weight.
+    static func grams(fromField value: Double, text: String, original: Double, config: UnitConfig = .current) -> Double {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed == fieldText(grams: original, config: config) ? original : grams(fromField: value, config: config)
+    }
 }

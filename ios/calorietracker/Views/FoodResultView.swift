@@ -1004,7 +1004,7 @@ struct IngredientEditorSheet: View {
     private var parsedIngredient: MealIngredient? {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty,
-              let grams = decimal(grams).map({ FoodUnits.grams(fromField: $0) }), grams > 0, nutritionBase.resized(to: grams) != nil,
+              let grams = decimal(grams).map({ FoodUnits.grams(fromField: $0, text: self.grams, original: target.ingredient.grams) }), grams > 0, nutritionBase.resized(to: grams) != nil,
               let calories = decimal(calories), calories < Double(Int32.max),
               let protein = decimal(protein),
               let carbs = decimal(carbs),

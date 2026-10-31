@@ -62,4 +62,19 @@ struct FoodUnitsServingTests {
         #expect(FoodUnits.grams(forQuantityText: "", option: bowl, currentGrams: 340) == nil)
         #expect(FoodUnits.grams(forQuantityText: "0", option: bowl, currentGrams: 340) == nil)
     }
+
+    /// A 200 g ingredient opens at "7.1" oz; saving that text unchanged keeps 200 g.
+    @Test func unchangedIngredientWeightKeepsTheExactGrams() {
+        #expect(FoodUnits.fieldText(grams: 200, config: us) == "7.1")
+        #expect(FoodUnits.grams(fromField: 7.1, text: "7.1", original: 200, config: us) == 200)
+        #expect(FoodUnits.grams(fromField: 4, text: "4", original: 200, config: us) == 4 * FoodUnits.gramsPerOunce)
+        #expect(FoodUnits.grams(fromField: 150, text: "150", original: 200, config: metric) == 150)
+    }
+
+    /// The AI's options are held to 15% or 5 g, so a 7 g "1 tsp" stays one teaspoon.
+    @Test func smallServingsKeepTheirCount() {
+        let tsp = ServingUnitOption(unit: "tsp", gramsPerUnit: 4.2, quantity: 1)
+        #expect(FoodUnits.storedQuantity(1, fits: tsp, totalGrams: 7) == 1)
+        #expect(FoodUnits.storedQuantity(3, fits: tsp, totalGrams: 7) == nil)
+    }
 }
