@@ -75,7 +75,7 @@ enum PortionReference {
 struct PortionHelpRows: View {
     let images: [UIImage]
     let baseServingGrams: Double
-    let servingGrams: Double
+    @Binding var servingGrams: Double
     let servingOption: ServingUnitOption
     @Binding var quantityText: String
     @State private var showGuide = false
@@ -85,6 +85,8 @@ struct PortionHelpRows: View {
         HStack(spacing: 6) {
             ForEach(PortionMultiplier.values, id: \.self) { value in
                 Button {
+                    // Exact grams first, so the editor keeps them instead of the rounded text.
+                    servingGrams = baseServingGrams * value
                     quantityText = PortionMultiplier.quantityText(baseGrams: baseServingGrams, multiplier: value, option: servingOption)
                 } label: {
                     Text(PortionMultiplier.label(value))

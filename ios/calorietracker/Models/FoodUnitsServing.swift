@@ -22,4 +22,17 @@ extension FoodUnits {
         let isMeasure = isVolume(option.unit) || ["lb", "kg"].contains(option.id)
         return isMeasure ? label : "\(label) (~\(amount))"
     }
+
+    /// Grams for a quantity typed or set in `option`. When the text is just the current amount
+    /// as the field shows it (after a unit switch or a finished edit), the current grams stay:
+    /// turning the rounded "12.3" oz back into 348.7 g would shift every number a little.
+    static func grams(forQuantityText text: String, option: ServingUnitOption, currentGrams: Double) -> Double? {
+        guard let quantity = ServingAmountExpression.evaluate(text), quantity > 0 else { return nil }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if option.gramsPerUnit > 0, currentGrams.isFinite, currentGrams > 0,
+           ServingUnitEditor.formatQuantity(currentGrams / option.gramsPerUnit) == trimmed {
+            return currentGrams
+        }
+        return quantity * option.gramsPerUnit
+    }
 }

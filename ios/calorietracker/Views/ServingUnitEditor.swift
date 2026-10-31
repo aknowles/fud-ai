@@ -47,8 +47,8 @@ struct ServingUnitEditor: View {
             )
             .frame(width: 104)
             .onChange(of: quantityText) { _, newValue in
-                guard let parsed = ServingAmountExpression.evaluate(newValue), parsed > 0 else { return }
-                servingSizeGrams = parsed * selectedOption.gramsPerUnit
+                guard let grams = FoodUnits.grams(forQuantityText: newValue, option: selectedOption, currentGrams: servingSizeGrams) else { return }
+                servingSizeGrams = grams
             }
             .onChange(of: selectedUnitID) { _, _ in
                 syncQuantityTextToSelectedUnit()
@@ -118,7 +118,7 @@ struct ServingUnitEditor: View {
             return
         }
         quantityText = Self.formatQuantity(quantity)
-        servingSizeGrams = quantity * selectedOption.gramsPerUnit
+        servingSizeGrams = FoodUnits.grams(forQuantityText: quantityText, option: selectedOption, currentGrams: servingSizeGrams) ?? quantity * selectedOption.gramsPerUnit
     }
 
     static func formatQuantity(_ value: Double) -> String {

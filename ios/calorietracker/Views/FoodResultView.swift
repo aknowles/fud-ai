@@ -549,7 +549,7 @@ struct FoodResultView: View {
                                     .foregroundStyle(.secondary)
                             }
                         }
-                        PortionHelpRows(images: images, baseServingGrams: baseServingSizeGrams, servingGrams: servingSizeGrams, servingOption: selectedServingOption, quantityText: $servingSizeText)
+                        PortionHelpRows(images: images, baseServingGrams: baseServingSizeGrams, servingGrams: $servingSizeGrams, servingOption: selectedServingOption, quantityText: $servingSizeText)
                     }
 
                     Section {

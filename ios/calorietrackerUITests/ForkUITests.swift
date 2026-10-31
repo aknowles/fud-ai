@@ -579,4 +579,45 @@ final class ForkUITests: XCTestCase {
         XCTAssertFalse(text(containing: "355 fl oz", in: app).exists, "355 ml is not 355 fl oz")
         XCTAssertTrue(text(containing: "12 fl oz", in: app).exists)
     }
+
+    /// Ounces to bowl, half a bowl, the 2× button, then back to ounces: every step follows the
+    /// amount exactly, so two bowls of a 480 kcal bowl read 960 kcal, not 961.
+    @MainActor
+    func testSwitchingPortionUnitsKeepsTheNumbersExact() {
+        var chili = Self.food("Beef chili", calories: 480, daysAgo: 1, hour: 12)
+        chili["servingSizeGrams"] = 340
+        chili["servingUnitOptions"] = [["unit": "bowl", "gramsPerUnit": 340, "quantity": 1]]
+        chili["selectedServingUnit"] = "oz"
+        chili["selectedServingQuantity"] = 12
+        let app = makeApp(["fork.units.system": "us", "foodEntries": [chili]])
+        open("recent", in: app)
+        let row = text(containing: "Beef chili", in: app)
+        XCTAssertTrue(row.waitForExistence(timeout: 5))
+        row.tap()
+
+        func pick(_ from: String, _ to: String) {
+            let menu = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", from)).firstMatch
+            XCTAssertTrue(menu.waitForExistence(timeout: 5))
+            menu.tap()
+            let item = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", to)).firstMatch
+            XCTAssertTrue(item.waitForExistence(timeout: 5))
+            item.tap()
+        }
+        pick("oz", "bowl")
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == %@", "1")).firstMatch.waitForExistence(timeout: 5))
+        app.buttons["Clear quantity"].tap()
+        app.typeText("0.5")
+        app.buttons.matching(NSPredicate(format: "label == %@", "Done")).firstMatch.tap()
+        XCTAssertTrue(app.staticTexts["240"].waitForExistence(timeout: 5), "Half a bowl is half the calories")
+
+        let double = app.buttons["review.portion.multiplier.2"]
+        reveal(double, in: app)
+        double.tap()
+        XCTAssertTrue(app.staticTexts["960"].waitForExistence(timeout: 5))
+        pick("bowl", "oz")
+        XCTAssertTrue(app.textFields.matching(NSPredicate(format: "value == %@", "24")).firstMatch.waitForExistence(timeout: 5))
+XCTAssertTrue(app.staticTexts["960"].exists, "Switching back to ounces keeps 960 kcal")
+        XCTAssertTrue(app.staticTexts["10"].exists, "and 10 g protein, not 10.0")
+        XCTAssertFalse(app.staticTexts["10.0"].exists)
+    }
 }

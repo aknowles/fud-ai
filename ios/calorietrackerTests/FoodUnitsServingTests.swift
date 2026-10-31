@@ -45,4 +45,21 @@ struct FoodUnitsServingTests {
         let steak = entry("Steak", grams: 340, options: [], unit: nil, quantity: nil)
         #expect(FoodUnits.loggedServingText(grams: 340, entry: steak, config: us) == "12 oz")
     }
+
+    /// Switching from 1 bowl to oz shows "12"; that text must keep 340 g, not become 340.2 g.
+    @Test func unchangedQuantityTextKeepsTheExactGrams() {
+        let ounce = FoodUnits.ounce
+        #expect(FoodUnits.grams(forQuantityText: "12", option: ounce, currentGrams: 340) == 340)
+        #expect(FoodUnits.grams(forQuantityText: "1", option: bowl, currentGrams: 340) == 340)
+        // Two bowls in ounces read "24"; switching back keeps 680 g exactly.
+        #expect(FoodUnits.grams(forQuantityText: "24", option: ounce, currentGrams: 680) == 680)
+    }
+
+    @Test func typedQuantitiesStillChangeTheGrams() {
+        #expect(FoodUnits.grams(forQuantityText: "0.5", option: bowl, currentGrams: 340) == 170)
+        #expect(FoodUnits.grams(forQuantityText: "6", option: FoodUnits.ounce, currentGrams: 340) == 6 * FoodUnits.gramsPerOunce)
+        #expect(FoodUnits.grams(forQuantityText: "1/2", option: bowl, currentGrams: 340) == 170)
+        #expect(FoodUnits.grams(forQuantityText: "", option: bowl, currentGrams: 340) == nil)
+        #expect(FoodUnits.grams(forQuantityText: "0", option: bowl, currentGrams: 340) == nil)
+    }
 }
