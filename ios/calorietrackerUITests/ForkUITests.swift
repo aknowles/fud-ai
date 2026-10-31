@@ -555,4 +555,28 @@ final class ForkUITests: XCTestCase {
             XCTAssertTrue(row.waitForExistence(timeout: 5))
         }
     }
+
+    // MARK: - Serving amounts
+
+    /// Diary rows under US units: an amount in ounces reads once, not "12 oz (~12 oz)", and a
+    /// count saved with ml is not shown as that many fl oz.
+    @MainActor
+    func testDiaryRowsShowEachAmountOnceInTheirOwnUnit() {
+        var chili = Self.food("Beef chili", calories: 480, daysAgo: 0, hour: 9)
+        chili["servingSizeGrams"] = 340
+        chili["servingUnitOptions"] = [["unit": "bowl", "gramsPerUnit": 340, "quantity": 1]]
+        chili["selectedServingUnit"] = "oz"
+        chili["selectedServingQuantity"] = 12
+        var coldBrew = Self.food("Nitro cold brew", calories: 5, daysAgo: 0, hour: 9)
+        coldBrew["servingSizeGrams"] = 355
+        coldBrew["servingUnitOptions"] = [["unit": "ml", "gramsPerUnit": 1, "quantity": 355]]
+        coldBrew["selectedServingUnit"] = "ml"
+        coldBrew["selectedServingQuantity"] = 355
+        let app = makeApp(["fork.units.system": "us", "foodEntries": [chili, coldBrew]])
+        reveal(app.staticTexts["Beef chili"], in: app)
+        reveal(app.staticTexts["Nitro cold brew"], in: app)
+        XCTAssertFalse(text(containing: "(~12 oz)", in: app).exists, "The ounce amount is not repeated")
+        XCTAssertFalse(text(containing: "355 fl oz", in: app).exists, "355 ml is not 355 fl oz")
+        XCTAssertTrue(text(containing: "12 fl oz", in: app).exists)
+    }
 }
