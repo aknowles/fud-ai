@@ -1,0 +1,43 @@
+diff --git a/ios/calorietracker/ContentView.swift b/ios/calorietracker/ContentView.swift
+index 783abcd8b..c36785007 100644
+--- a/ios/calorietracker/ContentView.swift
++++ b/ios/calorietracker/ContentView.swift
+@@ -6537,7 +6537,7 @@ struct ProfileView: View {
+                 }
+ 
+                 if settingsCategory == .dataManagement {
+-                CloudBackupSettingsSection()
++                if ForkSettings.cloudBackupAvailable { CloudBackupSettingsSection() }
+ 
+                 Section {
+                     // Export Food Diary
+diff --git a/ios/calorietracker/Models/ForkSettings.swift b/ios/calorietracker/Models/ForkSettings.swift
+index 23c158088..088b222af 100644
+--- a/ios/calorietracker/Models/ForkSettings.swift
++++ b/ios/calorietracker/Models/ForkSettings.swift
+@@ -8,6 +8,10 @@ import Foundation
+ enum ForkSettings {
+     /// When false, RevenueCat is never configured and every paid or hosted option is hidden.
+     nonisolated static let paidFeaturesEnabled = false
++
++    /// False on personal-team device builds: CloudKit needs a paid membership, and
++    /// CKContainer.default() crashes without the iCloud entitlement.
++    static let cloudBackupAvailable = false
+ }
+ 
+ extension AIMode {
+diff --git a/ios/calorietracker/Views/ReturningUserView.swift b/ios/calorietracker/Views/ReturningUserView.swift
+index 21c6130b5..6756ddf22 100644
+--- a/ios/calorietracker/Views/ReturningUserView.swift
++++ b/ios/calorietracker/Views/ReturningUserView.swift
+@@ -246,8 +246,10 @@ struct ReturningUserView: View {
+                     hero
+ 
+                     VStack(spacing: 14) {
++                        if ForkSettings.cloudBackupAvailable {
+                         sourceCard(.iCloud)
+                             .entrance(appeared, delay: 0.08, reduceMotion: reduceMotion)
++                        }
+                         sourceCard(.health)
+                             .entrance(appeared, delay: 0.14, reduceMotion: reduceMotion)
+                     }
