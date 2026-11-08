@@ -232,33 +232,76 @@ enum PurineReference {
         return best?.food
     }
 
+    /// Words allowed beside 0 mg foods in a purine-free ingredient ("brewed coffee", "iced tea").
+    nonisolated static let purineFreeDescriptors: Set<String> = [
+        "brewed", "black", "hot", "iced", "decaf", "decaffeinated", "plain", "unsweetened",
+        "sparkling", "still", "filtered", "tap", "bottled", "drip", "cup", "mug", "glass",
+        "a", "of", "and", "with",
+    ]
+
+    /// True when every word of `text` belongs to a 0 mg reference food or `purineFreeDescriptors`,
+    /// and no reference food above 0 mg is named. Every keyword counts, not only the longest, so
+    /// "sugar snap peas" and "coffee cake" are not purine-free; an unknown word ("coffee-rubbed
+    /// wagyu", "Nespresso Vertuo coffee") also rules it out, since it could be a purine source.
+    nonisolated static func isPurineFree(_ text: String, in foods: [Food] = foods) -> Bool {
+        let words = normalized(text).split(separator: " ").map(String.init)
+        guard !words.isEmpty else { return false }
+        let haystack = " " + words.joined(separator: " ") + " "
+        var covered = purineFreeDescriptors
+        for food in foods {
+            for keyword in food.keywords {
+                let key = normalized(keyword)
+                guard !key.isEmpty, containsWord(key, in: haystack) else { continue }
+                if food.milligramsPer100g > 0 { return false }
+                for word in key.split(separator: " ").map(String.init) {
+                    covered.formUnion([word, word + "s", word + "es"])
+                    if word.hasSuffix("y") { covered.insert(String(word.dropLast()) + "ies") }
+                }
+            }
+        }
+        return words.allSatisfy { covered.contains($0) }
+            && !words.allSatisfy { purineFreeDescriptors.contains($0) }
+    }
+
+    /// True when the entry has an ingredient breakdown and every ingredient is purine-free
+    /// (black coffee as "brewed coffee", tea, water). The name alone never decides this.
+    nonisolated static func allIngredientsArePurineFree(_ ingredients: [MealIngredient], in foods: [Food] = foods) -> Bool {
+        !ingredients.isEmpty && ingredients.allSatisfy { isPurineFree($0.name, in: foods) }
+    }
+
     /// Estimated purines (mg) for the analyzed amount, or nil when nothing in the entry is recognized.
     ///
     /// Ingredient breakdowns are preferred (each ingredient by its own grams); otherwise the
     /// entry name is matched and scaled by its serving size (100 g when the weight is unknown).
+    /// A 0 estimate comes only from an all-purine-free ingredient list: a name match such as
+    /// "coffee-rubbed wagyu" on coffee, or ingredients summing to 0 beside unknown ones, gives nil.
     nonisolated static func estimateMilligrams(for entry: FoodEntry) -> Double? {
         estimateMilligrams(name: entry.name, grams: entry.servingSizeGrams, ingredients: entry.ingredients)
     }
 
     nonisolated static func estimateMilligrams(name: String, grams: Double?, ingredients: [MealIngredient], in foods: [Food] = foods) -> Double? {
+        if allIngredientsArePurineFree(ingredients, in: foods) { return 0 }
         if !ingredients.isEmpty {
             var total = 0.0
-            var matchedAny = false
             for ingredient in ingredients {
                 guard let food = match(ingredient.name, in: foods) else { continue }
-                matchedAny = true
                 total += food.milligramsPer100g * max(ingredient.grams, 0) / 100
             }
-            if matchedAny { return rounded(total) }
+            if total > 0 { return rounded(total) }
         }
-        guard let food = match(name, in: foods) else { return nil }
+        guard let food = match(name, in: foods), food.milligramsPer100g > 0 else { return nil }
         let weight = (grams ?? 0) > 0 ? grams! : assumedGrams
         return rounded(food.milligramsPer100g * weight / 100)
     }
 
-    /// Adds a purine estimate to `supplementalNutrients` when the entry has none and a reference
-    /// food matches. Entries that already carry a value (from the AI, a label or the user) are untouched.
+    /// Sets purines to 0 when every ingredient is purine-free, replacing any AI value (the AI can
+    /// count caffeine as a purine). Otherwise adds a table estimate only when the entry has no
+    /// value; entries that already carry one (from the AI, a label or the user) are untouched.
     nonisolated static func applyFallbackIfNeeded(_ entry: inout FoodEntry) {
+        if allIngredientsArePurineFree(entry.ingredients) {
+            entry.supplementalNutrients[storageKey] = 0
+            return
+        }
         guard entry.supplementalNutrients[storageKey] == nil,
               let estimate = estimateMilligrams(for: entry)
         else { return }
