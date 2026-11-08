@@ -482,6 +482,8 @@ struct EditFoodEntryView: View {
                         recipeServings: recipeServingsBinding
                     )
 
+                    HealthNutrientsSection(entry: editedEntry)
+
                     Section {
                         DisclosureGroup("More Nutrition") {
                             OptionalNutritionDisplayRow(label: "Sugar", value: scaledSugar, unit: "g")

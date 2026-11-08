@@ -302,6 +302,12 @@ struct HealthProfile: Codable, Equatable {
 
     var rules: [HealthRule] { entries.flatMap(\.rules) }
 
+    /// Each nutrient the entries' rules name, once, in rule order (gout: purines, alcohol, added sugar).
+    var trackedNutrients: [OptionalNutrient] {
+        var seen = Set<OptionalNutrient>()
+        return rules.map(\.nutrient).filter { seen.insert($0).inserted }
+    }
+
     var conflicts: [HealthConflict] { HealthConflict.find(in: rules) }
 
     /// Each food flag the active medicines rule out, with the entries that rule it out.

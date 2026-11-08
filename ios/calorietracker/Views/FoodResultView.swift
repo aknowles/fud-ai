@@ -620,6 +620,8 @@ struct FoodResultView: View {
                         recipeServings: recipeServingsBinding
                     )
 
+                    HealthNutrientsSection(entry: healthPreviewEntry)
+
                     Section {
                         DisclosureGroup("More Nutrition") {
                             ReviewNutritionValueRow(label: "Sugar", displayValue: displayText(scaledSugar), editValue: editText(scaledSugar), unit: "g", isUnlocked: nutritionUnlocked, dim: true, onEdit: { updateOptionalBaseDouble(from: $0) { editableSugar = $0 } })
@@ -795,6 +797,15 @@ struct FoodResultView: View {
         let entry = makeFoodEntry(includeImage: true)
         onLog(entry)
         dismiss()
+    }
+
+    /// The entry as it will be logged, with the reference corrections `FoodStore.addEntry`
+    /// applies (a purine-free ingredient list is 0 mg), so the review matches the diary.
+    private var healthPreviewEntry: FoodEntry {
+        var entry = makeFoodEntry(includeImage: false)
+        PurineReference.applyFallbackIfNeeded(&entry)
+        OxalateReference.applyFallbackIfNeeded(&entry)
+        return entry
     }
 
     private func makeFoodEntry(includeImage: Bool) -> FoodEntry {

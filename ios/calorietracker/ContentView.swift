@@ -4106,6 +4106,8 @@ struct FoodRow: View {
                     MacroPill(label: String(localized: "C", comment: "Abbreviation for carbs."), value: entry.carbs)
                     MacroPill(label: String(localized: "F", comment: "Abbreviation for fat."), value: entry.fat)
                 }
+
+                HealthNutrientLine(entry: entry)
             }
         }
         .padding(.vertical, 4)
