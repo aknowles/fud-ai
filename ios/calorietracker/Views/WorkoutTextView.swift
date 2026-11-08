@@ -219,6 +219,10 @@ private struct WorkoutTextReview: View {
             ForEach($draft.exercises) { $exercise in
                 VStack(alignment: .leading, spacing: 10) {
                     Text(exercise.name).font(.headline)
+                    if !exercise.guesses.isEmpty {
+                        Label("Check: \(exercise.guesses.joined(separator: "; "))", systemImage: "questionmark.circle")
+                            .font(.footnote).foregroundStyle(.orange)
+                    }
                     if exercise.exerciseID == nil {
                         Text("Custom timed activity · calorie estimate uses a general activity rate")
                             .font(.footnote).foregroundStyle(.secondary)

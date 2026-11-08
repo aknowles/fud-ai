@@ -105,7 +105,10 @@ struct WorkoutTextDraft: Codable {
             return WorkoutTextExercise(exerciseID: exerciseID, name: try item?.name ?? field(obj["name"]),
                 minutes: try field(obj["minutes"]), unit: try field(obj["unit"]),
                 intensity: (try field(obj["intensity"])).isEmpty ? "moderate" : try field(obj["intensity"]),
-                sets: try sets.map { WorkoutTextSet(weight: try field($0["weight"]), reps: try field($0["reps"]), rpe: try field($0["rpe"])) })
+                sets: try sets.map { WorkoutTextSet(weight: try field($0["weight"]), reps: try field($0["reps"]), rpe: try field($0["rpe"])) },
+                guesses: ((obj["guesses"] as? [String]) ?? [])
+                    .map { String($0.trimmingCharacters(in: .whitespacesAndNewlines).prefix(120)) }
+                    .filter { !$0.isEmpty }.prefix(6).map { $0 })
         }
         let draft = Self(date: date, exercises: exercises)
         _ = try draft.planned(library: library, today: today)
@@ -170,11 +173,13 @@ struct WorkoutTextDraft: Codable {
         Convert the user's completed workout description into a draft for review, never a saved action.
         Input may contain original_workout and follow_ups. Combine all answers with the original workout; retain sets, reps, weights and dates unless the user explicitly corrects them. Do not ask again for details already answered.
         Today is \(StrengthWorkoutDate.key(for: .now)). Selected diary date is \(StrengthWorkoutDate.key(for: selectedDate)). Default weight unit is \(unit.rawValue).
-        Return ONLY JSON: {"question":null,"options":[],"date":"YYYY-MM-DD","exercises":[{"exercise_id":"exact catalog id or null","name":"activity name","minutes":null,"intensity":"moderate","unit":"kg","sets":[{"weight":40,"reps":10,"rpe":null}]}]}
+        Return ONLY JSON: {"question":null,"options":[],"date":"YYYY-MM-DD","exercises":[{"exercise_id":"exact catalog id or null","name":"activity name","minutes":null,"intensity":"moderate","unit":"kg","sets":[{"weight":40,"reps":10,"rpe":null}],"guesses":[]}]}
         Resolve yesterday relative to TODAY, not the selected diary date. Without a date use the selected date.
-        Use the library search results below to resolve everyday wording, spelling mistakes and synonyms to the matching exercise_id; never invent IDs. A machine calf raise may be named Standing Calf Raises or Seated Calf Raise: use equipment metadata, not only words in the title. If the user did not distinguish plausible variants, ask a short specific question (for example: seated or standing?). Never return null for an unresolved strength exercise; ask a question instead. For an unlisted timed sport such as soccer, use null, the activity name, minutes, and empty sets.
+        Use the library search results below to resolve everyday wording, spelling mistakes and synonyms to the matching exercise_id; never invent IDs. A machine calf raise may be named Standing Calf Raises or Seated Calf Raise: use equipment metadata, not only words in the title. If the user did not distinguish plausible variants, pick the most common one (the bodyweight one for home and video workouts) and note it in guesses; ask a short specific question only when no catalog entry is a reasonable fit. Never return null for an unresolved strength exercise; ask a question instead. For an unlisted timed sport such as soccer, use null, the activity name, minutes, and empty sets.
         Expand e.g. 3 sets of 10 into three sets. Convert hours/seconds to minutes. Preserve explicit kg/lbs; use the default for unspecified units.
-        Never guess missing reps, weights, duration, exercise variants, or dates. Omitted weight is null (bodyweight). If needed details are ambiguous, return a short question with empty exercises and 2–4 short answer options when useful (e.g. Barbell, Dumbbells, Machine). Ask just one question at a time.
+        A follow-along video, online class, or streaming or app workout (YouTube, a named instructor, channel or program), or a circuit or HIIT session described without per-exercise sets and reps, is ONE timed activity: exercise_id null, a name like "<instructor or program> <style> workout", minutes = its total length, empty sets, and intensity vigorous for HIIT, cardio or circuits, light for yoga, stretching or mobility, otherwise moderate. Do not split it into its individual moves, even when they are listed, unless the user gives sets or reps for them.
+        Prefer a reasonable guess over a question: the user reviews and edits the draft before anything is saved. Omitted weight is null (bodyweight). Unstated sets and reps use a typical count (3 sets of 10 for weighted moves, 3 sets of 12 for bodyweight moves). Unstated effort uses the rule above. For every guessed value, add a short note to that exercise's guesses list (for example "3 sets of 10 assumed", "bodyweight assumed", "vigorous effort assumed"); explicit values get no note.
+        Never guess a date, a duration nothing in the description hints at, or an exercise you cannot identify. For those, return a short question with empty exercises and 2–4 short answer options when useful. Ask just one question at a time.
         Preserve explicit strength RPE (1–10) in each applicable set; unspecified RPE is null. If the user explicitly uses another RPE scale, ask for its strength 1–10 equivalent rather than silently changing it. Both means bilateral: do not double reps or sets or choose a single-leg variant.
         Timed effort is light, moderate, or vigorous. Preserve explicit effort; otherwise use moderate for the user to review.
         A timed activity requires minutes. Strength requires reps or duration. Maximum 30 exercises, 12 sets each, 1440 minutes, 999 reps, 1500 weight units. No future dates.
@@ -194,6 +199,8 @@ struct WorkoutTextExercise: Identifiable, Codable {
     var unit = "kg"
     var intensity = "moderate"
     var sets: [WorkoutTextSet] = []
+    /// What the AI assumed rather than read ("3 sets of 10 assumed"), shown on review.
+    var guesses: [String] = []
 }
 struct WorkoutTextSet: Identifiable, Codable {
     var id = UUID()
