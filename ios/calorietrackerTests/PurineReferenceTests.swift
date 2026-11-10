@@ -95,4 +95,33 @@ struct PurineReferenceTests {
 
         #expect(store.supplementalNutrient(.purines, for: day) == 220 + 10)
     }
+
+    @Test func coffeeDrinksAreRecognizedAsPurineFreeByNameAlone() {
+        for name in ["Double espresso", "Cup of nitro cold brew", "Venti iced Americano", "Black coffee, 16 oz",
+                     "2 shots of espresso", "Green tea", "Sparkling water"] {
+            #expect(PurineReference.isPurineFree(name: name, ingredients: []), "\(name)")
+        }
+        for name in ["Coffee-rubbed wagyu", "Coffee cake", "Double cheeseburger", "Nespresso Vertuo coffee", "Double", "Cold cuts"] {
+            #expect(!PurineReference.isPurineFree(name: name, ingredients: []), "\(name)")
+        }
+    }
+
+    @Test func aiPurinesOnACoffeeTextEstimateAreReplacedWithZero() {
+        var espresso = FoodEntry(name: "Double espresso", calories: 5, protein: 0, carbs: 1, fat: 0, source: .textInput,
+                                 supplementalNutrients: ["purines": 15], servingSizeGrams: 60)
+        PurineReference.applyFallbackIfNeeded(&espresso)
+        #expect(espresso.supplementalNutrients["purines"] == 0)
+    }
+
+    @Test func loggedCoffeeIsRepairedButManualValuesAreKept() {
+        let coldBrew = FoodEntry(name: "Cup of nitro cold brew", calories: 5, protein: 0, carbs: 0, fat: 0, source: .textInput,
+                                 supplementalNutrients: ["purines": 30])
+        let typed = FoodEntry(name: "Double espresso", calories: 5, protein: 0, carbs: 0, fat: 0, source: .manual,
+                              supplementalNutrients: ["purines": 15])
+        let steak = FoodEntry(name: "Ribeye steak", calories: 600, protein: 50, carbs: 0, fat: 40, source: .textInput,
+                              supplementalNutrients: ["purines": 220])
+        #expect(FoodStore.needsPurineRepair(coldBrew))
+        #expect(!FoodStore.needsPurineRepair(typed))
+        #expect(!FoodStore.needsPurineRepair(steak))
+    }
 }

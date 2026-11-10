@@ -5,6 +5,8 @@ struct WorkoutsView: View {
     @AppStorage(WorkoutTabMode.storageKey) private var selectedModeRaw = WorkoutTabMode.defaultMode.rawValue
     @AppStorage(AppThemeColor.storageKey) private var appThemeColorRaw = AppThemeColor.defaultColor.rawValue
     @State private var workoutLogSession = WorkoutLogSessionState()
+    @State private var backgroundedAt: Date?
+    @Environment(\.scenePhase) private var scenePhase
 
     private var selectedMode: WorkoutTabMode {
         WorkoutTabMode.mode(for: selectedModeRaw)
@@ -39,6 +41,15 @@ struct WorkoutsView: View {
         .animation(.easeInOut(duration: 0.2), value: appThemeColorRaw)
         .onChange(of: workoutLogSession.selectedDate, initial: true) { _, day in
             VoiceAssistantNavigator.shared.workoutDiaryDate = day
+        }
+        // A new day since the app was last open lands on today, as in the food diary.
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .background {
+                backgroundedAt = .now
+            } else if phase == .active, let away = backgroundedAt {
+                workoutLogSession.selectedDate = DiaryDayRollover.selectedDate(workoutLogSession.selectedDate, leftAt: away)
+                backgroundedAt = nil
+            }
         }
     }
 

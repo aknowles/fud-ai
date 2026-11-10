@@ -736,9 +736,22 @@ class FoodStore {
                 }
             }
         }
+        // Purine repair: AI estimates logged before the purine-free check recognized them
+        // ("Double espresso", "Cup of nitro cold brew") carried caffeine counted as purines.
+        // Manual entries keep whatever the user typed. Idempotent: only nonzero values change.
+        for i in entries.indices where Self.needsPurineRepair(entries[i]) {
+            entries[i].supplementalNutrients[PurineReference.storageKey] = 0
+            migrated = true
+        }
         if migrated {
             saveEntries()
         }
+    }
+
+    nonisolated static func needsPurineRepair(_ entry: FoodEntry) -> Bool {
+        entry.source != .manual
+            && (entry.supplementalNutrients[PurineReference.storageKey] ?? 0) > 0
+            && PurineReference.isPurineFree(entry)
     }
 }
 

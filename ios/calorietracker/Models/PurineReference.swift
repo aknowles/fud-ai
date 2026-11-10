@@ -233,10 +233,17 @@ enum PurineReference {
     }
 
     /// Words allowed beside 0 mg foods in a purine-free ingredient ("brewed coffee", "iced tea").
+    /// Sizes, shot counts and brewing styles are included so "Double espresso", "Cup of nitro cold
+    /// brew" and "Venti iced Americano" are recognized; whole numbers ("2 shots", "16 oz") count too.
     nonisolated static let purineFreeDescriptors: Set<String> = [
-        "brewed", "black", "hot", "iced", "decaf", "decaffeinated", "plain", "unsweetened",
-        "sparkling", "still", "filtered", "tap", "bottled", "drip", "cup", "mug", "glass",
-        "a", "of", "and", "with",
+        "brewed", "black", "hot", "iced", "ice", "decaf", "decaffeinated", "plain", "unsweetened",
+        "sparkling", "still", "filtered", "tap", "bottled", "drip", "cup", "cups", "mug", "glass",
+        "can", "bottle", "a", "an", "of", "and", "with", "my", "morning",
+        "single", "double", "triple", "quad", "doppio", "shot", "shots", "nitro", "cold",
+        "ristretto", "lungo", "long", "short", "tall", "grande", "venti", "trenta",
+        "small", "medium", "large", "regular", "fresh", "freshly", "pour", "over", "french", "press",
+        "roast", "dark", "light", "instant", "filter", "pod", "oz", "fl", "ounce", "ounces", "ml",
+        "splash", "dash",
     ]
 
     /// True when every word of `text` belongs to a 0 mg reference food or `purineFreeDescriptors`,
@@ -259,8 +266,9 @@ enum PurineReference {
                 }
             }
         }
-        return words.allSatisfy { covered.contains($0) }
-            && !words.allSatisfy { purineFreeDescriptors.contains($0) }
+        let isNumber: (String) -> Bool = { $0.allSatisfy(\.isNumber) }
+        return words.allSatisfy { covered.contains($0) || isNumber($0) }
+            && !words.allSatisfy { purineFreeDescriptors.contains($0) || isNumber($0) }
     }
 
     /// True when the entry has an ingredient breakdown and every ingredient is purine-free
@@ -269,18 +277,28 @@ enum PurineReference {
         !ingredients.isEmpty && ingredients.allSatisfy { isPurineFree($0.name, in: foods) }
     }
 
+    /// True when the entry is purine-free by its ingredients or by its name ("Double espresso").
+    /// A name decides only when every word is accounted for, so "Coffee-rubbed wagyu" does not.
+    nonisolated static func isPurineFree(name: String, ingredients: [MealIngredient], in foods: [Food] = foods) -> Bool {
+        allIngredientsArePurineFree(ingredients, in: foods) || isPurineFree(name, in: foods)
+    }
+
+    nonisolated static func isPurineFree(_ entry: FoodEntry) -> Bool {
+        isPurineFree(name: entry.name, ingredients: entry.ingredients)
+    }
+
     /// Estimated purines (mg) for the analyzed amount, or nil when nothing in the entry is recognized.
     ///
     /// Ingredient breakdowns are preferred (each ingredient by its own grams); otherwise the
     /// entry name is matched and scaled by its serving size (100 g when the weight is unknown).
-    /// A 0 estimate comes only from an all-purine-free ingredient list: a name match such as
-    /// "coffee-rubbed wagyu" on coffee, or ingredients summing to 0 beside unknown ones, gives nil.
+    /// A 0 estimate comes only from a fully purine-free ingredient list or name: a partial match such
+    /// as "coffee-rubbed wagyu" on coffee, or ingredients summing to 0 beside unknown ones, gives nil.
     nonisolated static func estimateMilligrams(for entry: FoodEntry) -> Double? {
         estimateMilligrams(name: entry.name, grams: entry.servingSizeGrams, ingredients: entry.ingredients)
     }
 
     nonisolated static func estimateMilligrams(name: String, grams: Double?, ingredients: [MealIngredient], in foods: [Food] = foods) -> Double? {
-        if allIngredientsArePurineFree(ingredients, in: foods) { return 0 }
+        if isPurineFree(name: name, ingredients: ingredients, in: foods) { return 0 }
         if !ingredients.isEmpty {
             var total = 0.0
             for ingredient in ingredients {
@@ -294,11 +312,11 @@ enum PurineReference {
         return rounded(food.milligramsPer100g * weight / 100)
     }
 
-    /// Sets purines to 0 when every ingredient is purine-free, replacing any AI value (the AI can
+    /// Sets purines to 0 when the entry is purine-free (by ingredients or name), replacing any AI value (the AI can
     /// count caffeine as a purine). Otherwise adds a table estimate only when the entry has no
     /// value; entries that already carry one (from the AI, a label or the user) are untouched.
     nonisolated static func applyFallbackIfNeeded(_ entry: inout FoodEntry) {
-        if allIngredientsArePurineFree(entry.ingredients) {
+        if isPurineFree(entry) {
             entry.supplementalNutrients[storageKey] = 0
             return
         }

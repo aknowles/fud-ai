@@ -1229,6 +1229,8 @@ struct HomeView: View {
     // Not bumped on tab switches or data edits, so it only plays on app open.
     @State private var launchFillEpoch = 1
     @State private var wasBackgrounded = false
+    /// When the app last left the foreground, so a return on a later day can jump to today.
+    @State private var backgroundedAt: Date?
     @AppStorage("weightUnit") private var weightUnitRaw = "lbs"
     @AppStorage(EnergyUnit.storageKey) private var energyUnit = EnergyUnit.defaultUnit
     @AppStorage(FoodLogSortOrder.storageKey) private var foodLogSortOrderRaw = FoodLogSortOrder.defaultOrder.rawValue
@@ -2407,10 +2409,20 @@ private var dailyStepsTaskKey: String {
                         launchFillEpoch += 1
                         wasBackgrounded = false
                     }
+                    if let away = backgroundedAt {
+                        selectedDate = DiaryDayRollover.selectedDate(selectedDate, leftAt: away)
+                        backgroundedAt = nil
+                    }
                     homeBurnRefreshGeneration += 1
                 } else if newPhase == .background {
                     wasBackgrounded = true
+                    backgroundedAt = .now
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .NSCalendarDayChanged).receive(on: DispatchQueue.main)) { _ in
+                // Open across midnight: follow the day if "today" was selected.
+                let previousDay = Calendar.current.date(byAdding: .day, value: -1, to: .now) ?? .now
+                selectedDate = DiaryDayRollover.selectedDate(selectedDate, leftAt: previousDay, onlyIfViewingThatDay: true)
             }
             .onReceive(NotificationCenter.default.publisher(for: .fudBarcodeAlertScanLabel)) { notification in
                 retryRequest = nil
